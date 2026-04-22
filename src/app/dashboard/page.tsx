@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useActivities } from '@/hooks/useActivities'
 import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import CreateActivityModal from '@/components/CreateActivityModal'
 
@@ -50,8 +51,14 @@ export default function ExplorePage() {
   const searchTimeout = useRef<any>(null)
 
   useEffect(() => {
-    if (profile?.home_display_name) setCityInput(profile.home_display_name)
-    if (profile?.home_lat && profile?.home_lng) setCityCoords({ lat: profile.home_lat, lon: profile.home_lng })
+    // Load from sessionStorage first (instant)
+    const cached = sessionStorage.getItem('ba_city')
+    const cachedCoords = sessionStorage.getItem('ba_coords')
+    if (cached) setCityInput(cached)
+    if (cachedCoords) { try { setCityCoords(JSON.parse(cachedCoords)) } catch {} }
+    // Then fall back to profile
+    if (!cached && profile?.home_display_name) setCityInput(profile.home_display_name)
+    if (!cachedCoords && profile?.home_lat && profile?.home_lng) setCityCoords({ lat: profile.home_lat, lon: profile.home_lng })
   }, [profile])
 
   const userInterests = profile?.interests || []
@@ -74,15 +81,28 @@ export default function ExplorePage() {
     }, 300)
   }
 
+  function saveExploreState(display: string, lat: number | null, lon: number | null, rad: number) {
+    if (!user) return
+    const updates: any = { explore_display_name: display, explore_radius_miles: rad }
+    if (lat != null && lon != null) { updates.explore_lat = lat; updates.explore_lng = lon }
+    else { updates.explore_lat = null; updates.explore_lng = null }
+    supabase.from('profiles').update(updates).eq('id', user.id).then(() => {})
+    sessionStorage.setItem('ba_city', display)
+    if (lat != null && lon != null) sessionStorage.setItem('ba_coords', JSON.stringify({ lat, lon }))
+    else sessionStorage.removeItem('ba_coords')
+  }
+
   function selectPlace(place: any) {
     const addr = place.address || {}
     const name = addr.borough || addr.city || addr.town || addr.village || addr.county || place.display_name.split(',')[0]
     const state = addr.state || ''
     const display = state ? `${name}, ${state}` : name
+    const lat = parseFloat(place.lat), lon = parseFloat(place.lon)
     setCityInput(display)
-    setCityCoords({ lat: parseFloat(place.lat), lon: parseFloat(place.lon) })
+    setCityCoords({ lat, lon })
     setPlaceResults([])
     setShowPlaces(false)
+    saveExploreState(display, lat, lon, radius)
   }
 
   function clearCity() {
@@ -90,6 +110,7 @@ export default function ExplorePage() {
     setCityCoords(null)
     setPlaceResults([])
     setShowPlaces(false)
+    saveExploreState('', null, null, radius)
   }
 
   // GPS
@@ -106,9 +127,12 @@ export default function ExplorePage() {
           const addr = data.address || {}
           const name = addr.borough || addr.city || addr.town || addr.village || addr.county || 'Your Location'
           const state = addr.state || ''
-          setCityInput(state ? `${name}, ${state}` : name)
+          const display = state ? `${name}, ${state}` : name
+          setCityInput(display)
+          saveExploreState(display, latitude, longitude, radius)
         } catch {
           setCityInput('Current Location')
+          saveExploreState('Current Location', latitude, longitude, radius)
         }
         setGpsLoading(false)
       },

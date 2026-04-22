@@ -4,16 +4,16 @@ import { useAuth } from '@/hooks/useAuth'
 import { useState, useRef, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
+const ALL_CATEGORIES = ['Travel','Local Activities','Sports / Play','Learning','Help / Support','Events','Outdoor','Gaming','Wellness','Ride Share','Dog Walk','Babysit','Party','Pray','Others']
+
 function VerifyBadge({ verified }: { verified: { email: boolean; phone: boolean; selfie: boolean } }) {
   const e = verified.email ? 1 : 0
   const p = verified.phone ? 1 : 0
   const s = verified.selfie ? 1 : 0
   const total = e + p + s
   const color = total === 3 ? '#059669' : total >= 1 ? '#3293CB' : '#9CA3AF'
-  const tooltip = `Email: ${e ? 'Verified' : 'Not verified'}\nPhone: ${p ? 'Verified' : 'Not verified'}\nSelfie: ${s ? 'Captured' : 'Not taken'}`
-
   return (
-    <span title={tooltip} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'help' }}>
+    <span title={`Email: ${e ? '✓' : '✗'} Phone: ${p ? '✓' : '✗'} Selfie: ${s ? '✓' : '✗'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'help' }}>
       <svg width="24" height="24" viewBox="0 0 24 24">
         <path d="M12,2 A10,10 0 0,1 20.66,7" fill="none" stroke={e ? color : '#E5E7EB'} strokeWidth="2.5" strokeLinecap="round" />
         <path d="M20.66,7 A10,10 0 0,1 12,22" fill="none" stroke={p ? color : '#E5E7EB'} strokeWidth="2.5" strokeLinecap="round" />
@@ -28,14 +28,25 @@ function VerifyBadge({ verified }: { verified: { email: boolean; phone: boolean;
 export default function ProfilePage() {
   const { user, profile, updateProfile, signOut, refreshProfile } = useAuth()
   const [editing, setEditing] = useState(false)
+  const [editingInterests, setEditingInterests] = useState(false)
+  const [editingSocials, setEditingSocials] = useState(false)
+  const [phoneVerifying, setPhoneVerifying] = useState(false)
+  const [selfieCapturing, setSelfieCapturing] = useState(false)
   const [form, setForm] = useState({ firstName: '', lastName: '', city: '', bio: '' })
+  const [interestsForm, setInterestsForm] = useState<string[]>([])
+  const [socialsForm, setSocialsForm] = useState({ instagram: '', twitter: '', linkedin: '', website: '' })
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [phoneCode, setPhoneCode] = useState('')
+  const [phoneRequestId, setPhoneRequestId] = useState('')
+  const [phoneStep, setPhoneStep] = useState<'enter' | 'verify'>('enter')
   const [stats, setStats] = useState({ created: 0, joined: 0 })
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [selfieStream, setSelfieStream] = useState<MediaStream | null>(null)
 
-  useEffect(() => {
-    if (user) loadStats()
-  }, [user])
+  useEffect(() => { if (user) loadStats() }, [user])
 
   async function loadStats() {
     if (!user) return
@@ -58,18 +69,159 @@ export default function ProfilePage() {
     setEditing(false)
   }
 
+  function startEditInterests() {
+    setInterestsForm([...(profile!.interests || [])])
+    setEditingInterests(true)
+  }
+
+  function toggleInterest(cat: string) {
+    setInterestsForm(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat])
+  }
+
+  async function saveInterests() {
+    await updateProfile({ interests: interestsForm } as any)
+    setEditingInterests(false)
+    refreshProfile()
+  }
+
+  function startEditSocials() {
+    const s = (profile!.socials || {}) as any
+    setSocialsForm({ instagram: s.instagram || '', twitter: s.twitter || '', linkedin: s.linkedin || '', website: s.website || '' })
+    setEditingSocials(true)
+  }
+
+  async function saveSocials() {
+    const obj: Record<string, string> = {}
+    if (socialsForm.instagram) obj.instagram = socialsForm.instagram.replace('@', '')
+    if (socialsForm.twitter) obj.twitter = socialsForm.twitter.replace('@', '')
+    if (socialsForm.linkedin) obj.linkedin = socialsForm.linkedin.startsWith('http') ? socialsForm.linkedin : 'https://linkedin.com/in/' + socialsForm.linkedin
+    if (socialsForm.website) obj.website = socialsForm.website.startsWith('http') ? socialsForm.website : 'https://' + socialsForm.website
+    await updateProfile({ socials: obj } as any)
+    setEditingSocials(false)
+    refreshProfile()
+  }
+
   async function uploadAvatar(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !user) return
     setUploading(true)
-    const fname = `${user.id}-${Date.now()}.jpg`
-    const { error: uploadErr } = await supabase.storage.from('avatars').upload(fname, file, { contentType: file.type, upsert: true })
-    if (!uploadErr) {
-      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fname)
-      await updateProfile({ avatar_url: urlData.publicUrl } as any)
-      refreshProfile()
+    // Compress image
+    const canvas = document.createElement('canvas')
+    const img = new Image()
+    img.onload = async () => {
+      const maxDim = 800
+      let w = img.width, h = img.height
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round(h * maxDim / w); w = maxDim }
+        else { w = Math.round(w * maxDim / h); h = maxDim }
+      }
+      canvas.width = w; canvas.height = h
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+      canvas.toBlob(async blob => {
+        if (!blob) { setUploading(false); return }
+        const fname = `${user.id}-${Date.now()}.jpg`
+        const { error: ue } = await supabase.storage.from('avatars').upload(fname, blob, { contentType: 'image/jpeg', upsert: true })
+        if (!ue) {
+          const { data: ud } = supabase.storage.from('avatars').getPublicUrl(fname)
+          await updateProfile({ avatar_url: ud.publicUrl } as any)
+          refreshProfile()
+        }
+        setUploading(false)
+      }, 'image/jpeg', 0.85)
     }
-    setUploading(false)
+    img.src = URL.createObjectURL(file)
+  }
+
+  // Phone verification
+  async function sendPhoneOTP() {
+    if (!phoneNumber.trim()) return
+    try {
+      const res = await fetch('/api/verify-phone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneNumber, action: 'send' })
+      })
+      const data = await res.json()
+      if (data.request_id) {
+        setPhoneRequestId(data.request_id)
+        setPhoneStep('verify')
+      } else {
+        alert(data.error || 'Failed to send code')
+      }
+    } catch { alert('Failed to send verification code') }
+  }
+
+  async function verifyPhoneOTP() {
+    if (!phoneCode.trim()) return
+    try {
+      const res = await fetch('/api/verify-phone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: phoneRequestId, code: phoneCode, action: 'verify' })
+      })
+      const data = await res.json()
+      if (data.verified) {
+        await updateProfile({ verified_phone: true, phone: phoneNumber } as any)
+        refreshProfile()
+        setPhoneVerifying(false)
+        setPhoneStep('enter')
+        setPhoneCode('')
+      } else {
+        alert(data.error || 'Invalid code')
+      }
+    } catch { alert('Verification failed') }
+  }
+
+  // Selfie capture
+  async function startSelfie() {
+    setSelfieCapturing(true)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } })
+      setSelfieStream(stream)
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          videoRef.current.play()
+        }
+      }, 100)
+    } catch {
+      alert('Camera access denied. Please allow camera access in your browser settings.')
+      setSelfieCapturing(false)
+    }
+  }
+
+  async function captureSelfie() {
+    if (!videoRef.current || !canvasRef.current || !user) return
+    const v = videoRef.current
+    const c = canvasRef.current
+    c.width = v.videoWidth; c.height = v.videoHeight
+    c.getContext('2d')!.drawImage(v, 0, 0)
+    // Stop stream
+    selfieStream?.getTracks().forEach(t => t.stop())
+    setSelfieStream(null)
+    // Upload
+    c.toBlob(async blob => {
+      if (!blob) return
+      const fname = `selfie-${user.id}-${Date.now()}.jpg`
+      const { error } = await supabase.storage.from('avatars').upload(fname, blob, { contentType: 'image/jpeg' })
+      if (!error) {
+        await updateProfile({ verified_selfie: true } as any)
+        refreshProfile()
+      }
+      setSelfieCapturing(false)
+    }, 'image/jpeg', 0.9)
+  }
+
+  function cancelSelfie() {
+    selfieStream?.getTracks().forEach(t => t.stop())
+    setSelfieStream(null)
+    setSelfieCapturing(false)
+  }
+
+  async function resendVerificationEmail() {
+    const { error } = await supabase.auth.resend({ type: 'signup', email: profile!.email })
+    if (error) alert(error.message)
+    else alert('Verification email sent! Check your inbox.')
   }
 
   function shareProfile() {
@@ -83,24 +235,43 @@ export default function ProfilePage() {
   }
 
   const verified = { email: profile.verified_email, phone: profile.verified_phone, selfie: profile.verified_selfie }
+  const completion = [
+    profile.home_display_name || profile.city,
+    profile.bio,
+    profile.avatar_url,
+    (profile.interests || []).length > 0,
+    profile.verified_email,
+    profile.verified_phone,
+  ].filter(Boolean).length
+  const completionPct = Math.round((completion / 6) * 100)
 
   return (
     <div>
       {/* Profile header */}
-      <div style={{ background: 'linear-gradient(135deg, #f3f4f6, #F9FAFB)', borderRadius: 20, padding: 32, textAlign: 'center', marginBottom: 24 }}>
-        <div onClick={() => fileRef.current?.click()} style={{ width: 96, height: 96, borderRadius: '50%', background: '#E0F2FE', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, fontWeight: 700, color: '#3293CB', overflow: 'hidden', position: 'relative', cursor: 'pointer' }}>
+      <div style={{ borderRadius: 20, padding: 32, textAlign: 'center', marginBottom: 24 }}>
+        <div onClick={() => fileRef.current?.click()} style={{ width: 96, height: 96, borderRadius: '50%', background: '#F0F9FF', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, fontWeight: 700, color: '#3293CB', overflow: 'hidden', position: 'relative', cursor: 'pointer' }}>
           {profile.avatar_url ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} alt="" /> : (profile.first_name?.[0] || '?')}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '4px 0', textAlign: 'center' }}>
-            {uploading ? '...' : 'Change'}
-          </div>
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '4px 0', textAlign: 'center' }}>{uploading ? '...' : 'Change'}</div>
         </div>
         <input ref={fileRef} type="file" accept="image/*" onChange={uploadAvatar} style={{ display: 'none' }} />
-        <h2 style={{ fontSize: 20, fontWeight: 700 }}>{profile.first_name} {profile.last_name}</h2>
+        <h2 style={{ fontSize: 22, fontWeight: 700 }}>{profile.first_name} {profile.last_name}</h2>
         <p style={{ fontSize: 14, color: '#4B5563', marginTop: 4 }}>📍 {profile.home_display_name || profile.city || 'No location set'}</p>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 }}>
           <VerifyBadge verified={verified} />
           {profile.badges?.map((b: string) => <span key={b} style={{ background: '#3293CB', color: '#fff', fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 20 }}>{b}</span>)}
         </div>
+      </div>
+
+      {/* Profile completion */}
+      <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <h3 style={{ fontWeight: 600 }}>Profile Completion</h3>
+          <span style={{ fontSize: 14, fontWeight: 700, color: completionPct === 100 ? '#059669' : '#3293CB' }}>{completionPct}%</span>
+        </div>
+        <div style={{ width: '100%', height: 8, background: '#E5E7EB', borderRadius: 4, overflow: 'hidden' }}>
+          <div style={{ width: `${completionPct}%`, height: '100%', background: completionPct === 100 ? '#059669' : '#3293CB', borderRadius: 4, transition: 'width 0.3s' }} />
+        </div>
+        <p style={{ fontSize: 12, color: '#6B7280', marginTop: 6 }}>{completion}/6: City, Bio, Photo, Interests, Email, Phone</p>
       </div>
 
       {/* Stats */}
@@ -125,7 +296,10 @@ export default function ProfilePage() {
 
       {/* Interests */}
       <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 16 }}>
-        <h3 style={{ fontWeight: 600, marginBottom: 8 }}>Interests</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <h3 style={{ fontWeight: 600 }}>Interests</h3>
+          <button onClick={startEditInterests} style={{ fontSize: 12, fontWeight: 600, color: '#3293CB', background: 'none', border: 'none', cursor: 'pointer' }}>Edit</button>
+        </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {(profile.interests || []).length > 0
             ? profile.interests.map((i: string) => <span key={i} style={{ background: '#E0F2FE', color: '#3293CB', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20 }}>{i}</span>)
@@ -135,7 +309,10 @@ export default function ProfilePage() {
 
       {/* Social Links */}
       <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 16 }}>
-        <h3 style={{ fontWeight: 600, marginBottom: 8 }}>Social Links</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <h3 style={{ fontWeight: 600 }}>Social Links</h3>
+          <button onClick={startEditSocials} style={{ fontSize: 12, fontWeight: 600, color: '#3293CB', background: 'none', border: 'none', cursor: 'pointer' }}>Edit</button>
+        </div>
         {profile.socials && Object.keys(profile.socials).some(k => (profile.socials as any)[k]) ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {(profile.socials as any).instagram && <a href={`https://instagram.com/${(profile.socials as any).instagram}`} target="_blank" rel="noopener noreferrer" style={{ background: '#F3F4F6', color: '#4B5563', fontSize: 13, fontWeight: 600, padding: '6px 14px', borderRadius: 20, textDecoration: 'none' }}>Instagram</a>}
@@ -143,9 +320,7 @@ export default function ProfilePage() {
             {(profile.socials as any).linkedin && <a href={(profile.socials as any).linkedin} target="_blank" rel="noopener noreferrer" style={{ background: '#F3F4F6', color: '#4B5563', fontSize: 13, fontWeight: 600, padding: '6px 14px', borderRadius: 20, textDecoration: 'none' }}>LinkedIn</a>}
             {(profile.socials as any).website && <a href={(profile.socials as any).website} target="_blank" rel="noopener noreferrer" style={{ background: '#F3F4F6', color: '#4B5563', fontSize: 13, fontWeight: 600, padding: '6px 14px', borderRadius: 20, textDecoration: 'none' }}>Website</a>}
           </div>
-        ) : (
-          <p style={{ fontSize: 14, color: '#6B7280', fontStyle: 'italic' }}>No social links added yet.</p>
-        )}
+        ) : <p style={{ fontSize: 14, color: '#6B7280', fontStyle: 'italic' }}>No social links added yet.</p>}
       </div>
 
       {/* Rating */}
@@ -158,18 +333,16 @@ export default function ProfilePage() {
             <span style={{ fontSize: 15, fontWeight: 600, marginLeft: 4 }}>{profile.rating_avg.toFixed(1)}</span>
             <span style={{ fontSize: 13, color: '#6B7280' }}>({profile.rating_count || 0} reviews)</span>
           </div>
-        ) : (
-          <p style={{ fontSize: 14, color: '#6B7280' }}>No ratings yet.</p>
-        )}
+        ) : <p style={{ fontSize: 14, color: '#6B7280' }}>No ratings yet.</p>}
       </div>
 
       {/* Verification */}
       <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 16 }}>
         <h3 style={{ fontWeight: 600, marginBottom: 12 }}>Verification</h3>
         {[
-          { key: 'email', label: 'Email', done: verified.email },
-          { key: 'phone', label: 'Phone', done: verified.phone },
-          { key: 'selfie', label: 'Selfie', done: verified.selfie },
+          { key: 'email', label: 'Email', done: verified.email, action: () => resendVerificationEmail() },
+          { key: 'phone', label: 'Phone', done: verified.phone, action: () => setPhoneVerifying(true) },
+          { key: 'selfie', label: 'Selfie', done: verified.selfie, action: () => startSelfie() },
         ].map(v => (
           <div key={v.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderRadius: 14, border: '1px solid #E5E7EB', background: v.done ? '#F0FDF4' : '#F9FAFB', marginBottom: 8, ...(v.done ? { borderColor: '#D1FAE5' } : {}) }}>
             <span style={{ fontSize: 18 }}>{v.done ? '✅' : '⚪'}</span>
@@ -177,7 +350,7 @@ export default function ProfilePage() {
               <p style={{ fontWeight: 600, fontSize: 14 }}>{v.label}</p>
               <p style={{ fontSize: 12, color: '#6B7280' }}>{v.done ? 'Verified' : 'Not verified'}</p>
             </div>
-            {!v.done && <button style={{ fontSize: 12, fontWeight: 600, color: '#3293CB', border: '1px solid #3293CB', borderRadius: 10, padding: '4px 12px', background: 'none', cursor: 'pointer' }}>Verify</button>}
+            {!v.done && <button onClick={v.action} style={{ fontSize: 12, fontWeight: 600, color: '#3293CB', border: '1px solid #3293CB', borderRadius: 10, padding: '4px 12px', background: 'none', cursor: 'pointer' }}>Verify</button>}
           </div>
         ))}
       </div>
@@ -192,36 +365,105 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Edit modal */}
+      {/* ─── MODALS ─── */}
+
+      {/* Edit Profile modal */}
       {editing && (
         <div onClick={() => setEditing(false)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 32, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 32, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>Edit Profile</h2>
             <div style={{ display: 'grid', gap: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>First Name</label>
-                  <input value={form.firstName} onChange={e => setForm(p => ({ ...p, firstName: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Last Name</label>
-                  <input value={form.lastName} onChange={e => setForm(p => ({ ...p, lastName: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} />
-                </div>
+                <div><label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>First Name</label><input value={form.firstName} onChange={e => setForm(p => ({ ...p, firstName: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} /></div>
+                <div><label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Last Name</label><input value={form.lastName} onChange={e => setForm(p => ({ ...p, lastName: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} /></div>
               </div>
-              <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Home Area</label>
-                <input value={form.city} onChange={e => setForm(p => ({ ...p, city: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Bio</label>
-                <textarea value={form.bio} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))} rows={3} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827', resize: 'none' }} />
-              </div>
+              <div><label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Home Area</label><input value={form.city} onChange={e => setForm(p => ({ ...p, city: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} /></div>
+              <div><label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Bio</label><textarea value={form.bio} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))} rows={3} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827', resize: 'none' }} /></div>
               <div style={{ display: 'flex', gap: 12 }}>
                 <button onClick={saveEdit} style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Save</button>
                 <button onClick={() => setEditing(false)} style={{ padding: '14px 24px', borderRadius: 14, border: '1px solid #E5E7EB', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Edit Interests modal */}
+      {editingInterests && (
+        <div onClick={() => setEditingInterests(false)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 32, maxWidth: 520, width: '100%' }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>Edit Interests</h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+              {ALL_CATEGORIES.map(cat => (
+                <button key={cat} onClick={() => toggleInterest(cat)} style={{ padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer', ...(interestsForm.includes(cat) ? { background: '#3293CB', color: '#fff', border: '1px solid #3293CB' } : { background: '#F9FAFB', color: '#4B5563', border: '1px solid #E5E7EB' }) }}>{cat}</button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={saveInterests} style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Save</button>
+              <button onClick={() => setEditingInterests(false)} style={{ padding: '14px 24px', borderRadius: 14, border: '1px solid #E5E7EB', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Socials modal */}
+      {editingSocials && (
+        <div onClick={() => setEditingSocials(false)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 32, maxWidth: 520, width: '100%' }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>Edit Social Links</h2>
+            <div style={{ display: 'grid', gap: 12 }}>
+              <div><label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Instagram @handle</label><input value={socialsForm.instagram} onChange={e => setSocialsForm(p => ({ ...p, instagram: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} placeholder="@username" /></div>
+              <div><label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>X / Twitter @handle</label><input value={socialsForm.twitter} onChange={e => setSocialsForm(p => ({ ...p, twitter: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} placeholder="@username" /></div>
+              <div><label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>LinkedIn URL</label><input value={socialsForm.linkedin} onChange={e => setSocialsForm(p => ({ ...p, linkedin: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} placeholder="https://linkedin.com/in/..." /></div>
+              <div><label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Website URL</label><input value={socialsForm.website} onChange={e => setSocialsForm(p => ({ ...p, website: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} placeholder="https://..." /></div>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button onClick={saveSocials} style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Save</button>
+                <button onClick={() => setEditingSocials(false)} style={{ padding: '14px 24px', borderRadius: 14, border: '1px solid #E5E7EB', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phone verification modal */}
+      {phoneVerifying && (
+        <div onClick={() => setPhoneVerifying(false)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 32, maxWidth: 400, width: '100%' }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>Verify Phone</h2>
+            {phoneStep === 'enter' ? (
+              <div style={{ display: 'grid', gap: 14 }}>
+                <div><label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Phone number</label><input value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} type="tel" style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} placeholder="+1 (555) 000-0000" /></div>
+                <button onClick={sendPhoneOTP} style={{ padding: 14, borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Send Verification Code</button>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: 14 }}>
+                <p style={{ fontSize: 14, color: '#4B5563' }}>Code sent to {phoneNumber}</p>
+                <div><label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Enter code</label><input value={phoneCode} onChange={e => setPhoneCode(e.target.value)} type="text" maxLength={6} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 20, color: '#111827', textAlign: 'center', letterSpacing: '0.2em' }} placeholder="000000" /></div>
+                <button onClick={verifyPhoneOTP} style={{ padding: 14, borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Verify Code</button>
+                <button onClick={() => setPhoneStep('enter')} style={{ padding: 10, borderRadius: 14, border: '1px solid #E5E7EB', background: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>Change number</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Selfie capture modal */}
+      {selfieCapturing && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.85)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, marginBottom: 16 }}>Take a Selfie</h2>
+          <div style={{ position: 'relative', width: 320, height: 240, borderRadius: 16, overflow: 'hidden', marginBottom: 16 }}>
+            <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            {/* Face guide oval */}
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+              <div style={{ width: 180, height: 220, border: '3px dashed rgba(255,255,255,0.5)', borderRadius: '50%' }} />
+            </div>
+          </div>
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button onClick={captureSelfie} style={{ padding: '14px 32px', borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 700, fontSize: 16, cursor: 'pointer' }}>Capture</button>
+            <button onClick={cancelSelfie} style={{ padding: '14px 24px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.3)', background: 'none', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          </div>
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginTop: 12 }}>Position your face in the oval</p>
         </div>
       )}
     </div>
