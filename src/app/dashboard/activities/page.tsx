@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import Link from 'next/link'
 
 export default function MyActivitiesPage() {
   const { user } = useAuth()
@@ -39,46 +40,53 @@ export default function MyActivitiesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-extrabold">My Activities</h1>
-        <a href="/dashboard" className="bg-[#3293CB] text-white font-bold text-sm px-4 py-2.5 rounded-xl">+ New Activity</a>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>My Activities</h2>
+        <Link href="/dashboard" style={{ height: 40, padding: '0 16px', borderRadius: 10, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>+ New Activity</Link>
       </div>
 
-      <div className="flex gap-0 mb-4 border-b-2 border-gray-200">
-        <button onClick={() => setTab('created')} className={`py-2 px-4 text-sm font-semibold border-b-2 -mb-[2px] transition ${tab === 'created' ? 'border-[#3293CB] text-[#3293CB]' : 'border-transparent text-gray-600'}`}>
+      <div style={{ display: 'flex', borderBottom: '2px solid #E5E7EB', marginBottom: 16 }}>
+        <button onClick={() => setTab('created')} style={{ padding: '8px 16px', fontSize: 14, fontWeight: 600, borderBottom: tab === 'created' ? '2px solid #3293CB' : '2px solid transparent', marginBottom: -2, color: tab === 'created' ? '#3293CB' : '#4B5563', background: 'none', border: 'none', cursor: 'pointer' }}>
           Created ({created.length})
         </button>
-        <button onClick={() => setTab('joined')} className={`py-2 px-4 text-sm font-semibold border-b-2 -mb-[2px] transition ${tab === 'joined' ? 'border-[#3293CB] text-[#3293CB]' : 'border-transparent text-gray-600'}`}>
-          Joined {joined.length > 0 && <span className="ml-1 bg-[#3293CB] text-white text-xs px-1.5 py-0.5 rounded-full">{joined.length}</span>}
+        <button onClick={() => setTab('joined')} style={{ padding: '8px 16px', fontSize: 14, fontWeight: 600, borderBottom: tab === 'joined' ? '2px solid #3293CB' : '2px solid transparent', marginBottom: -2, color: tab === 'joined' ? '#3293CB' : '#4B5563', background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          Joined {joined.length > 0 && <span style={{ background: '#3293CB', color: '#fff', fontSize: 11, padding: '2px 6px', borderRadius: 20 }}>{joined.length}</span>}
         </button>
       </div>
 
       {loading ? (
-        <div className="space-y-3">{[1,2].map(i => <div key={i} className="bg-white border border-gray-200 rounded-xl p-5 animate-pulse"><div className="h-5 bg-gray-200 rounded w-1/2 mb-3" /><div className="h-4 bg-gray-100 rounded w-1/3" /></div>)}</div>
+        <div>
+          {[1, 2].map(i => (
+            <div key={i} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14 }}>
+              <div style={{ height: 20, background: '#f3f4f6', borderRadius: 8, width: '50%', marginBottom: 12 }} />
+              <div style={{ height: 16, background: '#f9fafb', borderRadius: 8, width: '30%' }} />
+            </div>
+          ))}
+        </div>
       ) : tab === 'created' ? (
         created.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
-            <p className="text-3xl mb-3">🎯</p>
-            <p className="font-semibold mb-2">No activities yet</p>
-            <p className="text-sm text-gray-700 mb-4">Create your first activity to get started.</p>
-            <a href="/dashboard" className="inline-block bg-[#3293CB] text-white font-bold px-6 py-2.5 rounded-xl">Create Activity</a>
+          <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 40, textAlign: 'center' }}>
+            <p style={{ fontSize: 32, marginBottom: 12 }}>🎯</p>
+            <p style={{ fontWeight: 600, marginBottom: 8 }}>No activities yet</p>
+            <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>Create your first activity to get started.</p>
+            <Link href="/dashboard" style={{ padding: '12px 24px', borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>Create Activity</Link>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div>
             {created.map(a => (
-              <div key={a.id} className="bg-white border border-gray-200 rounded-xl p-5">
-                <div className="flex items-start justify-between gap-3">
+              <div key={a.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div>
-                    <h3 className="font-bold">{a.title}</h3>
-                    <p className="text-sm text-gray-700">{a.location_display || a.location_text} &bull; {a.status}</p>
+                    <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{a.title}</h3>
+                    <p style={{ fontSize: 13, color: '#6B7280' }}>{a.location_display || a.location_text} &bull; {a.status}</p>
                   </div>
-                  <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#059669', background: '#F0FDF4', padding: '4px 10px', borderRadius: 20 }}>
                     {(a.participants?.length || 0)}/{a.max_participants}
                   </span>
                 </div>
-                <div className="flex gap-2 mt-3">
-                  <button onClick={() => cancelActivity(a.id)} className="text-xs font-semibold border border-gray-200 rounded-lg px-3 py-1.5">Cancel</button>
-                  <button onClick={() => deleteActivity(a.id)} className="text-xs font-semibold text-red-600 bg-red-50 rounded-lg px-3 py-1.5">Delete</button>
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  <button onClick={() => cancelActivity(a.id)} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={() => deleteActivity(a.id)} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: '#FEE2E2', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
                 </div>
               </div>
             ))}
@@ -86,18 +94,18 @@ export default function MyActivitiesPage() {
         )
       ) : (
         joined.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
-            <p className="text-3xl mb-3">🔍</p>
-            <p className="font-semibold mb-2">No joined activities</p>
-            <p className="text-sm text-gray-700">Browse and join activities from Explore.</p>
+          <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 40, textAlign: 'center' }}>
+            <p style={{ fontSize: 32, marginBottom: 12 }}>🔍</p>
+            <p style={{ fontWeight: 600, marginBottom: 8 }}>No joined activities</p>
+            <p style={{ fontSize: 14, color: '#6B7280' }}>Browse and join activities from Explore.</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div>
             {joined.map((a: any) => (
-              <div key={a.id} className="bg-white border border-gray-200 rounded-xl p-5">
-                <h3 className="font-bold">{a.title}</h3>
-                <p className="text-sm text-gray-700">{a.location_display || a.location_text}</p>
-                <p className="text-xs text-gray-600 mt-1">Host: {a.host?.first_name} {a.host?.last_name}</p>
+              <div key={a.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14 }}>
+                <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{a.title}</h3>
+                <p style={{ fontSize: 13, color: '#6B7280' }}>{a.location_display || a.location_text}</p>
+                <p style={{ fontSize: 12, color: '#4B5563', marginTop: 4 }}>Host: {a.host?.first_name} {a.host?.last_name}</p>
               </div>
             ))}
           </div>

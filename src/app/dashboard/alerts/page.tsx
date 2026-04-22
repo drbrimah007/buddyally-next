@@ -20,16 +20,33 @@ export default function AlertsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-extrabold mb-5">Alerts</h1>
-      {loading ? <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 animate-pulse"><div className="h-4 bg-gray-200 rounded w-2/3 mb-2" /><div className="h-3 bg-gray-100 rounded w-1/2" /></div>)}</div>
-      : notifications.length === 0 ? <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center"><p className="text-3xl mb-3">🔔</p><p className="font-semibold mb-2">No notifications yet</p><p className="text-sm text-gray-700">Activity updates, messages, and alerts will appear here.</p></div>
-      : <div className="space-y-2">{notifications.map(n => (
-        <div key={n.id} className={`bg-white border border-gray-200 rounded-xl p-4 ${!n.read ? 'border-l-4 border-l-[#3293CB]' : ''}`}>
-          <p className="text-sm font-semibold">{n.title || 'Notification'}</p>
-          <p className="text-sm text-gray-700 mt-1">{n.body || n.message}</p>
-          <p className="text-xs text-gray-600 mt-2">{new Date(n.created_at).toLocaleString()}</p>
+      <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 20 }}>Alerts</h2>
+      {loading ? (
+        <div>
+          {[1, 2, 3].map(i => (
+            <div key={i} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 16, marginBottom: 10 }}>
+              <div style={{ height: 16, background: '#f3f4f6', borderRadius: 8, width: '60%', marginBottom: 8 }} />
+              <div style={{ height: 14, background: '#f9fafb', borderRadius: 8, width: '40%' }} />
+            </div>
+          ))}
         </div>
-      ))}</div>}
+      ) : notifications.length === 0 ? (
+        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 40, textAlign: 'center' }}>
+          <p style={{ fontSize: 32, marginBottom: 12 }}>🔔</p>
+          <p style={{ fontWeight: 600, marginBottom: 8 }}>No notifications yet</p>
+          <p style={{ fontSize: 14, color: '#6B7280' }}>Activity updates, messages, and alerts will appear here.</p>
+        </div>
+      ) : (
+        <div>
+          {notifications.map(n => (
+            <div key={n.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 16, marginBottom: 10, ...(!n.read ? { borderLeft: '3px solid #3293CB' } : {}) }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{n.title || 'Notification'}</p>
+              <p style={{ fontSize: 14, color: '#4B5563', marginTop: 4 }}>{n.body || n.message}</p>
+              <p style={{ fontSize: 12, color: '#6B7280', marginTop: 8 }}>{new Date(n.created_at).toLocaleString()}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

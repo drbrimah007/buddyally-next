@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useActivities } from '@/hooks/useActivities'
 import { useAuth } from '@/hooks/useAuth'
+import { useRouter } from 'next/navigation'
 import CreateActivityModal from '@/components/CreateActivityModal'
 
 function haversineMiles(lat1: number, lng1: number, lat2: number, lng2: number) {
@@ -33,38 +34,110 @@ function formatTiming(a: any) {
 }
 
 export default function ExplorePage() {
-  const { activities, loading } = useActivities()
-  const { profile } = useAuth()
+  const { activities, loading, fetchActivities } = useActivities()
+  const { profile, user } = useAuth()
+  const router = useRouter()
   const [radius, setRadius] = useState(5)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
   const [showAll, setShowAll] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
+  const [cityInput, setCityInput] = useState('')
+  const [cityCoords, setCityCoords] = useState<{lat:number,lon:number}|null>(null)
+  const [placeResults, setPlaceResults] = useState<any[]>([])
+  const [showPlaces, setShowPlaces] = useState(false)
+  const [gpsLoading, setGpsLoading] = useState(false)
+  const searchTimeout = useRef<any>(null)
+
+  useEffect(() => {
+    if (profile?.home_display_name) setCityInput(profile.home_display_name)
+    if (profile?.home_lat && profile?.home_lng) setCityCoords({ lat: profile.home_lat, lon: profile.home_lng })
+  }, [profile])
 
   const userInterests = profile?.interests || []
   const categories = showAll || userInterests.length === 0
-    ? ['Travel', 'Local Activities', 'Sports / Play', 'Learning', 'Help / Support', 'Events', 'Outdoor', 'Gaming', 'Wellness', 'Ride Share', 'Dog Walk', 'Babysit', 'Party', 'Pray', 'Others']
+    ? ['Travel','Local Activities','Sports / Play','Learning','Help / Support','Events','Outdoor','Gaming','Wellness','Ride Share','Dog Walk','Babysit','Party','Pray','Others']
     : userInterests
+
+  // Nominatim city search
+  function searchPlaces(val: string) {
+    setCityInput(val)
+    if (searchTimeout.current) clearTimeout(searchTimeout.current)
+    if (!val || val.length < 2) { setPlaceResults([]); setShowPlaces(false); return }
+    searchTimeout.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&addressdetails=1&limit=5`)
+        const data = await res.json()
+        setPlaceResults(data)
+        setShowPlaces(data.length > 0)
+      } catch { setPlaceResults([]); setShowPlaces(false) }
+    }, 300)
+  }
+
+  function selectPlace(place: any) {
+    const addr = place.address || {}
+    const name = addr.borough || addr.city || addr.town || addr.village || addr.county || place.display_name.split(',')[0]
+    const state = addr.state || ''
+    const display = state ? `${name}, ${state}` : name
+    setCityInput(display)
+    setCityCoords({ lat: parseFloat(place.lat), lon: parseFloat(place.lon) })
+    setPlaceResults([])
+    setShowPlaces(false)
+  }
+
+  function clearCity() {
+    setCityInput('')
+    setCityCoords(null)
+    setPlaceResults([])
+    setShowPlaces(false)
+  }
+
+  // GPS
+  function useGPS() {
+    if (!navigator.geolocation) return
+    setGpsLoading(true)
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords
+        setCityCoords({ lat: latitude, lon: longitude })
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`)
+          const data = await res.json()
+          const addr = data.address || {}
+          const name = addr.borough || addr.city || addr.town || addr.village || addr.county || 'Your Location'
+          const state = addr.state || ''
+          setCityInput(state ? `${name}, ${state}` : name)
+        } catch {
+          setCityInput('Current Location')
+        }
+        setGpsLoading(false)
+      },
+      () => { setGpsLoading(false) },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
 
   // Filter activities
   const filtered = activities.filter(a => {
-    // Category
     if (category !== 'all' && a.category !== category) return false
     if (category === 'all' && !showAll && userInterests.length > 0 && !userInterests.includes(a.category)) return false
-    // Search
     if (search && !a.title.toLowerCase().includes(search.toLowerCase())) return false
-    // Status
     if (a.status === 'cancelled') return false
     return true
   })
 
   // Calculate distance and sort
+  const coords = cityCoords
   const withDistance = filtered.map(a => {
     let dist: number | null = null
-    if (profile?.home_lat && profile?.home_lng && a.location_lat && a.location_lng) {
-      dist = haversineMiles(profile.home_lat, profile.home_lng, a.location_lat, a.location_lng)
+    if (coords && a.location_lat && a.location_lng) {
+      dist = haversineMiles(coords.lat, coords.lon, a.location_lat, a.location_lng)
     }
     return { ...a, _dist: dist }
+  }).filter(a => {
+    // Radius filter
+    if (radius > 0 && coords && a._dist != null && a._dist > radius) return false
+    return true
   }).sort((a, b) => {
     if (a._dist != null && b._dist != null) return a._dist - b._dist
     if (a._dist != null) return -1
@@ -74,25 +147,33 @@ export default function ExplorePage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-extrabold">Explore Activities</h1>
-        <button onClick={() => setShowCreate(true)} className="bg-[#3293CB] text-white font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-[#2678A8] transition">
-          + New Activity
-        </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>Explore Activities</h2>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={() => fetchActivities()} style={{ width: 40, height: 40, borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center' }} title="Refresh">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          </button>
+          <button onClick={() => setShowCreate(true)} style={{ height: 40, padding: '0 16px', borderRadius: 10, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ New Activity</button>
+        </div>
       </div>
 
-      {/* Location + radius */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2.5 bg-white flex-1 max-w-xs">
-          <span className="text-sm">📍</span>
-          <span className="text-sm font-medium text-gray-700 truncate">
-            {profile?.home_display_name || profile?.city || 'Set location'}
-          </span>
+      {/* Location + GPS + radius */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, position: 'relative', flexWrap: 'nowrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid #E5E7EB', borderRadius: 10, padding: '0 10px', height: 40, background: '#fff' }}>
+          <span style={{ fontSize: 14 }}>📍</span>
+          <input
+            type="text"
+            value={cityInput}
+            onChange={e => searchPlaces(e.target.value)}
+            placeholder="City or area"
+            style={{ border: 'none', fontSize: 13, outline: 'none', color: '#111827', width: 200, background: 'transparent' }}
+          />
+          {cityInput && <span style={{ color: '#6B7280', cursor: 'pointer', fontSize: 13 }} onClick={clearCity}>&times;</span>}
         </div>
         <select
           value={radius}
           onChange={e => setRadius(parseFloat(e.target.value))}
-          className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white"
+          style={{ height: 40, border: '1px solid #E5E7EB', borderRadius: 10, padding: '0 12px', fontSize: 13, background: '#fff', color: '#111827', cursor: 'pointer' }}
         >
           <option value={0.3}>2 blocks</option>
           <option value={0.5}>5 min walk</option>
@@ -105,116 +186,144 @@ export default function ExplorePage() {
           <option value={100}>Statewide</option>
           <option value={0}>Nationwide</option>
         </select>
+        <button onClick={useGPS} disabled={gpsLoading} style={{ height: 40, padding: '0 20px', borderRadius: 10, border: '1px solid #cfe8f8', background: '#eff8fe', color: '#197bb8', fontWeight: 600, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          {gpsLoading ? 'Locating...' : 'Use GPS'}
+        </button>
+        {/* Place results dropdown */}
+        {showPlaces && placeResults.length > 0 && (
+          <div style={{ position: 'absolute', top: 42, left: 0, width: 280, background: '#fff', border: '1px solid #E5E7EB', borderRadius: '0 0 10px 10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 999, maxHeight: 220, overflowY: 'auto' }}>
+            {placeResults.map((p: any, i: number) => (
+              <div key={i} onClick={() => selectPlace(p)} style={{ padding: '10px 14px', fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #f3f4f6' }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
+                onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
+                {p.display_name?.substring(0, 60)}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Category chips */}
-      <div className="flex gap-2 flex-wrap mb-4">
-        <button
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+        <span
           onClick={() => { setCategory('all'); setShowAll(false) }}
-          className={`px-3 py-1.5 rounded-full text-sm font-semibold transition ${category === 'all' && !showAll ? 'bg-[#3293CB] text-white' : 'bg-gray-100 text-gray-600 border border-gray-200'}`}
-        >
-          For You
-        </button>
-        <button
+          style={{ padding: '6px 12px', borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: 'pointer', ...(category === 'all' && !showAll ? { background: '#3293CB', color: '#fff', border: '1px solid #3293CB' } : { background: '#f4f7fa', color: '#111827', border: '1px solid #E5E7EB' }) }}
+        >For You</span>
+        <span
           onClick={() => { setCategory('all'); setShowAll(true) }}
-          className={`px-3 py-1.5 rounded-full text-sm font-semibold transition ${category === 'all' && showAll ? 'bg-[#3293CB] text-white' : 'bg-gray-100 text-gray-600 border border-gray-200'}`}
-        >
-          All
-        </button>
+          style={{ padding: '6px 12px', borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: 'pointer', ...(category === 'all' && showAll ? { background: '#3293CB', color: '#fff', border: '1px solid #3293CB' } : { background: '#f4f7fa', color: '#111827', border: '1px solid #E5E7EB' }) }}
+        >All</span>
         {categories.map(cat => (
-          <button
+          <span
             key={cat}
             onClick={() => { setCategory(cat); setShowAll(false) }}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${category === cat ? 'bg-[#3293CB] text-white' : 'bg-gray-100 text-gray-600 border border-gray-200'}`}
-          >
-            {cat}
-          </button>
+            style={{ padding: '6px 12px', borderRadius: 999, fontSize: 13, fontWeight: 500, cursor: 'pointer', ...(category === cat ? { background: '#3293CB', color: '#fff', border: '1px solid #3293CB' } : { background: '#f4f7fa', color: '#111827', border: '1px solid #E5E7EB' }) }}
+          >{cat}</span>
         ))}
       </div>
 
       {/* Search */}
-      <input
-        type="text"
-        placeholder="Search activities..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        className="w-full max-w-sm border border-gray-200 rounded-xl px-4 py-2.5 text-sm mb-6 bg-white"
-      />
+      <div style={{ marginBottom: 14 }}>
+        <input
+          type="text"
+          placeholder="Search activities..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ height: 40, width: '100%', maxWidth: 320, borderRadius: 10, border: '1px solid #E5E7EB', padding: '0 12px', fontSize: 13, background: '#fff', color: '#111827' }}
+        />
+      </div>
 
       {/* Activity cards */}
       {loading ? (
-        <div className="space-y-4">
+        <div>
           {[1, 2, 3].map(i => (
-            <div key={i} className="bg-white border border-gray-200 rounded-2xl p-5 animate-pulse">
-              <div className="h-5 bg-gray-200 rounded w-2/3 mb-3" />
-              <div className="h-4 bg-gray-100 rounded w-1/2 mb-4" />
-              <div className="h-16 bg-gray-100 rounded mb-3" />
-              <div className="flex gap-2">
-                <div className="h-7 bg-gray-100 rounded-full w-20" />
-                <div className="h-7 bg-gray-100 rounded-full w-16" />
-              </div>
+            <div key={i} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, boxShadow: '0 1px 2px rgba(0,0,0,0.06)' }}>
+              <div style={{ height: 20, background: '#f3f4f6', borderRadius: 8, width: '60%', marginBottom: 12 }} />
+              <div style={{ height: 16, background: '#f9fafb', borderRadius: 8, width: '40%', marginBottom: 16 }} />
+              <div style={{ height: 48, background: '#f9fafb', borderRadius: 8, marginBottom: 12 }} />
+              <div style={{ display: 'flex', gap: 8 }}><div style={{ height: 24, background: '#f3f4f6', borderRadius: 20, width: 80 }} /><div style={{ height: 24, background: '#f3f4f6', borderRadius: 20, width: 60 }} /></div>
             </div>
           ))}
         </div>
       ) : withDistance.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
-          <p className="text-3xl mb-3">🌍</p>
-          <p className="font-semibold mb-2">No activities found</p>
-          <p className="text-sm text-gray-700">Be the first to create one!</p>
+        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 40, textAlign: 'center' }}>
+          <p style={{ fontSize: 32, marginBottom: 12 }}>🌍</p>
+          <p style={{ fontWeight: 600, marginBottom: 8 }}>No activities in {cityInput || 'your area'} yet</p>
+          <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>Be the first to create one!</p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button onClick={() => setShowCreate(true)} style={{ padding: '12px 24px', borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer', boxShadow: '0 1px 3px rgba(50,147,203,0.3)' }}>Create Activity</button>
+            {cityInput && <button onClick={clearCity} style={{ padding: '12px 24px', borderRadius: 14, border: '1px solid #E5E7EB', background: '#fff', color: '#111827', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Show All</button>}
+          </div>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div>
           {withDistance.map(a => {
             const host = a.host as any
             const spotsLeft = a.max_participants - (a.participants?.length || 0)
+            const isOwner = user && a.created_by === user.id
+            const isJoined = user && (a.participants || []).includes(user.id)
             return (
-              <div key={a.id} className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-md transition cursor-pointer">
+              <div
+                key={a.id}
+                onClick={() => router.push(`/a/${a.id}`)}
+                style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: '20px', marginBottom: 14, boxShadow: '0 1px 2px rgba(0,0,0,0.06)', cursor: 'pointer', transition: 'all 0.15s' }}
+              >
                 {a.cover_image_url && (
-                  <img src={a.cover_image_url} alt="" className="w-full h-40 object-cover" />
+                  <div style={{ margin: '-20px -20px 12px', height: 140, overflow: 'hidden', borderRadius: '16px 16px 0 0' }}>
+                    <img src={a.cover_image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
                 )}
-                <div className="p-5">
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div>
-                      <h3 className="font-bold text-base">{a.title}</h3>
-                      <p className="text-sm text-gray-700">
-                        {a.location_mode === 'remote' ? 'Remote / Online' : a.location_display || a.location_text}
-                        {a._dist != null && ` • ${formatDistance(a._dist)}`}
-                        {' • '}{formatTiming(a)}
-                      </p>
-                    </div>
-                    <span className="bg-[#3293CB] text-white text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
-                      {a.category}
-                    </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
+                  <div>
+                    <h3 style={{ marginBottom: 4, fontSize: 16, fontWeight: 600 }}>{a.title}</h3>
+                    <p style={{ fontSize: 13, color: '#6B7280' }}>
+                      {a.location_mode === 'remote' ? 'Remote / Online' : a.location_display || a.location_text}
+                      {a._dist != null && ` • ${formatDistance(a._dist)}`}
+                      {' • '}{formatTiming(a)}
+                    </p>
                   </div>
-                  {a.description && (
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">{a.description}</p>
-                  )}
-                  <div className="flex gap-2 flex-wrap mb-3">
-                    <span className="bg-gray-100 text-gray-600 text-xs font-semibold px-2.5 py-1 rounded-full border border-gray-200">
-                      {spotsLeft > 0 ? `${spotsLeft} spot${spotsLeft !== 1 ? 's' : ''} left` : 'Full'}
-                    </span>
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${a.tip_enabled ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white'}`}>
-                      {a.tip_enabled ? 'Tips optional' : 'Free'}
-                    </span>
-                  </div>
-                  {host && (
-                    <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-700">
-                        {host.avatar_url ? <img src={host.avatar_url} className="w-full h-full rounded-full object-cover" /> : (host.first_name?.[0] || '?')}
+                  <span style={{ background: '#3293CB', color: '#fff', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>{a.category}</span>
+                </div>
+                {a.description && (
+                  <p style={{ fontSize: 14, color: '#4B5563', marginBottom: 10, lineHeight: 1.6 }}>{a.description.substring(0, 120)}{a.description.length > 120 ? '...' : ''}</p>
+                )}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                  <span style={{ background: '#F3F4F6', color: '#4B5563', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, border: '1px solid #E5E7EB' }}>
+                    {spotsLeft > 0 ? `${spotsLeft} spot${spotsLeft !== 1 ? 's' : ''} left` : 'Full'}
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, ...(a.tip_enabled ? { background: '#D97706', color: '#fff' } : { background: '#059669', color: '#fff' }) }}>
+                    {a.tip_enabled ? 'Tips optional' : 'Free'}
+                  </span>
+                  {a.location_mode === 'remote' && <span style={{ background: '#F3F4F6', color: '#4B5563', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, border: '1px solid #E5E7EB' }}>Remote</span>}
+                </div>
+                {host && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px solid #E5E7EB' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#4B5563', overflow: 'hidden' }}>
+                        {host.avatar_url ? <img src={host.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : (host.first_name?.[0] || '?')}
                       </div>
                       <div>
-                        <p className="text-sm font-semibold">{host.first_name} {host.last_name?.[0] || ''}</p>
-                        <p className="text-xs text-gray-600">{'★'.repeat(Math.round(host.rating_avg || 0))} {host.rating_avg?.toFixed(1) || '0.0'} ({host.rating_count || 0})</p>
+                        <p style={{ fontSize: 13, fontWeight: 600 }}>{host.first_name} {host.last_name?.[0] || ''}</p>
+                        <p style={{ fontSize: 12, color: '#6B7280' }}>{'★'.repeat(Math.round(host.rating_avg || 0))} {host.rating_avg?.toFixed(1) || '0.0'} ({host.rating_count || 0})</p>
                       </div>
                     </div>
-                  )}
-                </div>
+                    {isOwner ? (
+                      <span style={{ background: '#3293CB', color: '#fff', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 20 }}>Your Activity</span>
+                    ) : isJoined ? (
+                      <span style={{ background: '#059669', color: '#fff', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 20 }}>Joined</span>
+                    ) : spotsLeft > 0 ? (
+                      <button onClick={e => { e.stopPropagation() }} style={{ background: '#3293CB', color: '#fff', fontSize: 13, fontWeight: 600, padding: '8px 16px', borderRadius: 12, border: 'none', cursor: 'pointer', boxShadow: '0 1px 3px rgba(50,147,203,0.3)' }}>Join</button>
+                    ) : (
+                      <span style={{ background: '#F3F4F6', color: '#6B7280', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 20 }}>Full</span>
+                    )}
+                  </div>
+                )}
               </div>
             )
           })}
         </div>
       )}
-      {showCreate && <CreateActivityModal onClose={() => setShowCreate(false)} />}
+      {showCreate && <CreateActivityModal onClose={() => { setShowCreate(false); fetchActivities() }} />}
     </div>
   )
 }

@@ -22,27 +22,34 @@ export default function GroupsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-extrabold">Groups</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>Groups</h2>
       </div>
 
       {loading ? (
-        <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="bg-white border border-gray-200 rounded-xl p-5 animate-pulse"><div className="h-5 bg-gray-200 rounded w-1/2 mb-3" /><div className="h-4 bg-gray-100 rounded w-1/3" /></div>)}</div>
+        <div>
+          {[1, 2, 3].map(i => (
+            <div key={i} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14 }}>
+              <div style={{ height: 20, background: '#f3f4f6', borderRadius: 8, width: '50%', marginBottom: 12 }} />
+              <div style={{ height: 16, background: '#f9fafb', borderRadius: 8, width: '30%' }} />
+            </div>
+          ))}
+        </div>
       ) : groups.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
-          <p className="text-3xl mb-3">👥</p>
-          <p className="font-semibold mb-2">No groups yet</p>
-          <p className="text-sm text-gray-700">Groups for travel, activities, and shared interests coming soon.</p>
+        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 40, textAlign: 'center' }}>
+          <p style={{ fontSize: 32, marginBottom: 12 }}>👥</p>
+          <p style={{ fontWeight: 600, marginBottom: 8 }}>No groups yet</p>
+          <p style={{ fontSize: 14, color: '#6B7280' }}>Groups for travel, activities, and shared interests coming soon.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div>
           {groups.map(g => (
-            <div key={g.id} className="bg-white border border-gray-200 rounded-xl p-5">
-              <h3 className="font-bold">{g.name}</h3>
-              <p className="text-sm text-gray-700 mt-1">{g.description?.substring(0, 100)}</p>
-              <div className="flex gap-2 mt-3">
-                <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">{g.members?.length || 0} members</span>
-                <span className="text-xs font-semibold bg-blue-50 text-[#3293CB] px-2.5 py-1 rounded-full">{g.category}</span>
+            <div key={g.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, boxShadow: '0 1px 2px rgba(0,0,0,0.06)' }}>
+              <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{g.name}</h3>
+              <p style={{ fontSize: 14, color: '#4B5563', marginBottom: 12 }}>{g.description?.substring(0, 100)}</p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <span style={{ background: '#F3F4F6', color: '#4B5563', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, border: '1px solid #E5E7EB' }}>{g.members?.length || 0} members</span>
+                <span style={{ background: '#E0F2FE', color: '#3293CB', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20 }}>{g.category}</span>
               </div>
             </div>
           ))}
