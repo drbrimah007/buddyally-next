@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import CreateActivityModal from '@/components/CreateActivityModal'
+import ActivityDetailModal from '@/components/ActivityDetailModal'
 
 function haversineMiles(lat1: number, lng1: number, lat2: number, lng2: number) {
   const toRad = (d: number) => d * Math.PI / 180
@@ -48,6 +49,7 @@ export default function ExplorePage() {
   const [placeResults, setPlaceResults] = useState<any[]>([])
   const [showPlaces, setShowPlaces] = useState(false)
   const [gpsLoading, setGpsLoading] = useState(false)
+  const [viewActivityId, setViewActivityId] = useState<string | null>(null)
   const searchTimeout = useRef<any>(null)
 
   useEffect(() => {
@@ -300,7 +302,7 @@ export default function ExplorePage() {
             return (
               <div
                 key={a.id}
-                onClick={() => router.push(`/a/${a.id}`)}
+                onClick={() => setViewActivityId(a.id)}
                 style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: '20px', marginBottom: 14, boxShadow: '0 1px 2px rgba(0,0,0,0.06)', cursor: 'pointer', transition: 'all 0.15s' }}
               >
                 {a.cover_image_url && (
@@ -362,6 +364,7 @@ export default function ExplorePage() {
         </div>
       )}
       {showCreate && <CreateActivityModal onClose={() => { setShowCreate(false); fetchActivities() }} />}
+      {viewActivityId && <ActivityDetailModal activityId={viewActivityId} onClose={() => { setViewActivityId(null); fetchActivities() }} />}
     </div>
   )
 }

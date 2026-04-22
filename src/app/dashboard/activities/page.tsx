@@ -3,15 +3,15 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import CreateActivityModal from '@/components/CreateActivityModal'
+import ActivityDetailModal from '@/components/ActivityDetailModal'
 
 export default function MyActivitiesPage() {
   const { user } = useAuth()
-  const router = useRouter()
   const [tab, setTab] = useState<'created' | 'joined'>('created')
   const [showCreate, setShowCreate] = useState(false)
+  const [viewActivityId, setViewActivityId] = useState<string | null>(null)
   const [created, setCreated] = useState<any[]>([])
   const [joined, setJoined] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -78,7 +78,7 @@ export default function MyActivitiesPage() {
         ) : (
           <div>
             {created.map(a => (
-              <div key={a.id} onClick={() => router.push(`/a/${a.id}`)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, cursor: 'pointer' }}>
+              <div key={a.id} onClick={() => setViewActivityId(a.id)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, cursor: 'pointer' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div>
                     <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{a.title}</h3>
@@ -106,7 +106,7 @@ export default function MyActivitiesPage() {
         ) : (
           <div>
             {joined.map((a: any) => (
-              <div key={a.id} onClick={() => router.push(`/a/${a.id}`)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, cursor: 'pointer' }}>
+              <div key={a.id} onClick={() => setViewActivityId(a.id)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, cursor: 'pointer' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div>
                     <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{a.title}</h3>
@@ -126,6 +126,7 @@ export default function MyActivitiesPage() {
         )
       )}
       {showCreate && <CreateActivityModal onClose={() => { setShowCreate(false); loadData() }} />}
+      {viewActivityId && <ActivityDetailModal activityId={viewActivityId} onClose={() => { setViewActivityId(null); loadData() }} />}
     </div>
   )
 }
