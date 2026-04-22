@@ -261,7 +261,7 @@ export default function ExplorePage() {
             const host = a.host as any
             const spotsLeft = a.max_participants - (a.participants?.length || 0)
             const isOwner = user && a.created_by === user.id
-            const isJoined = user && (a.participants || []).includes(user.id)
+            const isJoined = user && (a.participants || []).some((p: any) => p.user_id === user.id)
             return (
               <div
                 key={a.id}

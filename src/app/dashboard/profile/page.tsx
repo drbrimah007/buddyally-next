@@ -75,7 +75,7 @@ export default function ProfilePage() {
   function shareProfile() {
     const url = `https://buddyally.com/u/${user?.id}`
     if (navigator.share) {
-      navigator.share({ title: `${profile.first_name} on BuddyAlly`, url }).catch(() => {})
+      navigator.share({ title: `${profile?.first_name} on BuddyAlly`, url }).catch(() => {})
     } else {
       navigator.clipboard.writeText(url)
       alert('Profile link copied!')
