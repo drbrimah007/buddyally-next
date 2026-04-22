@@ -5,12 +5,12 @@ export default function Home() {
     <>
       <style dangerouslySetInnerHTML={{ __html: `
         :root{--yellow:#ffcf00;--yellow-deep:#ffb800;--pink:#ff0a8a;--blue:#2f8cff;--black:#111111;--white:#ffffff;--tag:#2f8cff}
-        .screen{position:relative;min-height:100vh;overflow:hidden;color:var(--black);background:radial-gradient(circle at center,rgba(255,255,255,0.78) 0%,rgba(255,233,84,0.92) 16%,rgba(255,207,0,1) 46%,rgba(255,184,0,1) 100%)}
+        .screen{position:fixed;inset:0;overflow:hidden;color:var(--black);background:radial-gradient(circle at center,rgba(255,255,255,0.78) 0%,rgba(255,233,84,0.92) 16%,rgba(255,207,0,1) 46%,rgba(255,184,0,1) 100%)}
         .rays,.rays-2{position:absolute;left:50%;top:50%;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
         .rays{width:150vmax;height:150vmax;opacity:0.42;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,0.5) 0deg 3deg,rgba(255,207,0,0) 3deg 12deg);animation:spin 40s linear infinite}
         .rays-2{width:118vmax;height:118vmax;opacity:0.18;background:repeating-conic-gradient(from 0deg,rgba(255,102,0,0.55) 0deg 2deg,rgba(255,207,0,0) 2deg 15deg);animation:spinReverse 56s linear infinite}
         .sun-core{position:absolute;left:50%;top:44%;width:min(28vw,240px);height:min(28vw,240px);min-width:160px;min-height:160px;border-radius:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.78);filter:blur(30px);animation:pulse 4.5s ease-in-out infinite}
-        .splash-content{position:relative;z-index:2;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:max(5.2rem,env(safe-area-inset-top)) 1.25rem max(2rem,env(safe-area-inset-bottom))}
+        .splash-content{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:max(5.2rem,env(safe-area-inset-top)) 1.25rem max(2rem,env(safe-area-inset-bottom))}
         .logo{display:flex;align-items:center;justify-content:center;gap:0.65rem;margin-bottom:1.35rem;animation:dropIn 0.55s cubic-bezier(.22,1,.36,1) both}
         .logo-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#2f8cff,#1f6fe0);display:grid;place-items:center;color:white;font-weight:900;font-size:2.4rem;line-height:1;box-shadow:0 10px 28px rgba(0,0,0,0.18)}
         .logo-word{font-size:clamp(2.1rem,4vw,3.4rem);font-weight:900;letter-spacing:-0.05em}
