@@ -47,7 +47,7 @@ export default function HomePage() {
 
       {/* Hero */}
       <section style={{ paddingTop: 100, padding: '100px 24px 80px', background: 'linear-gradient(180deg, #F9FAFB 0%, #fff 50%)', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr', gap: 32, alignItems: 'center' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 32, alignItems: 'center' }}>
           <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 50, background: 'rgba(255,255,255,0.8)', border: '1px solid #E0F2FE', fontSize: 13, fontWeight: 600, color: '#3293CB', backdropFilter: 'blur(8px)', boxShadow: '0 1px 2px rgba(0,0,0,0.06)' }}>
               BuddyAlly &bull; Trusted people, real activities
@@ -68,6 +68,48 @@ export default function HomePage() {
                   <span style={{ color: '#059669', fontWeight: 700 }}>✓</span> {t}
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Preview card — right column */}
+          <div style={{ position: 'relative' }}>
+            <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 28, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+              <div style={{ background: '#F9FAFB', borderRadius: 16, padding: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div>
+                    <p style={{ fontSize: 15, fontWeight: 700 }}>Popular on BuddyAlly</p>
+                    <p style={{ fontSize: 13, color: '#6B7280' }}>Real activities with trusted hosts</p>
+                  </div>
+                  <span style={{ background: '#059669', color: '#fff', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20 }}>Live</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[
+                    { title: 'City walk & coffee', loc: 'Portland, OR', host: 'Sarah M.', rating: 4.9, color: '#0284C7' },
+                    { title: 'Weekend trip to Boston', loc: 'Boston, MA', host: 'Alex K.', rating: 4.7, color: '#7C3AED' },
+                    { title: 'Tennis for beginners', loc: 'Central Park, NYC', host: 'Jordan P.', rating: 4.9, color: '#059669' },
+                  ].map(a => (
+                    <div key={a.title} style={{ background: '#fff', borderRadius: 12, padding: 14, border: '1px solid #E5E7EB' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <p style={{ fontSize: 14, fontWeight: 600 }}>{a.title}</p>
+                          <p style={{ fontSize: 12, color: '#6B7280' }}>{a.loc}</p>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: a.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>{a.host[0]}</div>
+                          <div>
+                            <p style={{ fontSize: 11, fontWeight: 600 }}>{a.host}</p>
+                            <p style={{ fontSize: 10, color: '#6B7280' }}><span style={{ color: '#F59E0B' }}>★</span> {a.rating}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ borderRadius: 14, border: '1px solid #F3F4F6', background: '#F9FAFB', padding: '14px 16px', marginTop: 14 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600 }}>Trust signals matter</p>
+                  <p style={{ fontSize: 13, color: '#4B5563', marginTop: 4 }}>Look for Government ID Verified badges and strong star ratings before meeting.</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -210,7 +252,7 @@ export default function HomePage() {
 
       {/* Trust & Safety */}
       <section id="trust-safety" style={{ padding: '80px 24px', background: '#F9FAFB' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, alignItems: 'start' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 32, alignItems: 'start' }}>
           <div>
             <p style={{ fontSize: 13, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#3293CB', marginBottom: 12 }}>Trust and safety</p>
             <h2 style={{ fontSize: 'clamp(1.6rem, 3vw, 2.25rem)', fontWeight: 700, marginBottom: 16 }}>Safety is part of the product, not an afterthought</h2>
@@ -229,7 +271,7 @@ export default function HomePage() {
 
       {/* Why BuddyAlly — dark section */}
       <section id="why" style={{ background: '#111827', color: '#fff', padding: '80px 24px' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, alignItems: 'start' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 32, alignItems: 'start' }}>
           <div>
             <p style={{ fontSize: 13, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#E0F2FE', marginBottom: 12 }}>Why BuddyAlly</p>
             <h2 style={{ fontSize: 'clamp(1.6rem, 3vw, 2.25rem)', fontWeight: 700, marginBottom: 20 }}>Built for real connection, not endless scrolling</h2>

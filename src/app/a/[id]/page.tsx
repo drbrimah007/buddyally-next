@@ -174,9 +174,13 @@ export default function ActivityPage() {
         {/* Action links */}
         {user && !isOwner && (
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 24 }}>
-            <button style={{ background: 'none', border: 'none', color: '#3293CB', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Message Host</button>
+            <button onClick={async () => {
+              if (!user || !host) return
+              await supabase.from('messages').insert({ sender_id: user.id, recipient_id: host.id, content: `Hi! I'm interested in your activity "${activity.title}"` })
+              router.push('/dashboard/messages')
+            }} style={{ background: 'none', border: 'none', color: '#3293CB', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Message Host</button>
             <button onClick={() => { navigator.share?.({ title: activity.title, url: window.location.href }).catch(() => { navigator.clipboard.writeText(window.location.href); alert('Link copied!') }) }} style={{ background: 'none', border: 'none', color: '#6B7280', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Share</button>
-            <button style={{ background: 'none', border: 'none', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Report</button>
+            <button onClick={() => { if (confirm('Report this activity for inappropriate content?')) { supabase.from('reports').insert({ reporter_id: user!.id, reported_type: 'activity', reported_id: id, reason: 'inappropriate' }).then(() => alert('Report submitted. Thank you.')) } }} style={{ background: 'none', border: 'none', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Report</button>
           </div>
         )}
 

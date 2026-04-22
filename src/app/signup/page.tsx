@@ -123,7 +123,10 @@ export default function SignupPage() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-700 mt-4">
+        <p className="text-center text-xs text-gray-600 mt-3">
+          By signing up you agree to our <Link href="/terms" className="text-[#3293CB] font-semibold">Terms</Link> and Community Guidelines.
+        </p>
+        <p className="text-center text-sm text-gray-700 mt-3">
           Already have an account? <Link href="/login" className="text-[#3293CB] font-semibold">Log in</Link>
         </p>
       </div>
