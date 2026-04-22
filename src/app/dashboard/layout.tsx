@@ -27,7 +27,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (loading) return (
     <div className="h-screen flex items-center justify-center">
       <div className="text-center">
-        <div className="text-4xl mb-4 animate-pulse">🔗</div>
+        <img src="/buddyally-logo.png" alt="BuddyAlly" className="h-14 w-14 mb-4 animate-pulse" />
         <p className="text-gray-500">Loading...</p>
       </div>
     </div>
