@@ -62,7 +62,7 @@ export default function Home() {
           <div className="summer">This Summer</div>
           <div className="sub">Real people. Real help. Real motion.</div>
 
-          <Link className="cta" href="/signup">
+          <Link className="cta" href="/dashboard">
             LINK UP. DO MORE
             <span className="arrow">&rarr;</span>
           </Link>
@@ -75,6 +75,10 @@ export default function Home() {
           <div className="pills" style={{gridTemplateColumns:'1fr',maxWidth:'260px'}}>
             <div className="pill">MOVE TOGETHER</div>
           </div>
+
+          <Link href="/home" style={{marginTop:'1.2rem',color:'rgba(0,0,0,0.5)',fontSize:'0.85rem',fontWeight:700,textDecoration:'none',animation:'fadeIn 0.5s 1.2s both'}}>
+            Skip intro &rarr;
+          </Link>
         </section>
       </main>
     </>
