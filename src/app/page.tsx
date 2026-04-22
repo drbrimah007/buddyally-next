@@ -17,7 +17,7 @@ export default function Home() {
         .logo-word .buddy{color:#111}
         .logo-word .ally{color:var(--blue)}
         .hero{position:relative;width:100%;max-width:980px}
-        .we-on{position:absolute;left:50%;top:0.25rem;transform:translateX(-172%) rotate(-16deg);transform-origin:center;background:var(--tag);color:white;padding:0.18rem 0.38rem;font-size:clamp(1.9rem,3.8vw,2.6rem);font-weight:900;letter-spacing:-0.03em;border-radius:4px;box-shadow:0 6px 14px rgba(47,140,255,0.22);z-index:6;animation:stickerImpact 0.62s 0.18s cubic-bezier(.175,.885,.32,1.25) both,stickerShake 2.8s 1s ease-in-out infinite}
+        .we-on{position:absolute;left:50%;top:0.25rem;transform:translateX(-172%) rotate(-16deg);transform-origin:center;background:var(--tag);color:white;padding:0.08rem 0.25rem;font-size:clamp(1.9rem,3.8vw,2.6rem);font-weight:900;letter-spacing:-0.03em;border-radius:4px;box-shadow:0 6px 14px rgba(47,140,255,0.22);z-index:6;animation:stickerImpact 0.62s 0.18s cubic-bezier(.175,.885,.32,1.25) both,stickerShake 2.8s 1s ease-in-out infinite}
         .word{font-family:Impact,Haettenschweiler,"Arial Black",sans-serif;font-size:clamp(4.9rem,20vw,11.8rem);line-height:0.88;letter-spacing:-0.09em;text-transform:uppercase;text-shadow:0 12px 24px rgba(0,0,0,0.16);opacity:0}
         .buddy-word{color:var(--pink);animation:slamIn 0.72s 0.28s cubic-bezier(.175,.885,.32,1.2) forwards}
         .ally-word{color:var(--black);animation:slamIn 0.72s 0.42s cubic-bezier(.175,.885,.32,1.2) forwards}
