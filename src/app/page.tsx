@@ -62,7 +62,10 @@ export default function Home() {
           <div className="summer">This Summer</div>
           <div className="sub">Real people. Real help. Real motion.</div>
 
-          {/* CTA hidden for now */}
+          <Link className="cta" href="/signup">
+            LINK UP. DO MORE
+            <span className="arrow">&rarr;</span>
+          </Link>
 
           <div className="pills">
             <div className="pill">CONNECT</div>
