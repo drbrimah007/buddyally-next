@@ -44,7 +44,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         borderBottom: '1px solid #E5E7EB', padding: '0 16px', height: 52,
         display: 'flex', alignItems: 'center', justifyContent: 'center'
       }}>
-        <div style={{ maxWidth: 680, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ maxWidth: 900, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
             <img src="/buddyally-logo-full.png" alt="BuddyAlly" style={{ height: 26, width: 'auto' }} />
           </Link>
@@ -69,8 +69,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
-      {/* Content — max-width 680px like old site */}
-      <main style={{ maxWidth: 680, margin: '0 auto', padding: '68px 16px 16px' }}>
+      {/* Content — max-width 680px like old site app-content */}
+      <main style={{ maxWidth: 680, margin: '0 auto', padding: '68px 16px 100px' }}>
         {children}
       </main>
 

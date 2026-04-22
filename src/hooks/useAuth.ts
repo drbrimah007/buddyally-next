@@ -58,6 +58,14 @@ export function useAuth() {
     return {}
   }
 
+  async function resetPassword(email: string) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/login',
+    })
+    if (error) return { error: error.message }
+    return {}
+  }
+
   async function signOut() {
     await supabase.auth.signOut()
     setUser(null)
@@ -83,6 +91,7 @@ export function useAuth() {
     signUpWithEmail,
     signInWithGoogle,
     signOut,
+    resetPassword,
     updateProfile,
     refreshProfile: () => user && loadProfile(user.id),
   }

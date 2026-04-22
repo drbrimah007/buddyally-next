@@ -118,11 +118,22 @@ export default function ExplorePage() {
   }
 
   // Filter activities
+  const today = new Date(); today.setHours(0,0,0,0)
   const filtered = activities.filter(a => {
     if (category !== 'all' && a.category !== category) return false
     if (category === 'all' && !showAll && userInterests.length > 0 && !userInterests.includes(a.category)) return false
-    if (search && !a.title.toLowerCase().includes(search.toLowerCase())) return false
+    if (search) {
+      const q = search.toLowerCase()
+      if (!a.title.toLowerCase().includes(q) && !(a.description || '').toLowerCase().includes(q)) return false
+    }
     if (a.status === 'cancelled') return false
+    // Filter past one-time activities, keep flexible/recurring
+    if (a.timing_mode !== 'flexible' && a.timing_mode !== 'recurring' && a.date) {
+      const actDate = new Date(a.date)
+      if (!isNaN(actDate.getTime()) && actDate < today) return false
+    }
+    // Remote/nationwide bypass radius filter
+    if (a.location_mode === 'remote' || a.location_mode === 'nationwide') return true
     return true
   })
 
@@ -295,6 +306,9 @@ export default function ExplorePage() {
                     {a.tip_enabled ? 'Tips optional' : 'Free'}
                   </span>
                   {a.location_mode === 'remote' && <span style={{ background: '#F3F4F6', color: '#4B5563', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, border: '1px solid #E5E7EB' }}>Remote</span>}
+                  {a.location_mode === 'nationwide' && <span style={{ background: '#F3F4F6', color: '#4B5563', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, border: '1px solid #E5E7EB' }}>Nationwide</span>}
+                  {a.location_mode === 'statewide' && <span style={{ background: '#F3F4F6', color: '#4B5563', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, border: '1px solid #E5E7EB' }}>Statewide</span>}
+                  {host?.verified_id && <span style={{ background: '#059669', color: '#fff', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20 }}>Verified</span>}
                 </div>
                 {host && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px solid #E5E7EB' }}>
@@ -304,7 +318,7 @@ export default function ExplorePage() {
                       </div>
                       <div>
                         <p style={{ fontSize: 13, fontWeight: 600 }}>{host.first_name} {host.last_name?.[0] || ''}</p>
-                        <p style={{ fontSize: 12, color: '#6B7280' }}>{'★'.repeat(Math.round(host.rating_avg || 0))} {host.rating_avg?.toFixed(1) || '0.0'} ({host.rating_count || 0})</p>
+                        <p style={{ fontSize: 12, color: '#6B7280' }}><span style={{ color: '#F59E0B' }}>{'★'.repeat(Math.round(host.rating_avg || 0))}</span><span style={{ color: '#E2E8F0' }}>{'★'.repeat(5 - Math.round(host.rating_avg || 0))}</span> {host.rating_avg?.toFixed(1) || '0.0'} ({host.rating_count || 0})</p>
                       </div>
                     </div>
                     {isOwner ? (

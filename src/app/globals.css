@@ -2,7 +2,28 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #111111;
+  --foreground: #111827;
+  --sky: #3293CB;
+  --sky-hover: #2678A8;
+  --sky-light: #F0F9FF;
+  --sky-100: #E0F2FE;
+  --emerald: #059669;
+  --emerald-soft: #ECFDF5;
+  --text: #111827;
+  --text-sec: #4B5563;
+  --text-muted: #6B7280;
+  --border: #E5E7EB;
+  --bg-soft: #F9FAFB;
+  --danger: #DC2626;
+  --warning: #D97706;
+  --star: #F59E0B;
+  --radius: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.06);
   color-scheme: light;
 }
 
@@ -17,22 +38,37 @@
   color-scheme: light;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  background: #ffffff;
-  color: #111111;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--text);
+  background: var(--background);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 h1, h2, h3, h4, h5, h6, p, span, div, label, a, button {
   color: inherit;
 }
 
-input, select, textarea {
-  color: #111111;
-  background: #ffffff;
+input[type="text"], input[type="email"], input[type="password"],
+input[type="number"], input[type="tel"], input[type="date"],
+input[type="time"], textarea, select {
+  color: var(--text);
+  background: #fff;
+  font-family: inherit;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--sky);
+  box-shadow: 0 0 0 3px rgba(50,147,203,0.1);
+  outline: none;
 }
 
 input::placeholder, textarea::placeholder {
-  color: #999999;
+  color: #9CA3AF;
 }

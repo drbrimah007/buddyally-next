@@ -56,5 +56,15 @@ export function useActivities() {
     return { error: error?.message }
   }
 
-  return { activities, loading, fetchActivities, createActivity, updateActivity, deleteActivity, joinActivity }
+  async function leaveActivity(activityId: string, userId: string) {
+    const { error } = await supabase
+      .from('activity_participants')
+      .delete()
+      .eq('activity_id', activityId)
+      .eq('user_id', userId)
+    if (!error) await fetchActivities()
+    return { error: error?.message }
+  }
+
+  return { activities, loading, fetchActivities, createActivity, updateActivity, deleteActivity, joinActivity, leaveActivity }
 }

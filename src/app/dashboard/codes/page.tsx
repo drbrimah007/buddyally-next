@@ -147,6 +147,16 @@ export default function CodesPage() {
   const [socials, setSocials] = useState({ instagram: '', twitter: '', facebook: '', linkedin: '', tiktok: '', website: '' })
   const imageRef = useRef<HTMLInputElement>(null)
 
+  // Auto mark-as-read when viewing a code (must be top-level, not inside conditional)
+  useEffect(() => {
+    if (!viewingCode) return
+    const cMsgs = messages.filter(m => m.code_id === viewingCode.id)
+    const unreadIds = cMsgs.filter(m => !m.read).map(m => m.id)
+    if (unreadIds.length > 0) {
+      supabase.from('connect_messages').update({ read: true, read_at: new Date().toISOString() }).in('id', unreadIds)
+    }
+  }, [viewingCode, messages])
+
   const loadCodes = useCallback(async () => {
     if (!user) return; setLoading(true)
     const { data: c } = await supabase.from('connect_codes').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
@@ -286,14 +296,6 @@ export default function CodesPage() {
     const cMsgs = messages.filter(m => m.code_id === c.id)
     const unread = cMsgs.filter((m: any) => !m.read).length
     const tp = CODE_TYPES[c.code_type] || CODE_TYPES.other
-
-    // Auto mark-as-read
-    useEffect(() => {
-      const unreadIds = cMsgs.filter(m => !m.read).map(m => m.id)
-      if (unreadIds.length > 0) {
-        supabase.from('connect_messages').update({ read: true, read_at: new Date().toISOString() }).in('id', unreadIds)
-      }
-    }, [viewingCode])
 
     return (
       <div>

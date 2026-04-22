@@ -74,11 +74,11 @@ export default function MyActivitiesPage() {
         ) : (
           <div>
             {created.map(a => (
-              <div key={a.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14 }}>
+              <div key={a.id} onClick={() => window.location.href = `/a/${a.id}`} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, cursor: 'pointer' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div>
                     <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{a.title}</h3>
-                    <p style={{ fontSize: 13, color: '#6B7280' }}>{a.location_display || a.location_text} &bull; {a.status}</p>
+                    <p style={{ fontSize: 13, color: '#6B7280' }}>{a.location_display || a.location_text}{a.date ? ` • ${new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''} &bull; {a.status}</p>
                   </div>
                   <span style={{ fontSize: 12, fontWeight: 600, color: '#059669', background: '#F0FDF4', padding: '4px 10px', borderRadius: 20 }}>
                     {(a.participants?.length || 0)}/{a.max_participants}
@@ -95,17 +95,27 @@ export default function MyActivitiesPage() {
       ) : (
         joined.length === 0 ? (
           <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 40, textAlign: 'center' }}>
-            <p style={{ fontSize: 32, marginBottom: 12 }}>🔍</p>
+            <p style={{ fontSize: 32, marginBottom: 12 }}>👋</p>
             <p style={{ fontWeight: 600, marginBottom: 8 }}>No joined activities</p>
             <p style={{ fontSize: 14, color: '#6B7280' }}>Browse and join activities from Explore.</p>
           </div>
         ) : (
           <div>
             {joined.map((a: any) => (
-              <div key={a.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14 }}>
-                <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{a.title}</h3>
-                <p style={{ fontSize: 13, color: '#6B7280' }}>{a.location_display || a.location_text}</p>
-                <p style={{ fontSize: 12, color: '#4B5563', marginTop: 4 }}>Host: {a.host?.first_name} {a.host?.last_name}</p>
+              <div key={a.id} onClick={() => window.location.href = `/a/${a.id}`} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, cursor: 'pointer' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                  <div>
+                    <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{a.title}</h3>
+                    <p style={{ fontSize: 13, color: '#6B7280' }}>{a.location_display || a.location_text}{a.date ? ` • ${new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</p>
+                    <p style={{ fontSize: 12, color: '#4B5563', marginTop: 4 }}>Host: {a.host?.first_name} {a.host?.last_name}</p>
+                  </div>
+                  <span style={{ background: '#3293CB', color: '#fff', fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>{a.category}</span>
+                </div>
+                {a.description && <p style={{ fontSize: 13, color: '#4B5563', marginTop: 8, lineHeight: 1.6 }}>{a.description.substring(0, 100)}{a.description.length > 100 ? '...' : ''}</p>}
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  <button onClick={e => { e.stopPropagation(); window.location.href = `/dashboard/messages` }} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Message</button>
+                  <button onClick={async e => { e.stopPropagation(); if (!confirm('Leave this activity?')) return; await supabase.from('activity_participants').delete().eq('activity_id', a.id).eq('user_id', user!.id); loadData() }} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: '#FEE2E2', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Leave</button>
+                </div>
               </div>
             ))}
           </div>
