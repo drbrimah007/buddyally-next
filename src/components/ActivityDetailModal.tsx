@@ -92,9 +92,15 @@ export default function ActivityDetailModal({ activityId, onClose }: { activityI
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, overflowY: 'auto' }}>
       <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 0, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', margin: '32px 0' }}>
 
-        {/* Cover image */}
+        {/* Cover image — preserves natural proportions, contained within a bounded area */}
         {activity.cover_image_url && (
-          <img src={activity.cover_image_url} alt="" style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: '20px 20px 0 0' }} />
+          <div style={{ width: '100%', maxHeight: 320, background: '#F3F4F6', borderRadius: '20px 20px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <img
+              src={activity.cover_image_url}
+              alt=""
+              style={{ maxWidth: '100%', maxHeight: 320, width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }}
+            />
+          </div>
         )}
 
         <div style={{ padding: 24 }}>
@@ -212,9 +218,14 @@ export default function ActivityDetailModal({ activityId, onClose }: { activityI
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
                 {isOwner ? (
                   <>
-                    <span style={{ background: '#3293CB', color: '#fff', fontWeight: 600, padding: '10px 20px', borderRadius: 12, fontSize: 14 }}>Your Activity</span>
-                    <button onClick={() => setEditOpen(true)} style={{ background: '#fff', color: '#111827', fontWeight: 600, padding: '10px 20px', borderRadius: 12, border: '1px solid #E5E7EB', cursor: 'pointer', fontSize: 14 }}>Edit</button>
-                    <button onClick={() => { supabase.from('activities').update({ status: 'cancelled' }).eq('id', activityId).then(() => { onClose() }) }} style={{ background: '#FEE2E2', color: '#DC2626', fontWeight: 600, padding: '10px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 14 }}>Cancel</button>
+                    <button
+                      onClick={() => { onClose(); router.push('/dashboard/activities') }}
+                      style={{ background: '#3293CB', color: '#fff', fontWeight: 700, padding: '12px 24px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 14, boxShadow: '0 4px 12px rgba(50,147,203,0.25)', flex: 1, minWidth: 140 }}
+                    >
+                      Manage My Activities
+                    </button>
+                    <button onClick={() => setEditOpen(true)} style={{ background: '#fff', color: '#111827', fontWeight: 600, padding: '12px 20px', borderRadius: 12, border: '1px solid #E5E7EB', cursor: 'pointer', fontSize: 14 }}>Edit</button>
+                    <button onClick={() => { if (!confirm('Cancel this activity? Participants will see it marked Cancelled.')) return; supabase.from('activities').update({ status: 'cancelled' }).eq('id', activityId).then(() => { onClose() }) }} style={{ background: '#FEE2E2', color: '#DC2626', fontWeight: 600, padding: '12px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 14 }}>Cancel</button>
                   </>
                 ) : isJoined ? (
                   <>

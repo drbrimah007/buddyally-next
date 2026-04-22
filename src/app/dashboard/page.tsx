@@ -46,10 +46,11 @@ export default function ExplorePage() {
   const [showAll, setShowAll] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [cityInput, setCityInput] = useState('')
-  const [cityCoords, setCityCoords] = useState<{lat:number,lon:number}|null>(null)
+  const [cityCoords, setCityCoords] = useState<{lat:number,lon:number,state?:string}|null>(null)
   const [placeResults, setPlaceResults] = useState<any[]>([])
   const [showPlaces, setShowPlaces] = useState(false)
   const [gpsLoading, setGpsLoading] = useState(false)
+  const [userStateCode, setUserStateCode] = useState('')
   const [viewActivityId, setViewActivityId] = useState<string | null>(null)
   const searchTimeout = useRef<any>(null)
 
@@ -99,10 +100,12 @@ export default function ExplorePage() {
     const addr = place.address || {}
     const name = addr.borough || addr.city || addr.town || addr.village || addr.county || place.display_name.split(',')[0]
     const state = addr.state || ''
+    const stateCode = (addr['ISO3166-2-lvl4'] || '').replace('US-', '')
     const display = state ? `${name}, ${state}` : name
     const lat = parseFloat(place.lat), lon = parseFloat(place.lon)
     setCityInput(display)
-    setCityCoords({ lat, lon })
+    setCityCoords({ lat, lon, state: stateCode || undefined })
+    setUserStateCode(stateCode)
     setPlaceResults([])
     setShowPlaces(false)
     saveExploreState(display, lat, lon, radius)
@@ -123,17 +126,20 @@ export default function ExplorePage() {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords
-        setCityCoords({ lat: latitude, lon: longitude })
         try {
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`)
           const data = await res.json()
           const addr = data.address || {}
           const name = addr.borough || addr.city || addr.town || addr.village || addr.county || 'Your Location'
           const state = addr.state || ''
+          const stateCode = (addr['ISO3166-2-lvl4'] || '').replace('US-', '')
           const display = state ? `${name}, ${state}` : name
+          setCityCoords({ lat: latitude, lon: longitude, state: stateCode || undefined })
+          setUserStateCode(stateCode)
           setCityInput(display)
           saveExploreState(display, latitude, longitude, radius)
         } catch {
+          setCityCoords({ lat: latitude, lon: longitude })
           setCityInput('Current Location')
           saveExploreState('Current Location', latitude, longitude, radius)
         }
@@ -159,13 +165,18 @@ export default function ExplorePage() {
       const actDate = new Date(a.date)
       if (!isNaN(actDate.getTime()) && actDate < today) return false
     }
-    // Remote/nationwide bypass radius filter
-    if (a.location_mode === 'remote' || a.location_mode === 'nationwide') return true
     return true
   })
 
-  // Calculate distance and sort
+  // v1-parity proximity scope matcher:
+  //   radius = 0    → nationwide (show everything)
+  //   radius >= 100 → statewide (require state match; fall back to 100mi radius if no user state)
+  //   otherwise     → local radius, require coords on both sides OR remote/nationwide mode
   const coords = cityCoords
+  const userState = cityCoords?.state
+  const scope: 'nationwide' | 'statewide' | 'local' =
+    radius === 0 ? 'nationwide' : (radius >= 100 ? 'statewide' : 'local')
+
   const withDistance = filtered.map(a => {
     let dist: number | null = null
     if (coords && a.location_lat && a.location_lng) {
@@ -173,12 +184,25 @@ export default function ExplorePage() {
     }
     return { ...a, _dist: dist }
   }).filter(a => {
-    // Radius filter
-    if (radius > 0 && coords && a._dist != null && a._dist > radius) return false
-    return true
+    // Without a selected city, bypass geo filtering entirely (v1 parity)
+    if (!coords) return true
+    // Nationwide browse: show everything
+    if (scope === 'nationwide') return true
+    // Remote / nationwide-scoped activities always show
+    if (a.location_mode === 'remote' || a.location_mode === 'nationwide') return true
+    // Statewide browse: match stateCode when we have one, else fall back to 100mi
+    if (scope === 'statewide') {
+      if (userState && a.state_code) return a.state_code === userState
+      if (a._dist == null) return false
+      return a._dist <= 100
+    }
+    // Local radius: must have coords + be within radius
+    if (a._dist == null) return false
+    return a._dist <= radius
   }).sort((a, b) => {
     if (a._dist != null && b._dist != null) return a._dist - b._dist
     if (a._dist != null) return -1
+    if (b._dist != null) return 1
     return 0
   })
 

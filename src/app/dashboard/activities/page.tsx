@@ -32,8 +32,13 @@ export default function MyActivitiesPage() {
   }
 
   async function cancelActivity(id: string) {
-    if (!confirm('Cancel this activity?')) return
+    if (!confirm('Cancel this activity? Participants will see it marked Cancelled.')) return
     await supabase.from('activities').update({ status: 'cancelled' }).eq('id', id)
+    loadData()
+  }
+
+  async function reactivateActivity(id: string) {
+    await supabase.from('activities').update({ status: 'active' }).eq('id', id)
     loadData()
   }
 
@@ -78,24 +83,38 @@ export default function MyActivitiesPage() {
           </div>
         ) : (
           <div>
-            {created.map(a => (
-              <div key={a.id} onClick={() => setViewActivityId(a.id)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, cursor: 'pointer' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                  <div>
-                    <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{a.title}</h3>
-                    <p style={{ fontSize: 13, color: '#6B7280' }}>{a.location_display || a.location_text}{a.date ? ` • ${new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''} &bull; {a.status}</p>
+            {created.map(a => {
+              const isCancelled = a.status === 'cancelled'
+              return (
+                <div key={a.id} onClick={() => setViewActivityId(a.id)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, cursor: 'pointer', opacity: isCancelled ? 0.75 : 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4, textDecoration: isCancelled ? 'line-through' : 'none' }}>{a.title}</h3>
+                      <p style={{ fontSize: 13, color: '#6B7280' }}>{a.location_display || a.location_text}{a.date ? ` • ${new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</p>
+                    </div>
+                    {isCancelled ? (
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#991B1B', background: '#FEE2E2', padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>Cancelled</span>
+                    ) : (
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#059669', background: '#F0FDF4', padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+                        {(a.participants?.length || 0)}/{a.max_participants}
+                      </span>
+                    )}
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#059669', background: '#F0FDF4', padding: '4px 10px', borderRadius: 20 }}>
-                    {(a.participants?.length || 0)}/{a.max_participants}
-                  </span>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                    {!isCancelled && (
+                      <>
+                        <button onClick={e => { e.stopPropagation(); setEditActivity(a) }} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
+                        <button onClick={e => { e.stopPropagation(); cancelActivity(a.id) }} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                      </>
+                    )}
+                    {isCancelled && (
+                      <button onClick={e => { e.stopPropagation(); reactivateActivity(a.id) }} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Reactivate</button>
+                    )}
+                    <button onClick={e => { e.stopPropagation(); deleteActivity(a.id) }} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: '#FEE2E2', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                  <button onClick={e => { e.stopPropagation(); setEditActivity(a) }} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
-                  <button onClick={e => { e.stopPropagation(); cancelActivity(a.id) }} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-                  <button onClick={e => { e.stopPropagation(); deleteActivity(a.id) }} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: '#FEE2E2', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )
       ) : (
@@ -103,7 +122,8 @@ export default function MyActivitiesPage() {
           <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 40, textAlign: 'center' }}>
             <p style={{ fontSize: 32, marginBottom: 12 }}>👋</p>
             <p style={{ fontWeight: 600, marginBottom: 8 }}>No joined activities</p>
-            <p style={{ fontSize: 14, color: '#6B7280' }}>Browse and join activities from Explore.</p>
+            <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>Browse and join activities from Explore.</p>
+            <Link href="/dashboard" style={{ display: 'inline-block', padding: '12px 24px', borderRadius: 14, background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>Explore Activities</Link>
           </div>
         ) : (
           <div>

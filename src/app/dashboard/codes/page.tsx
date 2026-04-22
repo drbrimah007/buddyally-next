@@ -239,6 +239,87 @@ body{font-family:Inter,sans-serif;display:flex;justify-content:center;padding:20
   }
 }
 
+// v1-parity mini-preview cards for each print style — rendered in the Print Sticker modal.
+function StylePreviewCard({ kind, selected, onClick }: { kind: string; selected: boolean; onClick: () => void }) {
+  const borderColor = selected ? '#3293CB' : '#E5E7EB'
+  const base: React.CSSProperties = {
+    border: `2px solid ${borderColor}`, borderRadius: 12, overflow: 'hidden', height: 86,
+    display: 'flex', flexDirection: 'column', cursor: 'pointer', background: '#fff',
+    padding: 0, width: '100%', textAlign: 'center' as const,
+  }
+
+  if (kind === 'contact-owner') {
+    return (
+      <button onClick={onClick} style={base}>
+        <div style={{ background: '#1a4b8c', color: '#fff', fontSize: 8, fontWeight: 800, padding: 4, letterSpacing: '0.05em' }}>⚠ CONTACT OWNER</div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4 }}>
+          <div style={{ width: 30, height: 30, background: '#f0f0f0', borderRadius: 4 }} />
+        </div>
+        <div style={{ fontSize: 8, padding: 2, color: '#64748B', fontWeight: 600 }}>Contact Owner</div>
+      </button>
+    )
+  }
+  if (kind === 'blue') {
+    return (
+      <button onClick={onClick} style={{ ...base, background: 'linear-gradient(135deg,#0284C7,#5d92f6)', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+        <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.85)', fontWeight: 700, letterSpacing: '0.1em' }}>BUDDYALLY</div>
+        <div style={{ width: 26, height: 26, background: 'rgba(255,255,255,0.3)', borderRadius: 4 }} />
+        <div style={{ fontSize: 8, color: '#fff', fontWeight: 600 }}>Blue</div>
+      </button>
+    )
+  }
+  if (kind === 'dark') {
+    return (
+      <button onClick={onClick} style={{ ...base, background: '#0F172A', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+        <div style={{ width: 22, height: 22, background: 'linear-gradient(135deg,#0284C7,#5d92f6)', borderRadius: 6 }} />
+        <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>Dark Premium</div>
+      </button>
+    )
+  }
+  if (kind === 'white') {
+    return (
+      <button onClick={onClick} style={{ ...base, alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+        <div style={{ width: 26, height: 26, background: '#f0f0f0', borderRadius: 4 }} />
+        <div style={{ fontSize: 8, color: '#64748B', fontWeight: 600 }}>White Minimal</div>
+      </button>
+    )
+  }
+  if (kind === 'yellow') {
+    return (
+      <button onClick={onClick} style={{ ...base, background: 'linear-gradient(135deg,#fff8dc,#ffe58a)', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+        <div style={{ fontSize: 9, fontWeight: 800, color: '#3a2c08' }}>⚠ URGENT</div>
+        <div style={{ width: 26, height: 26, background: 'rgba(0,0,0,0.1)', borderRadius: 4 }} />
+        <div style={{ fontSize: 8, color: '#5a4a1a', fontWeight: 600 }}>Yellow Alert</div>
+      </button>
+    )
+  }
+  if (kind === 'green') {
+    return (
+      <button onClick={onClick} style={{ ...base, background: '#065F46', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+        <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.85)', fontWeight: 700 }}>SCAN ME</div>
+        <div style={{ width: 26, height: 26, background: 'rgba(255,255,255,0.25)', borderRadius: 4 }} />
+        <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.65)', fontWeight: 600 }}>Green</div>
+      </button>
+    )
+  }
+  // Mascot previews — use the real PNG thumbnails so the picker matches
+  // the printed sticker exactly (WYSIWYG).
+  const mascotMap: Record<string, { src: string; label: string }> = {
+    'boy-mascot':   { src: '/mascot-boy.png',   label: 'Boy Mascot' },
+    'dog-mascot':   { src: '/mascot-dog.png',   label: 'Dog Mascot' },
+    'goat-mascot':  { src: '/mascot-goat.png',  label: 'Goat + QR' },
+    'sheep-mascot': { src: '/mascot-sheep.png', label: 'Sheep' },
+    'moose-mascot': { src: '/mascot-moose.png', label: 'Moose' },
+  }
+  const m = mascotMap[kind]
+  return (
+    <button onClick={onClick} style={{ ...base, alignItems: 'center', justifyContent: 'center', gap: 2, padding: 4 }}>
+      <img src={m?.src} alt="" style={{ height: 46, width: 'auto', objectFit: 'contain', display: 'block' }} />
+      <div style={{ fontSize: 8, color: '#64748B', fontWeight: 600 }}>{m?.label}</div>
+    </button>
+  )
+}
+
 export default function CodesPage() {
   const { user } = useAuth()
   const [codes, setCodes] = useState<any[]>([])
@@ -246,12 +327,13 @@ export default function CodesPage() {
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [viewingCode, setViewingCode] = useState<any>(null)
+  const [editingCode, setEditingCode] = useState<any>(null)
   const [showPrint, setShowPrint] = useState<any>(null)
   const [printStyle, setPrintStyle] = useState('blue')
   const [printContent, setPrintContent] = useState('both')
   const [printCount, setPrintCount] = useState(4)
 
-  // Create form state
+  // Create/Edit form state (shared)
   const [newTitle, setNewTitle] = useState('')
   const [newDesc, setNewDesc] = useState('')
   const [newType, setNewType] = useState('contact_me')
@@ -260,6 +342,8 @@ export default function CodesPage() {
   const [linkLabel, setLinkLabel] = useState('')
   const [linkUrl, setLinkUrl] = useState('')
   const [socials, setSocials] = useState({ instagram: '', twitter: '', facebook: '', linkedin: '', tiktok: '', website: '' })
+  const [pushEnabled, setPushEnabled] = useState(true)
+  const [emailEnabled, setEmailEnabled] = useState(true)
   const imageRef = useRef<HTMLInputElement>(null)
 
   // Auto mark-as-read when viewing a code (must be top-level, not inside conditional)
@@ -301,8 +385,88 @@ export default function CodesPage() {
     reader.readAsDataURL(file)
   }
 
+  function resetForm() {
+    setNewTitle(''); setNewDesc(''); setNewType('contact_me'); setNewImage(null); setNewLinks([])
+    setSocials({ instagram: '', twitter: '', facebook: '', linkedin: '', tiktok: '', website: '' })
+    setPushEnabled(true); setEmailEnabled(true)
+  }
+
+  function openEdit(c: any) {
+    setEditingCode(c)
+    setNewTitle(c.title || '')
+    setNewDesc(c.description || '')
+    setNewType(c.code_type || 'contact_me')
+    setNewImage(c.image_url || null)
+    setNewLinks(Array.isArray(c.links) ? c.links : [])
+    const sp = c.social_profiles || {}
+    setSocials({
+      instagram: sp.instagram || '',
+      twitter: sp.twitter || '',
+      facebook: sp.facebook || '',
+      linkedin: sp.linkedin || '',
+      tiktok: sp.tiktok || '',
+      website: sp.website || '',
+    })
+    setPushEnabled(c.push_enabled !== false)
+    setEmailEnabled(c.email_enabled !== false)
+    setViewingCode(null)
+    setShowCreate(true)
+  }
+
   async function createCode() {
     if (!newTitle.trim() || !user) return
+
+    // Collect socials (shared by insert + update)
+    const socialObj: Record<string, string> = {}
+    if (socials.instagram) socialObj.instagram = socials.instagram.replace('@', '')
+    if (socials.twitter) socialObj.twitter = socials.twitter.replace('@', '')
+    if (socials.tiktok) socialObj.tiktok = socials.tiktok.replace('@', '')
+    if (socials.facebook) socialObj.facebook = socials.facebook.startsWith('http') ? socials.facebook : 'https://facebook.com/' + socials.facebook
+    if (socials.linkedin) socialObj.linkedin = socials.linkedin.startsWith('http') ? socials.linkedin : 'https://linkedin.com/in/' + socials.linkedin
+    if (socials.website) socialObj.website = socials.website.startsWith('http') ? socials.website : 'https://' + socials.website
+
+    // ── EDIT MODE ───────────────────────────────────────────
+    if (editingCode) {
+      let imageUrl = editingCode.image_url || ''
+      // If the image is a new data URL (not an existing http URL), upload it
+      if (newImage && newImage.startsWith('data:')) {
+        try {
+          const blob = await fetch(newImage).then(r => r.blob())
+          const fname = (editingCode.code || 'img').toLowerCase() + '-' + Date.now() + '.jpg'
+          const { error: ue } = await supabase.storage.from('connect-images').upload(fname, blob, { contentType: blob.type })
+          if (!ue) {
+            const { data: ud } = supabase.storage.from('connect-images').getPublicUrl(fname)
+            imageUrl = ud?.publicUrl || imageUrl
+          }
+        } catch {}
+      } else if (newImage === null) {
+        imageUrl = ''
+      }
+
+      const { error } = await supabase.from('connect_codes').update({
+        title: newTitle.trim(),
+        description: newDesc.trim(),
+        code_type: newType,
+        push_enabled: pushEnabled,
+        email_enabled: emailEnabled,
+        image_url: imageUrl,
+        links: newLinks,
+        social_profiles: socialObj,
+      }).eq('id', editingCode.id)
+
+      if (error) {
+        toast('Failed to save changes', 'warn')
+        return
+      }
+      toast('Changes saved', 'info')
+      resetForm()
+      setEditingCode(null)
+      setShowCreate(false)
+      await loadCodes()
+      return
+    }
+
+    // ── CREATE MODE ─────────────────────────────────────────
     const code = Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 31)]).join('')
 
     // Upload image
@@ -319,23 +483,14 @@ export default function CodesPage() {
       } catch {}
     }
 
-    // Collect socials
-    const socialObj: Record<string, string> = {}
-    if (socials.instagram) socialObj.instagram = socials.instagram.replace('@', '')
-    if (socials.twitter) socialObj.twitter = socials.twitter.replace('@', '')
-    if (socials.tiktok) socialObj.tiktok = socials.tiktok.replace('@', '')
-    if (socials.facebook) socialObj.facebook = socials.facebook.startsWith('http') ? socials.facebook : 'https://facebook.com/' + socials.facebook
-    if (socials.linkedin) socialObj.linkedin = socials.linkedin.startsWith('http') ? socials.linkedin : 'https://linkedin.com/in/' + socials.linkedin
-    if (socials.website) socialObj.website = socials.website.startsWith('http') ? socials.website : 'https://' + socials.website
-
     const { data } = await supabase.from('connect_codes').insert({
       user_id: user.id, code, title: newTitle.trim(), description: newDesc.trim(),
-      code_type: newType, status: 'active', push_enabled: true, email_enabled: true,
+      code_type: newType, status: 'active',
+      push_enabled: pushEnabled, email_enabled: emailEnabled,
       image_url: imageUrl, links: newLinks, social_profiles: socialObj,
     }).select().single()
 
-    // Reset form
-    setNewTitle(''); setNewDesc(''); setNewImage(null); setNewLinks([]); setSocials({ instagram: '', twitter: '', facebook: '', linkedin: '', tiktok: '', website: '' })
+    resetForm()
     setShowCreate(false)
     await loadCodes()
     if (data) setViewingCode(data)
@@ -378,23 +533,19 @@ export default function CodesPage() {
         <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>Print Sticker — {c.title}</h2>
 
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 24, marginBottom: 16 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Style</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 20 }}>
-            {[
-              { key: 'contact-owner', label: 'Contact Owner', bg: '#0652b7', color: '#fff' },
-              { key: 'boy-mascot', label: 'Boy', bg: '#E0F2FE', color: '#0652b7' },
-              { key: 'dog-mascot', label: 'Dog', bg: '#E0F2FE', color: '#0652b7' },
-              { key: 'goat-mascot', label: 'Goat', bg: '#E0F2FE', color: '#0652b7' },
-              { key: 'sheep-mascot', label: 'Sheep', bg: '#E0F2FE', color: '#0652b7' },
-              { key: 'moose-mascot', label: 'Moose', bg: '#E0F2FE', color: '#0652b7' },
-              { key: 'blue', label: 'Blue', bg: '#0284C7', color: '#fff' },
-              { key: 'dark', label: 'Dark', bg: '#0F172A', color: '#fff' },
-              { key: 'white', label: 'White', bg: '#fff', color: '#111' },
-              { key: 'yellow', label: 'Yellow', bg: '#ffe58a', color: '#3a2c08' },
-              { key: 'green', label: 'Green', bg: '#065F46', color: '#fff' },
-            ].map(s => (
-              <button key={s.key} onClick={() => setPrintStyle(s.key)} style={{ padding: '12px 8px', borderRadius: 10, border: printStyle === s.key ? '2px solid #3293CB' : '1px solid #E5E7EB', background: s.bg, color: s.color, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{s.label}</button>
-            ))}
+          <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Choose a style</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 20 }}>
+            <StylePreviewCard kind="contact-owner" selected={printStyle === 'contact-owner'} onClick={() => setPrintStyle('contact-owner')} />
+            <StylePreviewCard kind="blue" selected={printStyle === 'blue'} onClick={() => setPrintStyle('blue')} />
+            <StylePreviewCard kind="dark" selected={printStyle === 'dark'} onClick={() => setPrintStyle('dark')} />
+            <StylePreviewCard kind="white" selected={printStyle === 'white'} onClick={() => setPrintStyle('white')} />
+            <StylePreviewCard kind="yellow" selected={printStyle === 'yellow'} onClick={() => setPrintStyle('yellow')} />
+            <StylePreviewCard kind="green" selected={printStyle === 'green'} onClick={() => setPrintStyle('green')} />
+            <StylePreviewCard kind="boy-mascot" selected={printStyle === 'boy-mascot'} onClick={() => setPrintStyle('boy-mascot')} />
+            <StylePreviewCard kind="dog-mascot" selected={printStyle === 'dog-mascot'} onClick={() => setPrintStyle('dog-mascot')} />
+            <StylePreviewCard kind="goat-mascot" selected={printStyle === 'goat-mascot'} onClick={() => setPrintStyle('goat-mascot')} />
+            <StylePreviewCard kind="sheep-mascot" selected={printStyle === 'sheep-mascot'} onClick={() => setPrintStyle('sheep-mascot')} />
+            <StylePreviewCard kind="moose-mascot" selected={printStyle === 'moose-mascot'} onClick={() => setPrintStyle('moose-mascot')} />
           </div>
 
           <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Content</h3>
@@ -470,12 +621,15 @@ export default function CodesPage() {
                 <span style={{ background: '#E0F2FE', color: '#0284C7', fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999 }}>{c.scan_count || 0} scans</span>
                 <span style={{ fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999, ...(unread > 0 ? { background: '#FEF3C7', color: '#D97706' } : { background: '#F3F4F6', color: '#4B5563' }) }}>{cMsgs.length} messages{unread > 0 ? ` (${unread} new)` : ''}</span>
                 <span style={{ background: '#F0FDF4', color: '#059669', fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999 }}>Active</span>
+                <span style={{ fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999, ...(c.push_enabled !== false ? { background: '#F0FDF4', color: '#065F46' } : { background: '#FEF2F2', color: '#991B1B' }) }}>Push: {c.push_enabled !== false ? 'On' : 'Off'}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999, ...(c.email_enabled !== false ? { background: '#F0FDF4', color: '#065F46' } : { background: '#FEF2F2', color: '#991B1B' }) }}>Email: {c.email_enabled !== false ? 'On' : 'Off'}</span>
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button onClick={() => setShowPrint(c)} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: '#3293CB', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Print Sticker</button>
                 <button onClick={() => copyLink(c.code)} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Copy Link</button>
                 <button onClick={() => downloadQR(c.code)} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Download QR</button>
                 <a href={`/c/${c.code}`} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', textDecoration: 'none', color: '#111827' }}>Preview</a>
+                <button onClick={() => openEdit(c)} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
                 <button onClick={() => toggleStatus(c.id, c.status)} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{c.status === 'active' ? 'Pause' : 'Activate'}</button>
                 <button onClick={() => deleteCode(c.id)} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: '#FEE2E2', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
               </div>
@@ -510,18 +664,18 @@ export default function CodesPage() {
     )
   }
 
-  // ─── CREATE CODE MODAL ────────────────────────────────────
+  // ─── CREATE / EDIT CODE MODAL ─────────────────────────────
   if (showCreate) {
-    const previewCode = 'XXXXXX'
+    const isEdit = !!editingCode
     return (
       <div>
-        <button onClick={() => setShowCreate(false)} style={{ background: 'none', border: 'none', color: '#3293CB', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginBottom: 16 }}>&larr; Back</button>
-        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 20 }}>Create a Contact Code</h2>
+        <button onClick={() => { setShowCreate(false); setEditingCode(null); resetForm() }} style={{ background: 'none', border: 'none', color: '#3293CB', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginBottom: 16 }}>&larr; Back</button>
+        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 20 }}>{isEdit ? 'Edit Contact Code' : 'Create a Contact Code'}</h2>
 
         <div style={{ background: '#E0F2FE', borderRadius: 16, padding: 20, textAlign: 'center', marginBottom: 20 }}>
           <div style={{ fontSize: 12, color: '#3293CB', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Your BuddyAlly Code</div>
-          <div style={{ fontFamily: 'monospace', fontSize: 32, fontWeight: 800, letterSpacing: '0.15em', color: '#111827' }}>Auto-generated</div>
-          <div style={{ fontSize: 13, color: '#4B5563', marginTop: 6 }}>buddyally.com/XXXXXX</div>
+          <div style={{ fontFamily: 'monospace', fontSize: 32, fontWeight: 800, letterSpacing: '0.15em', color: '#111827' }}>{isEdit ? editingCode.code : 'Auto-generated'}</div>
+          <div style={{ fontSize: 13, color: '#4B5563', marginTop: 6 }}>buddyally.com/{isEdit ? editingCode.code : 'XXXXXX'}</div>
         </div>
 
         <div style={{ display: 'grid', gap: 14 }}>
@@ -569,7 +723,18 @@ export default function CodesPage() {
               <input value={socials.website} onChange={e => setSocials(p => ({ ...p, website: e.target.value }))} placeholder="Website URL" style={{ padding: '10px 12px', border: '1.5px solid #E5E7EB', borderRadius: 10, fontSize: 13, color: '#111827' }} />
             </div>
           </div>
-          <button onClick={createCode} style={{ width: '100%', padding: 14, borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 16, cursor: 'pointer', boxShadow: '0 4px 12px rgba(50,147,203,0.25)' }}>Create Code</button>
+          <div style={{ background: '#F9FAFB', borderRadius: 14, padding: 14, border: '1px solid #E5E7EB' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 8 }}>Notification preferences</div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, cursor: 'pointer' }}>
+              <input type="checkbox" checked={pushEnabled} onChange={e => setPushEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#3293CB' }} />
+              <span style={{ fontSize: 13, color: '#374151' }}>Push notifications when someone contacts you</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+              <input type="checkbox" checked={emailEnabled} onChange={e => setEmailEnabled(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#3293CB' }} />
+              <span style={{ fontSize: 13, color: '#374151' }}>Email me when someone contacts this code</span>
+            </label>
+          </div>
+          <button onClick={createCode} style={{ width: '100%', padding: 14, borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 16, cursor: 'pointer', boxShadow: '0 4px 12px rgba(50,147,203,0.25)' }}>{isEdit ? 'Save Changes' : 'Create Code'}</button>
         </div>
       </div>
     )

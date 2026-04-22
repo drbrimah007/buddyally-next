@@ -237,43 +237,66 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
     onClose()
   }
 
+  // Shared select style — centers the currently-selected value on mobile
+  // (native dropdowns inherit text-align), for a cleaner professional look.
+  const selectStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '12px 14px',
+    border: '1.5px solid #E5E7EB',
+    borderRadius: 12,
+    fontSize: 14,
+    color: '#111827',
+    background: '#fff',
+    textAlign: 'center',
+    textAlignLast: 'center' as any,
+    appearance: 'none',
+    backgroundImage: 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'><path fill=\'%236B7280\' d=\'M6 8L2 4h8z\'/></svg>")',
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 14px center',
+    paddingRight: 36,
+  }
+  const inputStyle: React.CSSProperties = { width: '100%', padding: '12px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }
+  const sectionCard: React.CSSProperties = { background: '#F9FAFB', borderRadius: 14, padding: 14, border: '1px solid #F1F5F9' }
+  const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: 0.3, display: 'block', marginBottom: 8 }
+
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, overflowY: 'auto' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 32, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', margin: '32px 0' }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>{isEdit ? 'Edit Activity' : 'Create an Activity'}</h2>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12, overflowY: 'auto' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 'clamp(20px, 4vw, 32px)', maxWidth: 560, width: '100%', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', margin: '24px 0' }}>
+        <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 6, color: '#111827' }}>{isEdit ? 'Edit Activity' : 'Create an Activity'}</h2>
+        <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 20 }}>{isEdit ? 'Update the details for your activity.' : 'Share something you want to do — others can join.'}</p>
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 16 }}>
           <div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Title *</label>
-            <input value={form.title} onChange={e => update('title', e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} placeholder="Weekend hiking trip" required />
+            <label style={labelStyle}>Title *</label>
+            <input value={form.title} onChange={e => update('title', e.target.value)} style={inputStyle} placeholder="Weekend hiking trip" required />
           </div>
 
           <div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Category *</label>
-            <select value={form.category} onChange={e => update('category', e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827', background: '#fff' }}>
+            <label style={labelStyle}>Category *</label>
+            <select value={form.category} onChange={e => update('category', e.target.value)} style={selectStyle}>
               {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
 
           <div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Description <span style={{ fontWeight: 400, color: '#9CA3AF' }}>optional</span></label>
-            <textarea value={form.description} onChange={e => update('description', e.target.value)} rows={3} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827', resize: 'none' }} placeholder="What's the plan?" />
+            <label style={labelStyle}>Description <span style={{ fontWeight: 500, color: '#9CA3AF', textTransform: 'none', letterSpacing: 0 }}>optional</span></label>
+            <textarea value={form.description} onChange={e => update('description', e.target.value)} rows={3} style={{ ...inputStyle, resize: 'none', lineHeight: 1.5 }} placeholder="What's the plan? Who should join?" />
           </div>
 
           {/* Cover image */}
           <div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Cover image <span style={{ fontWeight: 400, color: '#9CA3AF' }}>optional</span></label>
-            {coverPreview && <img src={coverPreview} style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8 }} alt="" />}
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', border: '1.5px dashed #E5E7EB', borderRadius: 12, cursor: 'pointer', fontSize: 14, color: '#6B7280' }}>
+            <label style={labelStyle}>Cover image <span style={{ fontWeight: 500, color: '#9CA3AF', textTransform: 'none', letterSpacing: 0 }}>optional</span></label>
+            {coverPreview && <img src={coverPreview} style={{ width: '100%', maxHeight: 220, objectFit: 'contain', borderRadius: 12, marginBottom: 8, background: '#F3F4F6' }} alt="" />}
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', border: '1.5px dashed #CBD5E1', borderRadius: 12, cursor: 'pointer', fontSize: 14, color: '#3293CB', fontWeight: 600, background: '#F0F9FF' }}>
               📷 {coverPreview ? 'Replace photo' : 'Upload photo'}
               <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleCover} />
             </label>
           </div>
 
           {/* Location with autocomplete */}
-          <div style={{ position: 'relative' }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Where does this happen? *</label>
-            <select value={form.locationMode} onChange={e => update('locationMode', e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827', background: '#fff', marginBottom: 8 }}>
+          <div style={{ ...sectionCard, position: 'relative' }}>
+            <label style={labelStyle}>Where does this happen? *</label>
+            <select value={form.locationMode} onChange={e => update('locationMode', e.target.value)} style={{ ...selectStyle, marginBottom: 8 }}>
               <option value="area">City or area</option>
               <option value="precise_place">Specific place</option>
               <option value="statewide">Statewide</option>
@@ -282,10 +305,10 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
             </select>
             {form.locationMode !== 'remote' && form.locationMode !== 'nationwide' && (
               <>
-                <input value={form.location} onChange={e => searchLocation(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} placeholder="Search for a city or place..." />
-                {placeSelected && <p style={{ fontSize: 12, color: '#059669', marginTop: 4 }}>✓ Used for search and distance</p>}
+                <input value={form.location} onChange={e => searchLocation(e.target.value)} style={inputStyle} placeholder="Search for a city or place..." />
+                {placeSelected && <p style={{ fontSize: 12, color: '#059669', marginTop: 6, fontWeight: 600 }}>✓ Used for search and distance</p>}
                 {showPlaces && placeResults.length > 0 && (
-                  <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', background: '#fff', border: '1px solid #E5E7EB', borderRadius: '0 0 10px 10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 999, maxHeight: 200, overflowY: 'auto' }}>
+                  <div style={{ position: 'absolute', left: 14, right: 14, top: 'calc(100% - 48px)', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 999, maxHeight: 200, overflowY: 'auto' }}>
                     {placeResults.map((p: any, i: number) => (
                       <div key={i} onClick={() => selectPlace(p)} style={{ padding: '10px 14px', fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #f3f4f6', color: '#111827' }}
                         onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
@@ -295,20 +318,18 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
                     ))}
                   </div>
                 )}
+                <div style={{ marginTop: 10 }}>
+                  <label style={labelStyle}>Venue details <span style={{ fontWeight: 500, color: '#9CA3AF', textTransform: 'none', letterSpacing: 0 }}>optional</span></label>
+                  <input value={form.venueNote} onChange={e => update('venueNote', e.target.value)} style={inputStyle} placeholder="Meeting point, room number, etc." />
+                </div>
               </>
-            )}
-            {form.locationMode !== 'remote' && form.locationMode !== 'nationwide' && (
-              <div style={{ marginTop: 8 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Venue details <span style={{ fontWeight: 400, color: '#9CA3AF' }}>optional</span></label>
-                <input value={form.venueNote} onChange={e => update('venueNote', e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} placeholder="Meeting point, room number, etc." />
-              </div>
             )}
           </div>
 
           {/* Timing */}
-          <div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>When *</label>
-            <select value={form.timingMode} onChange={e => update('timingMode', e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827', background: '#fff', marginBottom: 8 }}>
+          <div style={sectionCard}>
+            <label style={labelStyle}>When *</label>
+            <select value={form.timingMode} onChange={e => update('timingMode', e.target.value)} style={{ ...selectStyle, marginBottom: 8 }}>
               <option value="one_time">One-time event</option>
               <option value="date_range">Date range</option>
               <option value="flexible">Flexible / no fixed date</option>
@@ -316,64 +337,64 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
             </select>
             {form.timingMode === 'one_time' && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <input type="date" value={form.date} onChange={e => update('date', e.target.value)} style={{ padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} />
-                <input type="time" value={form.time} onChange={e => update('time', e.target.value)} style={{ padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} />
+                <input type="date" value={form.date} onChange={e => update('date', e.target.value)} style={inputStyle} />
+                <input type="time" value={form.time} onChange={e => update('time', e.target.value)} style={inputStyle} />
               </div>
             )}
             {form.timingMode === 'date_range' && (
               <div style={{ display: 'grid', gap: 8 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <input type="date" value={form.startDate} onChange={e => update('startDate', e.target.value)} style={{ padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} placeholder="Start" />
-                  <input type="date" value={form.endDate} onChange={e => update('endDate', e.target.value)} style={{ padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} placeholder="End" />
+                  <input type="date" value={form.startDate} onChange={e => update('startDate', e.target.value)} style={inputStyle} placeholder="Start" />
+                  <input type="date" value={form.endDate} onChange={e => update('endDate', e.target.value)} style={inputStyle} placeholder="End" />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <input type="time" value={form.startTime} onChange={e => update('startTime', e.target.value)} style={{ padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} placeholder="Start time" />
-                  <input type="time" value={form.endTime} onChange={e => update('endTime', e.target.value)} style={{ padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} placeholder="End time" />
+                  <input type="time" value={form.startTime} onChange={e => update('startTime', e.target.value)} style={inputStyle} placeholder="Start time" />
+                  <input type="time" value={form.endTime} onChange={e => update('endTime', e.target.value)} style={inputStyle} placeholder="End time" />
                 </div>
               </div>
             )}
             {form.timingMode === 'flexible' && (
               <div style={{ display: 'grid', gap: 8 }}>
-                <select value={form.availLabel} onChange={e => update('availLabel', e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827', background: '#fff' }}>
+                <select value={form.availLabel} onChange={e => update('availLabel', e.target.value)} style={selectStyle}>
                   {TIMING_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
-                <input value={form.availNote} onChange={e => update('availNote', e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} placeholder="Extra timing details (optional)" />
+                <input value={form.availNote} onChange={e => update('availNote', e.target.value)} style={inputStyle} placeholder="Extra timing details (optional)" />
               </div>
             )}
             {form.timingMode === 'recurring' && (
               <div style={{ display: 'grid', gap: 8 }}>
-                <select value={form.recurFreq} onChange={e => update('recurFreq', e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827', background: '#fff' }}>
+                <select value={form.recurFreq} onChange={e => update('recurFreq', e.target.value)} style={selectStyle}>
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
                   <option value="biweekly">Biweekly</option>
                   <option value="monthly">Monthly</option>
                 </select>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
                   {DAYS.map(d => (
-                    <button key={d} type="button" onClick={() => toggleDay(d)} style={{ padding: '6px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', ...(form.recurDays.includes(d) ? { background: '#3293CB', color: '#fff', border: '1px solid #3293CB' } : { background: '#fff', color: '#6B7280', border: '1px solid #E5E7EB' }) }}>{d}</button>
+                    <button key={d} type="button" onClick={() => toggleDay(d)} style={{ padding: '8px 14px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', minWidth: 56, ...(form.recurDays.includes(d) ? { background: '#3293CB', color: '#fff', border: '1px solid #3293CB' } : { background: '#fff', color: '#4B5563', border: '1px solid #E5E7EB' }) }}>{d}</button>
                   ))}
                 </div>
-                <input type="time" value={form.recurTime} onChange={e => update('recurTime', e.target.value)} style={{ padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} placeholder="Time" />
+                <input type="time" value={form.recurTime} onChange={e => update('recurTime', e.target.value)} style={inputStyle} placeholder="Time" />
               </div>
             )}
           </div>
 
           <div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Max Participants</label>
-            <input type="number" value={form.maxParticipants} onChange={e => update('maxParticipants', e.target.value)} min={2} max={10000} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} />
+            <label style={labelStyle}>Max Participants</label>
+            <input type="number" value={form.maxParticipants} onChange={e => update('maxParticipants', e.target.value)} min={2} max={10000} style={{ ...inputStyle, textAlign: 'center' }} />
           </div>
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <input type="checkbox" checked={form.tipEnabled} onChange={e => update('tipEnabled', e.target.checked)} />
-            <span style={{ fontSize: 14, fontWeight: 600 }}>Enable optional tips</span>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '12px 14px', background: '#F9FAFB', borderRadius: 12, border: '1px solid #F1F5F9' }}>
+            <input type="checkbox" checked={form.tipEnabled} onChange={e => update('tipEnabled', e.target.checked)} style={{ width: 16, height: 16, accentColor: '#3293CB' }} />
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>Enable optional tips</span>
           </label>
           {form.tipEnabled && <p style={{ fontSize: 12, color: '#6B7280', marginTop: -8 }}>Tips are never required. This just lets participants leave a voluntary tip.</p>}
 
-          <div style={{ display: 'flex', gap: 12, paddingTop: 8 }}>
-            <button type="submit" disabled={loading} style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer', opacity: loading ? 0.6 : 1 }}>
+          <div style={{ display: 'flex', gap: 10, paddingTop: 8, flexWrap: 'wrap' }}>
+            <button type="submit" disabled={loading} style={{ flex: 1, minWidth: 180, padding: 14, borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer', opacity: loading ? 0.6 : 1, boxShadow: '0 4px 12px rgba(50,147,203,0.25)' }}>
               {loading ? (isEdit ? 'Saving...' : 'Creating...') : (isEdit ? 'Save Changes' : 'Create Activity')}
             </button>
-            <button type="button" onClick={onClose} style={{ padding: '14px 24px', borderRadius: 14, border: '1px solid #E5E7EB', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+            <button type="button" onClick={onClose} style={{ padding: '14px 24px', borderRadius: 14, border: '1px solid #E5E7EB', background: '#fff', fontWeight: 600, cursor: 'pointer', color: '#4B5563' }}>Cancel</button>
           </div>
         </form>
       </div>
