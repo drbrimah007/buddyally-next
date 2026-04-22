@@ -72,6 +72,9 @@ export default function Home() {
             <div className="pill">COLLAB</div>
             <div className="pill">COME UP</div>
           </div>
+          <div className="pills" style={{gridTemplateColumns:'1fr',maxWidth:'260px'}}>
+            <div className="pill">MOVE TOGETHER</div>
+          </div>
         </section>
       </main>
     </>
