@@ -50,8 +50,7 @@ export default function Home() {
 
         <section className="splash-content">
           <div className="logo">
-            <div className="logo-icon">B</div>
-            <div className="logo-word"><span className="buddy">buddy</span><span className="ally">ally</span></div>
+            <img src="/buddyally-logo-full.png" alt="BuddyAlly" style={{height:'48px',width:'auto'}} />
           </div>
 
           <div className="hero">
