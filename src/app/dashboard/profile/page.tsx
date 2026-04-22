@@ -133,6 +133,36 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* Social Links */}
+      <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+        <h3 style={{ fontWeight: 600, marginBottom: 8 }}>Social Links</h3>
+        {profile.socials && Object.keys(profile.socials).some(k => (profile.socials as any)[k]) ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {(profile.socials as any).instagram && <a href={`https://instagram.com/${(profile.socials as any).instagram}`} target="_blank" rel="noopener noreferrer" style={{ background: '#F3F4F6', color: '#4B5563', fontSize: 13, fontWeight: 600, padding: '6px 14px', borderRadius: 20, textDecoration: 'none' }}>Instagram</a>}
+            {(profile.socials as any).twitter && <a href={`https://x.com/${(profile.socials as any).twitter}`} target="_blank" rel="noopener noreferrer" style={{ background: '#F3F4F6', color: '#4B5563', fontSize: 13, fontWeight: 600, padding: '6px 14px', borderRadius: 20, textDecoration: 'none' }}>X / Twitter</a>}
+            {(profile.socials as any).linkedin && <a href={(profile.socials as any).linkedin} target="_blank" rel="noopener noreferrer" style={{ background: '#F3F4F6', color: '#4B5563', fontSize: 13, fontWeight: 600, padding: '6px 14px', borderRadius: 20, textDecoration: 'none' }}>LinkedIn</a>}
+            {(profile.socials as any).website && <a href={(profile.socials as any).website} target="_blank" rel="noopener noreferrer" style={{ background: '#F3F4F6', color: '#4B5563', fontSize: 13, fontWeight: 600, padding: '6px 14px', borderRadius: 20, textDecoration: 'none' }}>Website</a>}
+          </div>
+        ) : (
+          <p style={{ fontSize: 14, color: '#6B7280', fontStyle: 'italic' }}>No social links added yet.</p>
+        )}
+      </div>
+
+      {/* Rating */}
+      <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+        <h3 style={{ fontWeight: 600, marginBottom: 8 }}>Rating</h3>
+        {profile.rating_avg ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ color: '#F59E0B', fontSize: 18 }}>{'★'.repeat(Math.round(profile.rating_avg))}</span>
+            <span style={{ color: '#E2E8F0', fontSize: 18 }}>{'★'.repeat(5 - Math.round(profile.rating_avg))}</span>
+            <span style={{ fontSize: 15, fontWeight: 600, marginLeft: 4 }}>{profile.rating_avg.toFixed(1)}</span>
+            <span style={{ fontSize: 13, color: '#6B7280' }}>({profile.rating_count || 0} reviews)</span>
+          </div>
+        ) : (
+          <p style={{ fontSize: 14, color: '#6B7280' }}>No ratings yet.</p>
+        )}
+      </div>
+
       {/* Verification */}
       <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 16 }}>
         <h3 style={{ fontWeight: 600, marginBottom: 12 }}>Verification</h3>
