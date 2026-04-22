@@ -93,7 +93,7 @@ export default function PublicCodePage() {
         <p style={{ fontSize: 40, marginBottom: 16 }}>🔍</p>
         <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Code not found</h1>
         <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>{error}</p>
-        <Link href="/contact" style={{ color: '#3293CB', fontWeight: 600, textDecoration: 'none' }}>Get your own BuddyAlly code &rarr;</Link>
+        <Link href="/signup" style={{ color: '#3293CB', fontWeight: 600, textDecoration: 'none' }}>Get your own BuddyAlly code &rarr;</Link>
       </div>
     </div>
   )
@@ -113,7 +113,7 @@ export default function PublicCodePage() {
         {form.phone && <p style={{ fontSize: 13, color: '#6B7280' }}>Your phone: {form.phone}</p>}
         <div style={{ marginTop: 24, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => { setSent(false); setForm({ name: '', message: '', email: '', phone: '' }) }} style={{ padding: '10px 20px', borderRadius: 12, border: '1px solid #E5E7EB', background: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Send another message</button>
-          <Link href="/contact" style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>Get your own code</Link>
+          <Link href="/signup" style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>Get your own code</Link>
         </div>
       </div>
     </div>

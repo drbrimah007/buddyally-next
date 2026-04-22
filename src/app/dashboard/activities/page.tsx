@@ -3,11 +3,15 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import CreateActivityModal from '@/components/CreateActivityModal'
 
 export default function MyActivitiesPage() {
   const { user } = useAuth()
+  const router = useRouter()
   const [tab, setTab] = useState<'created' | 'joined'>('created')
+  const [showCreate, setShowCreate] = useState(false)
   const [created, setCreated] = useState<any[]>([])
   const [joined, setJoined] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -42,7 +46,7 @@ export default function MyActivitiesPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>My Activities</h2>
-        <Link href="/dashboard" style={{ height: 40, padding: '0 16px', borderRadius: 10, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>+ New Activity</Link>
+        <button onClick={() => setShowCreate(true)} style={{ height: 40, padding: '0 16px', borderRadius: 10, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ New Activity</button>
       </div>
 
       <div style={{ display: 'flex', borderBottom: '2px solid #E5E7EB', marginBottom: 16 }}>
@@ -69,12 +73,12 @@ export default function MyActivitiesPage() {
             <p style={{ fontSize: 32, marginBottom: 12 }}>🎯</p>
             <p style={{ fontWeight: 600, marginBottom: 8 }}>No activities yet</p>
             <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>Create your first activity to get started.</p>
-            <Link href="/dashboard" style={{ padding: '12px 24px', borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>Create Activity</Link>
+            <button onClick={() => setShowCreate(true)} style={{ padding: '12px 24px', borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Create Activity</button>
           </div>
         ) : (
           <div>
             {created.map(a => (
-              <div key={a.id} onClick={() => window.location.href = `/a/${a.id}`} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, cursor: 'pointer' }}>
+              <div key={a.id} onClick={() => router.push(`/a/${a.id}`)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, cursor: 'pointer' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div>
                     <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{a.title}</h3>
@@ -85,8 +89,8 @@ export default function MyActivitiesPage() {
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                  <button onClick={() => cancelActivity(a.id)} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-                  <button onClick={() => deleteActivity(a.id)} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: '#FEE2E2', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
+                  <button onClick={e => { e.stopPropagation(); cancelActivity(a.id) }} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={e => { e.stopPropagation(); deleteActivity(a.id) }} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: '#FEE2E2', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
                 </div>
               </div>
             ))}
@@ -102,7 +106,7 @@ export default function MyActivitiesPage() {
         ) : (
           <div>
             {joined.map((a: any) => (
-              <div key={a.id} onClick={() => window.location.href = `/a/${a.id}`} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, cursor: 'pointer' }}>
+              <div key={a.id} onClick={() => router.push(`/a/${a.id}`)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, cursor: 'pointer' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div>
                     <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{a.title}</h3>
@@ -121,6 +125,7 @@ export default function MyActivitiesPage() {
           </div>
         )
       )}
+      {showCreate && <CreateActivityModal onClose={() => { setShowCreate(false); loadData() }} />}
     </div>
   )
 }

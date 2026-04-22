@@ -40,9 +40,8 @@ export default function SignupPage() {
     })
     if (result.error) { setError(result.error); setLoading(false); return }
 
-    // Update profile with additional info
     if (result.user) {
-      await new Promise(r => setTimeout(r, 500)) // Wait for trigger
+      await new Promise(r => setTimeout(r, 500))
       await supabase.from('profiles').update({
         first_name: form.firstName,
         last_name: form.lastName,
@@ -58,76 +57,79 @@ export default function SignupPage() {
     router.replace('/dashboard')
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-10">
-      <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-lg">
-        <h1 className="text-2xl font-bold mb-6">Join BuddyAlly</h1>
+  const inputStyle = { width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }
+  const labelStyle = { fontSize: 13, fontWeight: 600 as const, color: '#4B5563', display: 'block' as const, marginBottom: 6 }
 
-        <button onClick={() => signInWithGoogle()} className="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-xl py-3 font-semibold text-sm mb-4 hover:bg-gray-50 transition">
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', padding: '16px', fontFamily: "'Inter', -apple-system, sans-serif" }}>
+      <div style={{ background: '#fff', borderRadius: 20, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: 32, width: '100%', maxWidth: 520 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>Join BuddyAlly</h1>
+
+        <button onClick={() => signInWithGoogle()} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, border: '1px solid #E5E7EB', borderRadius: 14, padding: 12, fontWeight: 600, fontSize: 15, background: '#fff', cursor: 'pointer', marginBottom: 16 }}>
           <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
           Sign up with Google
         </button>
 
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex-1 h-px bg-gray-200" />
-          <span className="text-xs text-gray-600">or sign up with email</span>
-          <div className="flex-1 h-px bg-gray-200" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div style={{ flex: 1, height: 1, background: '#E5E7EB' }} />
+          <span style={{ fontSize: 13, color: '#6B7280' }}>or sign up with email</span>
+          <div style={{ flex: 1, height: 1, background: '#E5E7EB' }} />
         </div>
 
-        {error && <div className="bg-red-50 text-red-700 text-sm p-3 rounded-xl mb-4">{error}</div>}
+        {error && <div style={{ background: '#FEE2E2', color: '#DC2626', fontSize: 14, padding: 12, borderRadius: 12, marginBottom: 16 }}>{error}</div>}
 
-        <form onSubmit={handleSignup} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+        <form onSubmit={handleSignup} style={{ display: 'grid', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label className="text-sm font-semibold text-gray-800 block mb-1">First Name *</label>
-              <input type="text" value={form.firstName} onChange={e => update('firstName', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Alex" required />
+              <label style={labelStyle}>First Name *</label>
+              <input type="text" value={form.firstName} onChange={e => update('firstName', e.target.value)} style={inputStyle} placeholder="Alex" required />
             </div>
             <div>
-              <label className="text-sm font-semibold text-gray-800 block mb-1">Last Name</label>
-              <input type="text" value={form.lastName} onChange={e => update('lastName', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Smith" />
+              <label style={labelStyle}>Last Name</label>
+              <input type="text" value={form.lastName} onChange={e => update('lastName', e.target.value)} style={inputStyle} placeholder="Smith" />
             </div>
           </div>
           <div>
-            <label className="text-sm font-semibold text-gray-800 block mb-1">Email *</label>
-            <input type="email" value={form.email} onChange={e => update('email', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="you@example.com" required />
+            <label style={labelStyle}>Email *</label>
+            <input type="email" value={form.email} onChange={e => update('email', e.target.value)} style={inputStyle} placeholder="you@example.com" required />
           </div>
           <div>
-            <label className="text-sm font-semibold text-gray-800 block mb-1">Phone</label>
-            <input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="+1 (555) 000-0000" />
+            <label style={labelStyle}>Phone</label>
+            <input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} style={inputStyle} placeholder="+1 (555) 000-0000" />
           </div>
           <div>
-            <label className="text-sm font-semibold text-gray-800 block mb-1">Password *</label>
-            <input type="password" value={form.password} onChange={e => update('password', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Min 6 characters" required />
+            <label style={labelStyle}>Password *</label>
+            <input type="password" value={form.password} onChange={e => update('password', e.target.value)} style={inputStyle} placeholder="Min 6 characters" required />
           </div>
           <div>
-            <label className="text-sm font-semibold text-gray-800 block mb-1">Confirm Password *</label>
-            <input type="password" value={form.password2} onChange={e => update('password2', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Re-enter password" required />
+            <label style={labelStyle}>Confirm Password *</label>
+            <input type="password" value={form.password2} onChange={e => update('password2', e.target.value)} style={inputStyle} placeholder="Re-enter password" required />
           </div>
           <div>
-            <label className="text-sm font-semibold text-gray-800 block mb-1">Home Area</label>
-            <input type="text" value={form.city} onChange={e => update('city', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Brooklyn, NY" />
+            <label style={labelStyle}>Home Area</label>
+            <input type="text" value={form.city} onChange={e => update('city', e.target.value)} style={inputStyle} placeholder="Brooklyn, NY" />
           </div>
           <div>
-            <label className="text-sm font-semibold text-gray-600 block mb-2">Interests *</label>
-            <div className="flex flex-wrap gap-2">
+            <label style={{ ...labelStyle, marginBottom: 8 }}>Interests *</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {CATEGORIES.map(cat => (
                 <button key={cat} type="button" onClick={() => toggleInterest(cat)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${interests.includes(cat) ? 'bg-[#3293CB] text-white border-[#3293CB]' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                  style={{ padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer', ...(interests.includes(cat) ? { background: '#3293CB', color: '#fff', border: '1px solid #3293CB' } : { background: '#F9FAFB', color: '#4B5563', border: '1px solid #E5E7EB' }) }}>
                   {cat}
                 </button>
               ))}
             </div>
           </div>
-          <button type="submit" disabled={loading} className="w-full bg-[#3293CB] text-white font-bold py-3 rounded-xl hover:bg-[#2678A8] transition disabled:opacity-50">
+          <button type="submit" disabled={loading} style={{ width: '100%', padding: 14, borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer', boxShadow: '0 1px 3px rgba(50,147,203,0.3)', opacity: loading ? 0.6 : 1 }}>
             {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 
-        <p className="text-center text-xs text-gray-600 mt-3">
-          By signing up you agree to our <Link href="/terms" className="text-[#3293CB] font-semibold">Terms</Link> and Community Guidelines.
+        <p style={{ textAlign: 'center', fontSize: 12, color: '#6B7280', marginTop: 12 }}>
+          By signing up you agree to our <Link href="/terms" style={{ color: '#3293CB', fontWeight: 600, textDecoration: 'none' }}>Terms</Link> and Community Guidelines.
         </p>
-        <p className="text-center text-sm text-gray-700 mt-3">
-          Already have an account? <Link href="/login" className="text-[#3293CB] font-semibold">Log in</Link>
+        <p style={{ textAlign: 'center', fontSize: 14, color: '#4B5563', marginTop: 12 }}>
+          Already have an account? <Link href="/login" style={{ color: '#3293CB', fontWeight: 600, textDecoration: 'none' }}>Log in</Link>
         </p>
       </div>
     </div>

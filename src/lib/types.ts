@@ -22,6 +22,7 @@ export type Activity = {
   status: 'open' | 'full' | 'completed' | 'cancelled'
   created_by: string
   created_at: string
+  updated_at?: string
   host?: Profile
   participants?: { user_id: string }[]
 }
@@ -52,6 +53,11 @@ export type Profile = {
     linkedin?: string
     website?: string
   }
+  explore_display_name?: string
+  explore_lat?: number | null
+  explore_lng?: number | null
+  explore_radius_miles?: number
+  updated_at?: string
 }
 
 export type ConnectCode = {

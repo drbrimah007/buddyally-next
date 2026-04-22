@@ -264,7 +264,7 @@ export default function CodesPage() {
 
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 24, marginBottom: 16 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Style</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 20 }}>
             {['blue', 'dark', 'white', 'yellow', 'green'].map(s => (
               <button key={s} onClick={() => setPrintStyle(s)} style={{ padding: '12px 8px', borderRadius: 10, border: printStyle === s ? '2px solid #3293CB' : '1px solid #E5E7EB', background: s === 'blue' ? '#0284C7' : s === 'dark' ? '#0F172A' : s === 'white' ? '#fff' : s === 'yellow' ? '#ffe58a' : '#065F46', color: s === 'white' ? '#111' : '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize' }}>{s}</button>
             ))}

@@ -14,6 +14,10 @@ const TOP_BUDDIES = [
   { name:'Maria Lopez', photo:'M', color:'#DC2626', city:'Miami, FL', rating:5.0, reviews:201, activities:52, interests:['Learning','Travel','Events'], badges:['ID Verified','Top Rated','Trusted Host'] },
   { name:'Jordan Park', photo:'J', color:'#059669', city:'New York, NY', rating:4.9, reviews:89, activities:28, interests:['Sports / Play','Outdoor','Wellness'], badges:['ID Verified','Top Rated'] },
   { name:'Alex Kim', photo:'A', color:'#7C3AED', city:'Boston, MA', rating:4.7, reviews:43, activities:15, interests:['Travel','Gaming','Events'], badges:['ID Verified','Active Member'] },
+  { name:'Chris Torres', photo:'C', color:'#EA580C', city:'Los Angeles, CA', rating:4.8, reviews:67, activities:22, interests:['Outdoor','Wellness','Sports / Play'], badges:['ID Verified','Top Rated'] },
+  { name:'Taylor Reed', photo:'T', color:'#0891B2', city:'Austin, TX', rating:4.6, reviews:34, activities:18, interests:['Gaming','Events','Learning'], badges:['ID Verified','Active Member'] },
+  { name:'Priya Sharma', photo:'P', color:'#BE185D', city:'Chicago, IL', rating:4.9, reviews:56, activities:31, interests:['Learning','Travel','Wellness'], badges:['ID Verified','Top Rated','Trusted Host'] },
+  { name:'Marcus Johnson', photo:'M', color:'#4338CA', city:'Atlanta, GA', rating:4.7, reviews:45, activities:20, interests:['Sports / Play','Help / Support','Events'], badges:['ID Verified','Active Member'] },
 ]
 
 const TRUST_ITEMS = [
@@ -194,7 +198,7 @@ export default function HomePage() {
               <p style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>{b.activities} activities</p>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap', marginTop: 10 }}>
                 {b.badges.map(badge => (
-                  <span key={badge} style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 20, ...(badge.includes('Verified') ? { background: '#059669', color: '#fff' } : { background: '#3293CB', color: '#fff' }) }}>{badge}</span>
+                  <span key={badge} style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 20, ...(badge.includes('Verified') ? { background: '#059669', color: '#fff' } : badge === 'Top Rated' ? { background: '#D97706', color: '#fff' } : { background: '#3293CB', color: '#fff' }) }}>{badge}</span>
                 ))}
               </div>
             </div>
@@ -226,6 +230,30 @@ export default function HomePage() {
               <p style={{ fontSize: 16, lineHeight: 1.8, color: '#4B5563', marginBottom: 20 }}>John and Jack are both dads with kids at Westside Academy — a 25-minute drive each way. They didn&apos;t know each other, but they were both making that long drive twice a day, five days a week.</p>
               <p style={{ fontSize: 16, lineHeight: 1.8, color: '#4B5563', marginBottom: 20 }}>They found each other on BuddyAlly through a &quot;School Run Carpool&quot; activity post. Turns out they live three streets apart. Now they split the commute — <strong style={{ color: '#111827' }}>John handles morning drop-offs, Jack handles afternoon pickups.</strong></p>
               <p style={{ fontSize: 16, lineHeight: 1.8, color: '#4B5563', marginBottom: 24 }}>Each of them got back <strong style={{ color: '#111827' }}>over an hour a day.</strong> The kids became friends. The families started having weekend barbecues. What started as a carpool became a real friendship.</p>
+
+              {/* Profile cards */}
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
+                {[
+                  { name: 'John D.', photo: 'J', color: '#16A34A', rating: 4.9, reviews: 18, badges: ['ID Verified', 'Trusted Host'] },
+                  { name: 'Jack M.', photo: 'J', color: '#0284C7', rating: 4.8, reviews: 14, badges: ['ID Verified', 'Active Member'] },
+                ].map(p => (
+                  <div key={p.name} style={{ flex: 1, minWidth: 180, background: '#F9FAFB', borderRadius: 14, padding: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: '50%', background: p.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700 }}>{p.photo}</div>
+                      <div>
+                        <p style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 13 }}><span style={{ color: '#F59E0B' }}>★</span> <strong>{p.rating}</strong> <span style={{ color: '#6B7280' }}>({p.reviews})</span></div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      {p.badges.map(b => (
+                        <span key={b} style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 20, ...(b.includes('Verified') ? { background: '#059669', color: '#fff' } : { background: '#3293CB', color: '#fff' }) }}>{b}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               <div style={{ borderRadius: 14, border: '1px solid #F3F4F6', background: '#F9FAFB', padding: '16px 20px' }}>
                 <p style={{ fontSize: 14, lineHeight: 1.6 }}><strong>&quot;We were both burning an hour a day on the same drive and didn&apos;t even know it. BuddyAlly matched us in a day. Now the kids are best friends and we&apos;ve got our mornings back.&quot;</strong> <span style={{ color: '#6B7280' }}>— John D., Maple Ridge</span></p>
               </div>
@@ -346,6 +374,8 @@ export default function HomePage() {
           <p style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 8 }}>BuddyAlly</p>
           <p style={{ fontSize: 14 }}>Find your people. Do more together.</p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20, fontSize: 13 }}>
+            <a href="#contact-codes" style={{ color: '#94A3B8', textDecoration: 'none' }}>Contact Codes</a>
+            <a href="#trust-safety" style={{ color: '#94A3B8', textDecoration: 'none' }}>Safety</a>
             <Link href="/privacy" style={{ color: '#94A3B8', textDecoration: 'none' }}>Privacy</Link>
             <Link href="/terms" style={{ color: '#94A3B8', textDecoration: 'none' }}>Terms</Link>
           </div>
