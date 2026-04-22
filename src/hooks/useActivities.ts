@@ -12,7 +12,7 @@ export function useActivities() {
     setLoading(true)
     const { data, error } = await supabase
       .from('activities')
-      .select('*, host:profiles!created_by(id, first_name, last_name, rating_avg, rating_count, verified_id, avatar_url, city, home_display_name), participants:activity_participants(user_id)')
+      .select('*, host:profiles!created_by(id, first_name, last_name, rating_avg, rating_count, verified_selfie, avatar_url, city, home_display_name), participants:activity_participants(user_id)')
       .eq('status', 'open')
       .order('date', { ascending: true })
       .limit(50)

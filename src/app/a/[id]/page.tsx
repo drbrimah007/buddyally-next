@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
+import { toast } from '@/components/ToastProvider'
+import CreateActivityModal from '@/components/CreateActivityModal'
 
 export default function ActivityPage() {
   const { id } = useParams<{ id: string }>()
@@ -17,6 +19,7 @@ export default function ActivityPage() {
   const [chatMessages, setChatMessages] = useState<any[]>([])
   const [chatMsg, setChatMsg] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
 
   useEffect(() => { loadActivity() }, [id])
 
@@ -24,7 +27,7 @@ export default function ActivityPage() {
     setLoading(true)
     const { data } = await supabase
       .from('activities')
-      .select('*, host:profiles!created_by(id, first_name, last_name, rating_avg, rating_count, avatar_url, city, home_display_name, verified_id), participants:activity_participants(user_id)')
+      .select('*, host:profiles!created_by(id, first_name, last_name, rating_avg, rating_count, avatar_url, city, home_display_name, verified_selfie), participants:activity_participants(user_id)')
       .eq('id', id)
       .single()
     setActivity(data)
@@ -222,6 +225,7 @@ export default function ActivityPage() {
           ) : isOwner ? (
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
               <span style={{ background: '#3293CB', color: '#fff', fontWeight: 600, padding: '12px 24px', borderRadius: 14, fontSize: 15 }}>Your Activity</span>
+              <button onClick={() => setEditOpen(true)} style={{ background: '#fff', color: '#111827', fontWeight: 600, padding: '12px 24px', borderRadius: 14, border: '1px solid #E5E7EB', cursor: 'pointer', fontSize: 15 }}>Edit</button>
               <button onClick={() => { supabase.from('activities').update({ status: 'cancelled' }).eq('id', id).then(() => router.push('/dashboard/activities')) }} style={{ background: '#FEE2E2', color: '#DC2626', fontWeight: 600, padding: '12px 24px', borderRadius: 14, border: 'none', cursor: 'pointer', fontSize: 15 }}>Cancel Activity</button>
             </div>
           ) : isJoined ? (
@@ -244,8 +248,8 @@ export default function ActivityPage() {
               await supabase.from('messages').insert({ sender_id: user.id, recipient_id: host.id, content: `Hi! I'm interested in your activity "${activity.title}"` })
               router.push('/dashboard/messages')
             }} style={{ background: 'none', border: 'none', color: '#3293CB', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Message Host</button>
-            <button onClick={() => { navigator.share?.({ title: activity.title, url: window.location.href }).catch(() => { navigator.clipboard.writeText(window.location.href); alert('Link copied!') }) }} style={{ background: 'none', border: 'none', color: '#6B7280', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Share</button>
-            <button onClick={() => { if (confirm('Report this activity for inappropriate content?')) { supabase.from('reports').insert({ reporter_id: user!.id, reported_type: 'activity', reported_id: id, reason: 'inappropriate' }).then(() => alert('Report submitted. Thank you.')) } }} style={{ background: 'none', border: 'none', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Report</button>
+            <button onClick={() => { navigator.share?.({ title: activity.title, url: window.location.href }).catch(() => { navigator.clipboard.writeText(window.location.href); toast('Link copied', 'info') }) }} style={{ background: 'none', border: 'none', color: '#6B7280', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Share</button>
+            <button onClick={() => { if (confirm('Report this activity for inappropriate content?')) { supabase.from('reports').insert({ reporter_id: user!.id, reported_type: 'activity', reported_id: id, reason: 'inappropriate' }).then(() => toast('Report submitted. Thank you.', 'success')) } }} style={{ background: 'none', border: 'none', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Report</button>
           </div>
         )}
 
@@ -267,6 +271,14 @@ export default function ActivityPage() {
         </div>
         </>}
       </main>
+
+      {editOpen && activity && (
+        <CreateActivityModal
+          initialActivity={activity}
+          onClose={() => setEditOpen(false)}
+          onSaved={() => { setEditOpen(false); loadActivity() }}
+        />
+      )}
     </div>
   )
 }

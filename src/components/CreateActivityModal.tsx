@@ -1,32 +1,116 @@
 'use client'
 
-import { useState, useRef } from 'react'
+// Doubles as the Create / Edit Activity modal. Pass `initialActivity`
+// to open in edit mode.
+
+import { useState, useRef, useEffect } from 'react'
 import { useActivities } from '@/hooks/useActivities'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
+import { useToast } from '@/components/ToastProvider'
 
 const CATEGORIES = ['Travel','Local Activities','Sports / Play','Learning','Help / Support','Events','Outdoor','Gaming','Wellness','Ride Share','Dog Walk','Babysit','Party','Pray','Others']
 const TIMING_OPTIONS = ['TBA','Anytime','This week','Weekends','Evenings','Daytime','This month','Not Set']
 const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
 
-export default function CreateActivityModal({ onClose }: { onClose: () => void }) {
-  const { createActivity } = useActivities()
+type InitialActivity = {
+  id: string
+  title?: string
+  description?: string
+  category?: string
+  location_text?: string
+  location_display?: string
+  location_mode?: string
+  timing_mode?: string
+  date?: string | null
+  time?: string | null
+  start_date?: string | null
+  end_date?: string | null
+  availability_label?: string | null
+  recurrence_freq?: string | null
+  max_participants?: number | null
+  tip_enabled?: boolean | null
+  cover_image_url?: string | null
+  location_lat?: number | null
+  location_lng?: number | null
+  state_code?: string | null
+}
+
+type Props = {
+  onClose: () => void
+  onSaved?: () => void
+  initialActivity?: InitialActivity | null
+}
+
+export default function CreateActivityModal({ onClose, onSaved, initialActivity }: Props) {
+  const isEdit = !!initialActivity
+  const { createActivity, updateActivity } = useActivities()
   const { user } = useAuth()
+  const { error: toastError, success } = useToast()
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState({
+
+  // If editing and recurrence_freq has "(Mon, Tue)" style appended, strip the
+  // days off and pre-select them in the day picker.
+  function parseInitial(): typeof blankForm {
+    if (!initialActivity) return blankForm
+    const a = initialActivity
+    let recurFreq = a.recurrence_freq || 'weekly'
+    let recurDays: string[] = []
+    const m = recurFreq.match(/^(\w+)\s*\(([^)]+)\)\s*$/)
+    if (m) {
+      recurFreq = m[1]
+      recurDays = m[2].split(',').map(s => s.trim()).filter(Boolean)
+    }
+    return {
+      title: a.title || '',
+      category: a.category || CATEGORIES[0],
+      description: a.description || '',
+      location: a.location_display || a.location_text || '',
+      locationMode: a.location_mode || 'area',
+      timingMode: a.timing_mode || 'one_time',
+      date: a.date || '',
+      time: a.time || '',
+      startDate: a.start_date || '',
+      endDate: a.end_date || '',
+      startTime: '',
+      endTime: '',
+      availLabel: a.availability_label || 'TBA',
+      availNote: '',
+      recurFreq,
+      recurTime: '',
+      recurDays,
+      maxParticipants: String(a.max_participants ?? 6),
+      tipEnabled: !!a.tip_enabled,
+      venueNote: '',
+    }
+  }
+
+  const blankForm = {
     title: '', category: CATEGORIES[0], description: '', location: '', locationMode: 'area',
     timingMode: 'one_time', date: '', time: '', startDate: '', endDate: '', startTime: '', endTime: '',
     availLabel: 'TBA', availNote: '',
     recurFreq: 'weekly', recurTime: '', recurDays: [] as string[],
     maxParticipants: '6', tipEnabled: false, venueNote: '',
-  })
+  }
+
+  const [form, setForm] = useState(isEdit ? parseInitial() : blankForm)
   const [coverFile, setCoverFile] = useState<File | null>(null)
-  const [coverPreview, setCoverPreview] = useState('')
+  const [coverPreview, setCoverPreview] = useState(initialActivity?.cover_image_url || '')
   const [placeResults, setPlaceResults] = useState<any[]>([])
   const [showPlaces, setShowPlaces] = useState(false)
-  const [placeSelected, setPlaceSelected] = useState(false)
-  const [selectedCoords, setSelectedCoords] = useState<{lat:number,lon:number,state?:string}|null>(null)
+  const [placeSelected, setPlaceSelected] = useState(isEdit) // existing location is valid
+  const [selectedCoords, setSelectedCoords] = useState<{lat:number,lon:number,state?:string}|null>(
+    isEdit && initialActivity?.location_lat != null && initialActivity?.location_lng != null
+      ? { lat: initialActivity.location_lat, lon: initialActivity.location_lng, state: initialActivity.state_code || undefined }
+      : null
+  )
   const searchTimeout = useRef<any>(null)
+
+  // Defensive: if initialActivity changes (modal reused), resync state.
+  useEffect(() => {
+    if (isEdit) setForm(parseInitial())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialActivity?.id])
 
   function update(field: string, value: any) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -81,31 +165,34 @@ export default function CreateActivityModal({ onClose }: { onClose: () => void }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.title) return alert('Please enter a title.')
-    if (!user) return alert('Please log in.')
+    if (!form.title) { toastError('Please enter a title.'); return }
+    if (!user) { toastError('Please log in.'); return }
+    if (form.locationMode !== 'remote' && form.locationMode !== 'nationwide' && !form.location) {
+      toastError('Please enter a location.'); return
+    }
     setLoading(true)
 
-    let coverUrl = null
+    // Upload new cover if user picked one; otherwise keep existing (edit mode).
+    let coverUrl: string | null = initialActivity?.cover_image_url || null
     if (coverFile) {
       const path = `activities/${user.id}/${Date.now()}.jpg`
       const { error } = await supabase.storage.from('images').upload(path, coverFile, { contentType: coverFile.type })
       if (!error) {
         const { data } = supabase.storage.from('images').getPublicUrl(path)
-        coverUrl = data?.publicUrl
+        coverUrl = data?.publicUrl || coverUrl
       }
     }
 
-    let date = null, time = null, availLabel = null, recurFreq = null
-    if (form.timingMode === 'one_time') { date = form.date; time = form.time }
-    else if (form.timingMode === 'date_range') { date = form.startDate; time = form.startTime }
-    else if (form.timingMode === 'flexible') { availLabel = form.availLabel; }
+    let date: string | null = null, time: string | null = null, availLabel: string | null = null, recurFreq: string | null = null
+    if (form.timingMode === 'one_time') { date = form.date || null; time = form.time || null }
+    else if (form.timingMode === 'date_range') { date = form.startDate || null; time = form.startTime || null }
+    else if (form.timingMode === 'flexible') { availLabel = form.availLabel; time = form.availLabel }
     else if (form.timingMode === 'recurring') {
       recurFreq = form.recurFreq
       if (form.recurDays.length > 0) recurFreq += ` (${form.recurDays.join(', ')})`
-      time = form.recurTime
+      time = form.recurTime || recurFreq
     }
 
-    // Use selected coords or geocode
     let lat = selectedCoords?.lat || null
     let lng = selectedCoords?.lon || null
     let stateCode = selectedCoords?.state || null
@@ -122,26 +209,38 @@ export default function CreateActivityModal({ onClose }: { onClose: () => void }
       } catch {}
     }
 
-    await createActivity(user.id, {
+    const payload: any = {
       title: form.title, description: form.description, category: form.category,
-      location_text: form.location, location_display: form.location, location_mode: form.locationMode as any,
-      date, time, timing_mode: form.timingMode as any,
+      location_text: form.location, location_display: form.location, location_mode: form.locationMode,
+      date, time, timing_mode: form.timingMode,
       start_date: form.timingMode === 'date_range' ? form.startDate : date,
       end_date: form.timingMode === 'date_range' ? form.endDate : null,
       availability_label: availLabel, recurrence_freq: recurFreq,
       max_participants: parseInt(form.maxParticipants) || 6, tip_enabled: form.tipEnabled,
       location_lat: lat, location_lng: lng, state_code: stateCode,
       cover_image_url: coverUrl,
-    } as any)
+    }
 
-    setLoading(false)
+    if (isEdit && initialActivity) {
+      const { error } = await updateActivity(initialActivity.id, payload)
+      setLoading(false)
+      if (error) { toastError('Failed to save: ' + error); return }
+      success('Activity updated')
+    } else {
+      const { error } = await createActivity(user.id, payload)
+      setLoading(false)
+      if (error) { toastError('Failed to create: ' + error); return }
+      success('Activity created')
+    }
+
+    onSaved?.()
     onClose()
   }
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, overflowY: 'auto' }}>
       <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 32, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', margin: '32px 0' }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>Create an Activity</h2>
+        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>{isEdit ? 'Edit Activity' : 'Create an Activity'}</h2>
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 16 }}>
           <div>
@@ -166,7 +265,7 @@ export default function CreateActivityModal({ onClose }: { onClose: () => void }
             <label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Cover image <span style={{ fontWeight: 400, color: '#9CA3AF' }}>optional</span></label>
             {coverPreview && <img src={coverPreview} style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 12, marginBottom: 8 }} alt="" />}
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', border: '1.5px dashed #E5E7EB', borderRadius: 12, cursor: 'pointer', fontSize: 14, color: '#6B7280' }}>
-              📷 Upload photo
+              📷 {coverPreview ? 'Replace photo' : 'Upload photo'}
               <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleCover} />
             </label>
           </div>
@@ -271,7 +370,9 @@ export default function CreateActivityModal({ onClose }: { onClose: () => void }
           {form.tipEnabled && <p style={{ fontSize: 12, color: '#6B7280', marginTop: -8 }}>Tips are never required. This just lets participants leave a voluntary tip.</p>}
 
           <div style={{ display: 'flex', gap: 12, paddingTop: 8 }}>
-            <button type="submit" disabled={loading} style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer', opacity: loading ? 0.6 : 1 }}>{loading ? 'Creating...' : 'Create Activity'}</button>
+            <button type="submit" disabled={loading} style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer', opacity: loading ? 0.6 : 1 }}>
+              {loading ? (isEdit ? 'Saving...' : 'Creating...') : (isEdit ? 'Save Changes' : 'Create Activity')}
+            </button>
             <button type="button" onClick={onClose} style={{ padding: '14px 24px', borderRadius: 14, border: '1px solid #E5E7EB', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
           </div>
         </form>

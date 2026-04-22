@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useRouter } from 'next/navigation'
 
 const GROUP_CATEGORIES = ['Travel','Sports','Learning','Social','Outdoor','Gaming','Wellness','Help','Events','Other']
 
 export default function GroupsPage() {
   const { user } = useAuth()
+  const router = useRouter()
   const [groups, setGroups] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'discover' | 'mine'>('discover')
@@ -200,7 +202,7 @@ export default function GroupsPage() {
             const isOwner = g.created_by === user?.id
             const creator = g.creator as any
             return (
-              <div key={g.id} onClick={() => setViewingGroup(g)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, boxShadow: '0 1px 2px rgba(0,0,0,0.06)', cursor: 'pointer', transition: 'all 0.15s' }}>
+              <div key={g.id} onClick={() => router.push(`/dashboard/groups/${g.id}`)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, boxShadow: '0 1px 2px rgba(0,0,0,0.06)', cursor: 'pointer', transition: 'all 0.15s' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
                   <h3 style={{ fontWeight: 600, fontSize: 16 }}>{g.name}</h3>
                   <span style={{ background: '#E0F2FE', color: '#3293CB', fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>{g.category}</span>

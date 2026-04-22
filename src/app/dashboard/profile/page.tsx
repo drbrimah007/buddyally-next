@@ -3,6 +3,8 @@
 import { useAuth } from '@/hooks/useAuth'
 import { useState, useRef, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useToast } from '@/components/ToastProvider'
+import InstallAppButton from '@/components/InstallAppButton'
 
 const ALL_CATEGORIES = ['Travel','Local Activities','Sports / Play','Learning','Help / Support','Events','Outdoor','Gaming','Wellness','Ride Share','Dog Walk','Babysit','Party','Pray','Others']
 
@@ -27,6 +29,7 @@ function VerifyBadge({ verified }: { verified: { email: boolean; phone: boolean;
 
 export default function ProfilePage() {
   const { user, profile, updateProfile, signOut, refreshProfile } = useAuth()
+  const { success, error: toastError, info } = useToast()
   const [editing, setEditing] = useState(false)
   const [editingInterests, setEditingInterests] = useState(false)
   const [editingSocials, setEditingSocials] = useState(false)
@@ -45,6 +48,9 @@ export default function ProfilePage() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [selfieStream, setSelfieStream] = useState<MediaStream | null>(null)
+  const [selfieChallenge, setSelfieChallenge] = useState('')
+  const [selfieCountdown, setSelfieCountdown] = useState<number | null>(null)
+  const [selfieReady, setSelfieReady] = useState(false)
 
   useEffect(() => { if (user) loadStats() }, [user])
 
@@ -146,9 +152,9 @@ export default function ProfilePage() {
         setPhoneRequestId(data.request_id)
         setPhoneStep('verify')
       } else {
-        alert(data.error || 'Failed to send code')
+        toastError(data.error || 'Failed to send code')
       }
-    } catch { alert('Failed to send verification code') }
+    } catch { toastError('Failed to send verification code') }
   }
 
   async function verifyPhoneOTP() {
@@ -167,27 +173,55 @@ export default function ProfilePage() {
         setPhoneStep('enter')
         setPhoneCode('')
       } else {
-        alert(data.error || 'Invalid code')
+        toastError(data.error || 'Invalid code')
       }
-    } catch { alert('Verification failed') }
+    } catch { toastError('Verification failed') }
   }
 
-  // Selfie capture
+  // Selfie capture (with liveness challenge + 3s countdown, mirroring v1)
+  const SELFIE_CHALLENGES = [
+    'Turn your head slightly left',
+    'Turn your head slightly right',
+    'Look up slightly',
+    'Hold still and blink',
+    'Center your face in the circle',
+  ]
+
   async function startSelfie() {
+    setSelfieChallenge(SELFIE_CHALLENGES[Math.floor(Math.random() * SELFIE_CHALLENGES.length)])
+    setSelfieReady(false)
+    setSelfieCountdown(null)
     setSelfieCapturing(true)
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } })
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 960 } }, audio: false })
       setSelfieStream(stream)
       setTimeout(() => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream
-          videoRef.current.play()
+          videoRef.current.play().catch(() => {})
         }
+        setSelfieReady(true)
       }, 100)
     } catch {
-      alert('Camera access denied. Please allow camera access in your browser settings.')
+      toastError('Camera access denied. Allow camera access in your browser settings.')
       setSelfieCapturing(false)
     }
+  }
+
+  function beginSelfieCountdown() {
+    if (!selfieReady || selfieCountdown !== null) return
+    let count = 3
+    setSelfieCountdown(count)
+    const timer = setInterval(() => {
+      count -= 1
+      if (count <= 0) {
+        clearInterval(timer)
+        setSelfieCountdown(null)
+        captureSelfie()
+      } else {
+        setSelfieCountdown(count)
+      }
+    }, 1000)
   }
 
   async function captureSelfie() {
@@ -207,8 +241,12 @@ export default function ProfilePage() {
       if (!error) {
         await updateProfile({ verified_selfie: true } as any)
         refreshProfile()
+        success('Selfie verified!')
+      } else {
+        toastError('Could not upload selfie. Please try again.')
       }
       setSelfieCapturing(false)
+      setSelfieReady(false)
     }, 'image/jpeg', 0.9)
   }
 
@@ -216,12 +254,14 @@ export default function ProfilePage() {
     selfieStream?.getTracks().forEach(t => t.stop())
     setSelfieStream(null)
     setSelfieCapturing(false)
+    setSelfieReady(false)
+    setSelfieCountdown(null)
   }
 
   async function resendVerificationEmail() {
     const { error } = await supabase.auth.resend({ type: 'signup', email: profile!.email })
-    if (error) alert(error.message)
-    else alert('Verification email sent! Check your inbox.')
+    if (error) toastError(error.message)
+    else success('Verification email sent. Check your inbox.')
   }
 
   function shareProfile() {
@@ -230,7 +270,7 @@ export default function ProfilePage() {
       navigator.share({ title: `${profile?.first_name} on BuddyAlly`, url }).catch(() => {})
     } else {
       navigator.clipboard.writeText(url)
-      alert('Profile link copied!')
+      info('Profile link copied')
     }
   }
 
@@ -350,7 +390,11 @@ export default function ProfilePage() {
               <p style={{ fontWeight: 600, fontSize: 14 }}>{v.label}</p>
               <p style={{ fontSize: 12, color: '#6B7280' }}>{v.done ? 'Verified' : 'Not verified'}</p>
             </div>
-            {!v.done && <button onClick={v.action} style={{ fontSize: 12, fontWeight: 600, color: '#3293CB', border: '1px solid #3293CB', borderRadius: 10, padding: '4px 12px', background: 'none', cursor: 'pointer' }}>Verify</button>}
+            {!v.done && (
+              <button onClick={v.action} style={{ fontSize: 12, fontWeight: 600, color: '#3293CB', border: '1px solid #3293CB', borderRadius: 10, padding: '4px 12px', background: 'none', cursor: 'pointer' }}>
+                Verify
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -361,6 +405,7 @@ export default function ProfilePage() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           <button onClick={startEdit} style={{ fontSize: 13, fontWeight: 600, border: '1px solid #E5E7EB', borderRadius: 10, padding: '8px 16px', background: '#fff', cursor: 'pointer' }}>Edit Profile</button>
           <button onClick={shareProfile} style={{ fontSize: 13, fontWeight: 600, border: '1px solid #E5E7EB', borderRadius: 10, padding: '8px 16px', background: '#fff', cursor: 'pointer' }}>Share Profile</button>
+          <InstallAppButton style={{ height: 34, padding: '0 16px', borderRadius: 10, fontSize: 13 }} />
           <button onClick={() => signOut()} style={{ fontSize: 13, fontWeight: 600, color: '#DC2626', background: '#FEE2E2', borderRadius: 10, padding: '8px 16px', border: 'none', cursor: 'pointer' }}>Log Out</button>
         </div>
       </div>
@@ -450,20 +495,33 @@ export default function ProfilePage() {
       {/* Selfie capture modal */}
       {selfieCapturing && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.85)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, marginBottom: 16 }}>Take a Selfie</h2>
-          <div style={{ position: 'relative', width: 320, height: 240, borderRadius: 16, overflow: 'hidden', marginBottom: 16 }}>
+          <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Selfie Capture</h2>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginBottom: 16 }}>Camera-only. No gallery upload.</p>
+          <div style={{ position: 'relative', width: 320, height: 400, borderRadius: 16, overflow: 'hidden', marginBottom: 12, background: '#000' }}>
             <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             {/* Face guide oval */}
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-              <div style={{ width: 180, height: 220, border: '3px dashed rgba(255,255,255,0.5)', borderRadius: '50%' }} />
+              <div style={{ width: '58%', height: '68%', border: '2px solid rgba(255,255,255,0.6)', borderRadius: 999 }} />
             </div>
+            {/* Countdown overlay */}
+            {selfieCountdown !== null && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.35)' }}>
+                <div style={{ background: '#fff', borderRadius: '50%', width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, fontWeight: 800, color: '#111827' }}>{selfieCountdown}</div>
+              </div>
+            )}
           </div>
           <canvas ref={canvasRef} style={{ display: 'none' }} />
+          <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: '10px 14px', marginBottom: 12, minWidth: 320 }}>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Challenge:</p>
+            <p style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{selfieChallenge}</p>
+          </div>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginBottom: 12 }}>
+            {!selfieReady ? 'Opening camera…' : selfieCountdown !== null ? 'Hold still…' : 'Camera ready. Follow the challenge, then capture.'}
+          </p>
           <div style={{ display: 'flex', gap: 12 }}>
-            <button onClick={captureSelfie} style={{ padding: '14px 32px', borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 700, fontSize: 16, cursor: 'pointer' }}>Capture</button>
+            <button onClick={beginSelfieCountdown} disabled={!selfieReady || selfieCountdown !== null} style={{ padding: '14px 32px', borderRadius: 14, border: 'none', background: selfieReady && selfieCountdown === null ? '#3293CB' : '#4B5563', color: '#fff', fontWeight: 700, fontSize: 16, cursor: selfieReady && selfieCountdown === null ? 'pointer' : 'not-allowed', opacity: selfieReady && selfieCountdown === null ? 1 : 0.6 }}>Capture in 3s</button>
             <button onClick={cancelSelfie} style={{ padding: '14px 24px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.3)', background: 'none', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
           </div>
-          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginTop: 12 }}>Position your face in the oval</p>
         </div>
       )}
     </div>

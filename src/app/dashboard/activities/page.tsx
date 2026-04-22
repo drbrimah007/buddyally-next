@@ -11,6 +11,7 @@ export default function MyActivitiesPage() {
   const { user } = useAuth()
   const [tab, setTab] = useState<'created' | 'joined'>('created')
   const [showCreate, setShowCreate] = useState(false)
+  const [editActivity, setEditActivity] = useState<any | null>(null)
   const [viewActivityId, setViewActivityId] = useState<string | null>(null)
   const [created, setCreated] = useState<any[]>([])
   const [joined, setJoined] = useState<any[]>([])
@@ -89,6 +90,7 @@ export default function MyActivitiesPage() {
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  <button onClick={e => { e.stopPropagation(); setEditActivity(a) }} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
                   <button onClick={e => { e.stopPropagation(); cancelActivity(a.id) }} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
                   <button onClick={e => { e.stopPropagation(); deleteActivity(a.id) }} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: '#FEE2E2', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
                 </div>
@@ -126,6 +128,7 @@ export default function MyActivitiesPage() {
         )
       )}
       {showCreate && <CreateActivityModal onClose={() => { setShowCreate(false); loadData() }} />}
+      {editActivity && <CreateActivityModal initialActivity={editActivity} onClose={() => setEditActivity(null)} onSaved={() => { setEditActivity(null); loadData() }} />}
       {viewActivityId && <ActivityDetailModal activityId={viewActivityId} onClose={() => { setViewActivityId(null); loadData() }} />}
     </div>
   )

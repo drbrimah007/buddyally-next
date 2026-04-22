@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { toast } from '@/components/ToastProvider'
 
 const CODE_TYPES: Record<string, { label: string; emoji: string }> = {
   contact_me: { label: 'Contact me', emoji: '💬' },
@@ -197,7 +198,7 @@ function renderPrintSheet(stickerContent: string, perSheet: number) {
 
 async function doPrintSticker(code: string, codeType: string, styleName: string, perSheet: number) {
   const qrDataUrl = makeQrDataUrl(code)
-  if (!qrDataUrl) { alert('QR generator not loaded yet. Try again.'); return }
+  if (!qrDataUrl) { toast('QR generator not loaded yet. Try again.', 'warn'); return }
   const hdr = HEADER_TEXT[codeType] || HEADER_TEXT.other
   const cautionUrl = await loadImageAsDataUrl('/caution-sign.png')
 
@@ -365,7 +366,7 @@ export default function CodesPage() {
 
   function copyLink(code: string) {
     navigator.clipboard.writeText(`https://buddyally.com/${code}`)
-    alert('Link copied!')
+    toast('Link copied', 'info')
   }
 
   // ─── PRINT MODAL ─────────────────────────────────────────

@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import CreateActivityModal from '@/components/CreateActivityModal'
 import ActivityDetailModal from '@/components/ActivityDetailModal'
+import SafetyBanner from '@/components/SafetyBanner'
 
 function haversineMiles(lat1: number, lng1: number, lat2: number, lng2: number) {
   const toRad = (d: number) => d * Math.PI / 180
@@ -334,7 +335,7 @@ export default function ExplorePage() {
                   {a.location_mode === 'remote' && <span style={{ background: '#F3F4F6', color: '#4B5563', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, border: '1px solid #E5E7EB' }}>Remote</span>}
                   {a.location_mode === 'nationwide' && <span style={{ background: '#F3F4F6', color: '#4B5563', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, border: '1px solid #E5E7EB' }}>Nationwide</span>}
                   {a.location_mode === 'statewide' && <span style={{ background: '#F3F4F6', color: '#4B5563', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, border: '1px solid #E5E7EB' }}>Statewide</span>}
-                  {host?.verified_id && <span style={{ background: '#059669', color: '#fff', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20 }}>Verified</span>}
+                  {host?.verified_selfie && <span style={{ background: '#059669', color: '#fff', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20 }}>Verified</span>}
                 </div>
                 {host && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px solid #E5E7EB' }}>
@@ -363,6 +364,7 @@ export default function ExplorePage() {
           })}
         </div>
       )}
+      <SafetyBanner />
       {showCreate && <CreateActivityModal onClose={() => { setShowCreate(false); fetchActivities() }} />}
       {viewActivityId && <ActivityDetailModal activityId={viewActivityId} onClose={() => { setViewActivityId(null); fetchActivities() }} />}
     </div>

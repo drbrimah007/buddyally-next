@@ -45,7 +45,6 @@ export type Profile = {
   verified_email: boolean
   verified_phone: boolean
   verified_selfie: boolean
-  verified_id: boolean
   badges: string[]
   socials: {
     instagram?: string
