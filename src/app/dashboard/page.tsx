@@ -34,7 +34,7 @@ function formatTiming(a: any) {
 }
 
 export default function ExplorePage() {
-  const { activities, loading, fetchActivities } = useActivities()
+  const { activities, loading, fetchActivities, joinActivity } = useActivities()
   const { profile, user } = useAuth()
   const router = useRouter()
   const [radius, setRadius] = useState(5)
@@ -312,7 +312,7 @@ export default function ExplorePage() {
                     ) : isJoined ? (
                       <span style={{ background: '#059669', color: '#fff', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 20 }}>Joined</span>
                     ) : spotsLeft > 0 ? (
-                      <button onClick={e => { e.stopPropagation() }} style={{ background: '#3293CB', color: '#fff', fontSize: 13, fontWeight: 600, padding: '8px 16px', borderRadius: 12, border: 'none', cursor: 'pointer', boxShadow: '0 1px 3px rgba(50,147,203,0.3)' }}>Join</button>
+                      <button onClick={e => { e.stopPropagation(); joinActivity(a.id, user!.id) }} style={{ background: '#3293CB', color: '#fff', fontSize: 13, fontWeight: 600, padding: '8px 16px', borderRadius: 12, border: 'none', cursor: 'pointer', boxShadow: '0 1px 3px rgba(50,147,203,0.3)' }}>Join</button>
                     ) : (
                       <span style={{ background: '#F3F4F6', color: '#6B7280', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 20 }}>Full</span>
                     )}

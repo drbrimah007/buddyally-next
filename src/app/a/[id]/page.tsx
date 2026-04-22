@@ -1,29 +1,69 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
 
-export default async function ActivityPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export default function ActivityPage() {
+  const { id } = useParams<{ id: string }>()
+  const { user } = useAuth()
+  const router = useRouter()
+  const [activity, setActivity] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [joining, setJoining] = useState(false)
 
-  const { data: activity } = await supabase
-    .from('activities')
-    .select('*, host:profiles!created_by(first_name, last_name, rating_avg, rating_count, avatar_url, city, home_display_name, verified_id)')
-    .eq('id', id)
-    .single()
+  useEffect(() => { loadActivity() }, [id])
 
-  if (!activity) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-4xl mb-4">🔍</p>
-          <h1 className="text-xl font-bold mb-2">Activity not found</h1>
-          <Link href="/" className="text-[#3293CB] font-semibold">Go to BuddyAlly</Link>
-        </div>
-      </div>
-    )
+  async function loadActivity() {
+    setLoading(true)
+    const { data } = await supabase
+      .from('activities')
+      .select('*, host:profiles!created_by(id, first_name, last_name, rating_avg, rating_count, avatar_url, city, home_display_name, verified_id), participants:activity_participants(user_id)')
+      .eq('id', id)
+      .single()
+    setActivity(data)
+    setLoading(false)
   }
 
+  async function joinActivity() {
+    if (!user) { router.push('/signup'); return }
+    setJoining(true)
+    await supabase.from('activity_participants').insert({ activity_id: id, user_id: user.id })
+    await loadActivity()
+    setJoining(false)
+  }
+
+  async function leaveActivity() {
+    if (!user) return
+    setJoining(true)
+    await supabase.from('activity_participants').delete().eq('activity_id', id).eq('user_id', user.id)
+    await loadActivity()
+    setJoining(false)
+  }
+
+  if (loading) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <img src="/buddyally-logo.png" alt="" style={{ height: 56, width: 56, opacity: 0.5 }} />
+    </div>
+  )
+
+  if (!activity) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB' }}>
+      <div style={{ textAlign: 'center' }}>
+        <p style={{ fontSize: 40, marginBottom: 16 }}>🔍</p>
+        <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Activity not found</h1>
+        <Link href="/" style={{ color: '#3293CB', fontWeight: 600 }}>Go to BuddyAlly</Link>
+      </div>
+    </div>
+  )
+
   const host = activity.host as any
-  const spotsLeft = activity.max_participants - (activity.participants?.length || 0)
+  const participants = activity.participants || []
+  const spotsLeft = activity.max_participants - participants.length
+  const isOwner = user && activity.created_by === user.id
+  const isJoined = user && participants.some((p: any) => p.user_id === user.id)
   const timing = activity.timing_mode === 'flexible'
     ? activity.availability_label || 'Flexible'
     : activity.timing_mode === 'recurring'
@@ -33,89 +73,121 @@ export default async function ActivityPage({ params }: { params: Promise<{ id: s
     : 'TBA'
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div style={{ minHeight: '100vh', background: '#F9FAFB' }}>
       {/* Nav */}
-      <header className="bg-white border-b border-gray-200 px-4 h-14 flex items-center justify-center">
-        <div className="max-w-3xl w-full flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <img src="/buddyally-logo-full.png" alt="BuddyAlly" className="h-7" />
+      <header style={{ background: '#fff', borderBottom: '1px solid #E5E7EB', padding: '0 16px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ maxWidth: 680, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Link href={user ? '/dashboard' : '/'} style={{ textDecoration: 'none' }}>
+            <img src="/buddyally-logo-full.png" alt="BuddyAlly" style={{ height: 26 }} />
           </Link>
-          <div className="flex gap-3">
-            <Link href="/login" className="text-sm font-semibold text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5">Log In</Link>
-            <Link href="/signup" className="text-sm font-semibold text-white bg-[#3293CB] rounded-lg px-3 py-1.5">Sign Up</Link>
-          </div>
+          {user ? (
+            <Link href="/dashboard" style={{ fontSize: 13, fontWeight: 600, color: '#3293CB', textDecoration: 'none' }}>&larr; Back to Explore</Link>
+          ) : (
+            <div style={{ display: 'flex', gap: 10 }}>
+              <Link href="/login" style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', border: '1px solid #E5E7EB', borderRadius: 10, padding: '6px 14px', textDecoration: 'none' }}>Log In</Link>
+              <Link href="/signup" style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: '#3293CB', borderRadius: 10, padding: '6px 14px', textDecoration: 'none' }}>Sign Up</Link>
+            </div>
+          )}
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-8">
+      <main style={{ maxWidth: 680, margin: '0 auto', padding: '24px 16px' }}>
         {/* Cover image */}
         {activity.cover_image_url && (
-          <img src={activity.cover_image_url} alt="" className="w-full rounded-2xl mb-6 object-contain bg-gray-100" />
+          <img src={activity.cover_image_url} alt="" style={{ width: '100%', borderRadius: 16, marginBottom: 24, objectFit: 'contain', background: '#f3f4f6' }} />
         )}
 
-        {/* Title */}
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <span className="inline-block bg-[#3293CB] text-white text-xs font-semibold px-2.5 py-1 rounded-full mb-2">{activity.category}</span>
-            <h1 className="text-2xl font-bold">{activity.title}</h1>
-          </div>
+        {/* Title + Category */}
+        <div style={{ marginBottom: 16 }}>
+          <span style={{ display: 'inline-block', background: '#3293CB', color: '#fff', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, marginBottom: 8 }}>{activity.category}</span>
+          <h1 style={{ fontSize: 24, fontWeight: 700 }}>{activity.title}</h1>
         </div>
 
-        {/* Host */}
+        {/* Host card */}
         {host && (
-          <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-lg font-bold text-gray-500 flex-shrink-0">
-              {host.avatar_url ? <img src={host.avatar_url} className="w-full h-full rounded-full object-cover" /> : (host.first_name?.[0] || '?')}
+          <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 16, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: '#4B5563', overflow: 'hidden', flexShrink: 0 }}>
+              {host.avatar_url ? <img src={host.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : (host.first_name?.[0] || '?')}
             </div>
             <div>
-              <p className="font-semibold">{host.first_name} {host.last_name}</p>
-              <p className="text-sm text-gray-500">{'★'.repeat(Math.round(host.rating_avg || 0))} {host.rating_avg?.toFixed(1) || '0.0'} ({host.rating_count || 0} reviews)</p>
-              <p className="text-xs text-gray-400">{host.home_display_name || host.city}</p>
+              <p style={{ fontWeight: 600 }}>{host.first_name} {host.last_name}</p>
+              <p style={{ fontSize: 13, color: '#6B7280' }}>{'★'.repeat(Math.round(host.rating_avg || 0))} {host.rating_avg?.toFixed(1) || '0.0'} ({host.rating_count || 0} reviews)</p>
+              <p style={{ fontSize: 12, color: '#6B7280' }}>{host.home_display_name || host.city}</p>
             </div>
           </div>
         )}
 
         {/* Description */}
         {activity.description && (
-          <p className="text-gray-700 leading-relaxed mb-6">{activity.description}</p>
+          <p style={{ color: '#4B5563', lineHeight: 1.6, marginBottom: 24, fontSize: 15 }}>{activity.description}</p>
         )}
 
         {/* Details grid */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <p className="text-xs font-semibold text-gray-400 uppercase mb-1">Location</p>
-            <p className="font-semibold text-sm">{activity.location_mode === 'remote' ? 'Remote / Online' : activity.location_display || activity.location_text}</p>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <p className="text-xs font-semibold text-gray-400 uppercase mb-1">Date & Time</p>
-            <p className="font-semibold text-sm">{timing}</p>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <p className="text-xs font-semibold text-gray-400 uppercase mb-1">Spots</p>
-            <p className="font-semibold text-sm">{spotsLeft > 0 ? `${spotsLeft} of ${activity.max_participants} left` : 'Full'}</p>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <p className="text-xs font-semibold text-gray-400 uppercase mb-1">Cost</p>
-            <p className="font-semibold text-sm">{activity.tip_enabled ? 'Free. Tips optional.' : 'Free'}</p>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
+          {[
+            { label: 'Location', value: activity.location_mode === 'remote' ? 'Remote / Online' : activity.location_display || activity.location_text },
+            { label: 'Date & Time', value: timing },
+            { label: 'Spots', value: spotsLeft > 0 ? `${spotsLeft} of ${activity.max_participants} left` : 'Full' },
+            { label: 'Cost', value: activity.tip_enabled ? 'Free. Tips optional.' : 'Free' },
+          ].map(d => (
+            <div key={d.label} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, padding: 16 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{d.label}</p>
+              <p style={{ fontWeight: 600, fontSize: 14 }}>{d.value}</p>
+            </div>
+          ))}
         </div>
 
-        {/* CTA */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6 text-center">
-          <p className="font-semibold mb-3">Want to join this activity?</p>
-          <Link href="/signup" className="inline-block bg-[#3293CB] text-white font-bold px-8 py-3 rounded-xl hover:bg-[#2678A8] transition">
-            Sign Up to Join
-          </Link>
+        {/* Participants */}
+        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, padding: 16, marginBottom: 16 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Participants ({participants.length})</p>
+          {participants.length === 0 ? (
+            <p style={{ fontSize: 14, color: '#6B7280' }}>No one has joined yet. Be the first!</p>
+          ) : (
+            <p style={{ fontSize: 14, color: '#4B5563' }}>{participants.length} people have joined this activity.</p>
+          )}
         </div>
+
+        {/* Action buttons */}
+        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 24, textAlign: 'center', marginBottom: 16 }}>
+          {!user ? (
+            <>
+              <p style={{ fontWeight: 600, marginBottom: 12 }}>Want to join this activity?</p>
+              <Link href="/signup" style={{ display: 'inline-block', background: '#3293CB', color: '#fff', fontWeight: 700, padding: '12px 32px', borderRadius: 14, textDecoration: 'none', fontSize: 15 }}>Sign Up to Join</Link>
+            </>
+          ) : isOwner ? (
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <span style={{ background: '#3293CB', color: '#fff', fontWeight: 600, padding: '12px 24px', borderRadius: 14, fontSize: 15 }}>Your Activity</span>
+              <button onClick={() => { supabase.from('activities').update({ status: 'cancelled' }).eq('id', id).then(() => router.push('/dashboard/activities')) }} style={{ background: '#FEE2E2', color: '#DC2626', fontWeight: 600, padding: '12px 24px', borderRadius: 14, border: 'none', cursor: 'pointer', fontSize: 15 }}>Cancel Activity</button>
+            </div>
+          ) : isJoined ? (
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <span style={{ background: '#059669', color: '#fff', fontWeight: 600, padding: '12px 24px', borderRadius: 14, fontSize: 15 }}>You&apos;re In!</span>
+              <button onClick={leaveActivity} disabled={joining} style={{ background: '#fff', color: '#DC2626', fontWeight: 600, padding: '12px 24px', borderRadius: 14, border: '1px solid #E5E7EB', cursor: 'pointer', fontSize: 15 }}>{joining ? 'Leaving...' : 'Leave'}</button>
+            </div>
+          ) : spotsLeft > 0 ? (
+            <button onClick={joinActivity} disabled={joining} style={{ background: '#3293CB', color: '#fff', fontWeight: 700, padding: '14px 40px', borderRadius: 14, border: 'none', cursor: 'pointer', fontSize: 16, boxShadow: '0 4px 12px rgba(50,147,203,0.25)' }}>{joining ? 'Joining...' : 'Join This Activity'}</button>
+          ) : (
+            <span style={{ background: '#F3F4F6', color: '#6B7280', fontWeight: 600, padding: '12px 24px', borderRadius: 14, fontSize: 15 }}>Activity is Full</span>
+          )}
+        </div>
+
+        {/* Action links */}
+        {user && !isOwner && (
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 24 }}>
+            <button style={{ background: 'none', border: 'none', color: '#3293CB', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Message Host</button>
+            <button onClick={() => { navigator.share?.({ title: activity.title, url: window.location.href }).catch(() => { navigator.clipboard.writeText(window.location.href); alert('Link copied!') }) }} style={{ background: 'none', border: 'none', color: '#6B7280', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Share</button>
+            <button style={{ background: 'none', border: 'none', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Report</button>
+          </div>
+        )}
 
         {/* Safety */}
-        <div className="mt-6 border border-gray-200 rounded-xl overflow-hidden">
-          <div className="bg-gray-50 px-4 py-3 flex items-center gap-2">
+        <div style={{ border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ background: '#F9FAFB', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span>🛡</span>
-            <span className="font-semibold text-sm">Safety Protocols</span>
+            <span style={{ fontWeight: 600, fontSize: 14 }}>Safety Protocols</span>
           </div>
-          <div className="px-4 py-3 text-sm text-gray-600 leading-relaxed">
-            <ul className="list-disc pl-5 space-y-1">
+          <div style={{ padding: '12px 16px', fontSize: 14, color: '#4B5563', lineHeight: 1.6 }}>
+            <ul style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 4 }}>
               <li>Do a live video call first</li>
               <li>Ask for a photo of their ID</li>
               <li>Let someone know where you are going</li>

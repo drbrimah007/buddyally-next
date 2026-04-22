@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { AuthRedirect } from "@/components/AuthRedirect";
 
 export default function Home() {
   return (
     <>
+      <AuthRedirect />
       <style dangerouslySetInnerHTML={{ __html: `
         :root{--yellow:#ffcf00;--yellow-deep:#ffb800;--pink:#ff0a8a;--blue:#2f8cff;--black:#111111;--white:#ffffff;--tag:#2f8cff}
         .screen{position:fixed;inset:0;overflow:hidden;color:var(--black);background:radial-gradient(circle at center,rgba(255,255,255,0.78) 0%,rgba(255,233,84,0.92) 16%,rgba(255,207,0,1) 46%,rgba(255,184,0,1) 100%)}
