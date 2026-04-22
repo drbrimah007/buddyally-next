@@ -69,7 +69,7 @@ export default function Home() {
 
           <div className="pills">
             <div className="pill">Real people</div>
-            <div className="pill">Connect. Collab. Repeat.</div>
+            <div className="pill">CONNECT &bull; COLLAB &bull; REPEAT</div>
             <div className="pill">Move together</div>
           </div>
         </section>
