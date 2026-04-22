@@ -81,47 +81,161 @@ function downloadQR(code: string) {
   }, 'image/png')
 }
 
-function doPrintBasic(code: string, title: string, codeType: string, style: string, contentType: string, perSheet: number) {
-  const s = PRINT_STYLES[style] || PRINT_STYLES.blue
-  const hdr = HEADER_TEXT[codeType] || HEADER_TEXT.other
-  const showQR = contentType !== 'link'
-  const showLink = contentType !== 'qr'
+const MASCOT_SIZING: Record<string, { qrSize: number; mascotW: number; mascotH: number; side: string }> = {
+  'contact-owner': { qrSize: 180, mascotW: 0, mascotH: 0, side: 'right' },
+  'boy-mascot': { qrSize: 150, mascotW: 130, mascotH: 170, side: 'left' },
+  'dog-mascot': { qrSize: 150, mascotW: 130, mascotH: 170, side: 'left' },
+  'goat-mascot': { qrSize: 150, mascotW: 130, mascotH: 170, side: 'right' },
+  'sheep-mascot': { qrSize: 150, mascotW: 130, mascotH: 170, side: 'left' },
+  'moose-mascot': { qrSize: 160, mascotW: 140, mascotH: 190, side: 'right' },
+}
+const MASCOT_IMG: Record<string, string> = {
+  'boy-mascot': '/mascot-boy.png',
+  'dog-mascot': '/mascot-dog.png',
+  'goat-mascot': '/mascot-goat.png',
+  'sheep-mascot': '/mascot-sheep.png',
+  'moose-mascot': '/mascot-moose.png',
+}
 
-  const stickerHTML = `
-    <div style="width:100%;max-width:3.5in;margin:auto;border-radius:12px;overflow:hidden;border:2px solid ${s.text === '#fff' ? 'transparent' : '#E5E7EB'};font-family:Inter,Arial,sans-serif;">
-      <div style="background:${s.bg};color:${s.text};padding:14px 16px;text-align:center;">
-        <div style="font-size:18px;font-weight:900;letter-spacing:0.05em;">${hdr.title}</div>
-        <div style="font-size:11px;opacity:0.85;margin-top:2px;">${hdr.sub}</div>
-      </div>
-      <div style="background:#fff;padding:16px;text-align:center;">
-        ${showQR ? '<div id="print-qr" style="display:inline-block;margin-bottom:8px;"></div>' : ''}
-        ${showLink ? `<div style="margin-top:6px;"><span style="font-size:10px;color:#6B7280;">Scan or type:</span><br><span style="font-size:15px;font-weight:800;color:#0284C7;letter-spacing:0.05em;">buddyally.com/${code}</span></div>` : ''}
-        <div style="font-size:10px;color:#9CA3AF;margin-top:6px;">${title}</div>
-      </div>
-    </div>`
+function makeQrDataUrl(code: string): string {
+  if (!(window as any).qrcode) return ''
+  const qr = (window as any).qrcode(0, 'M')
+  qr.addData('https://buddyally.com/' + code)
+  qr.make()
+  const sz = 400, mods = qr.getModuleCount()
+  const cell = Math.floor(sz / (mods + 8))
+  const margin = Math.floor((sz - cell * mods) / 2)
+  const c = document.createElement('canvas')
+  c.width = sz; c.height = sz
+  const ctx = c.getContext('2d')!
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, sz, sz)
+  ctx.fillStyle = '#000'
+  for (let r = 0; r < mods; r++)
+    for (let col = 0; col < mods; col++)
+      if (qr.isDark(r, col)) ctx.fillRect(margin + col * cell, margin + r * cell, cell, cell)
+  return c.toDataURL('image/png')
+}
 
+async function loadImageAsDataUrl(src: string): Promise<string> {
+  return new Promise(resolve => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      const c = document.createElement('canvas')
+      c.width = img.width; c.height = img.height
+      c.getContext('2d')!.drawImage(img, 0, 0)
+      resolve(c.toDataURL('image/png'))
+    }
+    img.onerror = () => resolve('')
+    img.src = src
+  })
+}
+
+function buildStickerHTML(opts: { cautionUrl: string; qrDataUrl: string; code: string; hdr: { title: string; sub: string }; mascotUrl?: string; qrSize: number; mascotW: number; mascotH: number; mascotSide: string }) {
+  const { cautionUrl, qrDataUrl, code, hdr, mascotUrl, qrSize, mascotW, mascotH, mascotSide } = opts
+  const qS = qrSize || 200
+  const mW = mascotW || 130
+  const mH = mascotH || 200
+  const hasMascot = !!mascotUrl
+  const sW = hasMascot ? qS + mW + 28 : qS + 28
+  const titleParts = hdr.title.split(' ')
+  const side = mascotSide || 'right'
+  const qrHtml = `<img src="${qrDataUrl}" style="width:${qS}px;height:${qS}px;display:block;">`
+  const mascotHtml = hasMascot ? `<img src="${mascotUrl}" style="width:${mW}px;height:${mH}px;object-fit:contain;display:block;">` : ''
+  const contentInner = side === 'left' ? mascotHtml + qrHtml : qrHtml + mascotHtml
+
+  return `<!DOCTYPE html><html><head>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+body{font-family:Inter,sans-serif;display:flex;justify-content:center;align-items:flex-start;padding:20px;background:#fff;}
+@page{size:auto;margin:8mm;}
+.sticker{width:${sW}px;background:#fff;border-radius:16px;border:1.5px solid #ddd;padding:14px;}
+.top{background:#0652b7!important;color:#fff!important;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:900;font-size:20px;}
+.warn img{height:20px;width:auto;display:block;}.owner{color:#ffd22e!important;}
+.sub{text-align:center;font-size:21px;color:#555;margin-top:6px;font-weight:600;}
+.content{display:flex;align-items:center;justify-content:center;gap:0;margin-top:8px;}
+.scan{text-align:center;margin-top:8px;font-size:12px;color:#555;}
+.url{text-align:center;margin-top:2px;font-size:20px;font-weight:900;color:#0652b7;letter-spacing:-0.02em;}
+</style></head><body><div class="sticker">
+<div class="top"><span class="warn"><img src="${cautionUrl}"></span><span>${titleParts[0]} <span class="owner">${titleParts.slice(1).join(' ')}</span></span></div>
+<div class="sub">${hdr.sub}</div>
+<div class="content">${contentInner}</div>
+<div class="scan">Scan or type:</div><div class="url">buddyally.com/${code}</div>
+</div></body></html>`
+}
+
+function renderPrintSheet(stickerContent: string, perSheet: number) {
   const printWin = window.open('', '_blank')
   if (!printWin) return
-
-  const layouts: Record<number, number[]> = { 1: [1, 1], 2: [2, 1], 4: [2, 2], 6: [2, 3], 9: [3, 3], 12: [3, 4], 16: [4, 4], 20: [4, 5] }
-  const [cols, rows] = layouts[perSheet] || [1, 1]
-
-  let stickers = ''
-  for (let i = 0; i < perSheet; i++) stickers += `<div style="overflow:hidden;">${stickerHTML}</div>`
-
-  printWin.document.write(`<!DOCTYPE html><html><head>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"><\/script>
-    <style>@page{size:letter;margin:0}*{box-sizing:border-box;margin:0;padding:0}
-    body{width:8.5in;min-height:11in;padding:0.25in;display:grid;grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rows},1fr);gap:0.15in;align-content:start;print-color-adjust:exact;-webkit-print-color-adjust:exact;}</style>
-    </head><body>${stickers}
-    <script>
-    document.querySelectorAll('#print-qr').forEach(function(el){
-      if(typeof qrcode!=='undefined'){var q=qrcode(0,'M');q.addData('https://buddyally.com/${code}');q.make();el.innerHTML=q.createSvgTag({cellSize:3,margin:1});}
-    });
-    setTimeout(function(){window.print();},500);
-    <\/script></body></html>`)
+  const bodyMatch = stickerContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i)
+  const stickerBody = bodyMatch ? bodyMatch[1] : stickerContent
+  const styleMatch = stickerContent.match(/<style[^>]*>([\s\S]*?)<\/style>/i)
+  const styles = styleMatch ? styleMatch[1] : ''
+  const layouts: Record<number, [number, number, string, string]> = {
+    1:[1,1,'0','2in 0.75in'],2:[2,1,'0.25in','0.25in'],4:[2,2,'0.25in','0.25in'],
+    6:[2,3,'0.25in','0.25in'],9:[3,3,'0.17in','0.25in'],12:[3,4,'0.17in','0.25in'],
+    16:[4,4,'0.15in','0.25in'],20:[4,5,'0.13in','0.25in'],
+  }
+  const [cols, rows, gap, pad] = layouts[perSheet] || [1,1,'0','2in 0.75in']
+  const cellsHtml = Array.from({length: perSheet}, () => '<div class="sticker">' + stickerBody + '</div>').join('')
+  printWin.document.write(
+    `<!doctype html><html><head><meta charset="utf-8"><title>Print ${perSheet} per sheet</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>${styles}
+*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+@page{size:letter;margin:0;}html,body{margin:0;padding:0;background:#fff;font-family:Inter,sans-serif;}
+.print-sheet{width:8.5in;height:11in;padding:${pad};margin:0 auto;display:grid;grid-template:repeat(${rows},1fr)/repeat(${cols},1fr);gap:${gap};page-break-after:always;overflow:hidden;}
+.print-sheet:last-child{page-break-after:auto;}
+.print-sheet .sticker{width:100%!important;max-width:100%!important;margin:0!important;overflow:hidden;}
+@media screen{body{background:#e5e7eb;padding:20px 0;}.print-sheet{box-shadow:0 4px 20px rgba(0,0,0,0.15);}}
+</style></head><body><div class="print-sheet">${cellsHtml}</div></body></html>`)
   printWin.document.close()
+  printWin.focus()
+  setTimeout(() => { printWin.print() }, 300)
+}
+
+async function doPrintSticker(code: string, codeType: string, styleName: string, perSheet: number) {
+  const qrDataUrl = makeQrDataUrl(code)
+  if (!qrDataUrl) { alert('QR generator not loaded yet. Try again.'); return }
+  const hdr = HEADER_TEXT[codeType] || HEADER_TEXT.other
+  const cautionUrl = await loadImageAsDataUrl('/caution-sign.png')
+
+  if (styleName in MASCOT_SIZING) {
+    // Mascot/contact-owner style
+    const sizing = MASCOT_SIZING[styleName]
+    const mascotPath = MASCOT_IMG[styleName] || null
+    const mascotUrl = mascotPath ? await loadImageAsDataUrl(mascotPath) : undefined
+    const stickerContent = buildStickerHTML({ cautionUrl, qrDataUrl, code, hdr, mascotUrl, qrSize: sizing.qrSize, mascotW: sizing.mascotW, mascotH: sizing.mascotH, mascotSide: sizing.side })
+    if (perSheet <= 1) {
+      const pw = window.open('', '_blank')
+      if (pw) { pw.document.write(stickerContent); pw.document.close(); setTimeout(() => pw.print(), 600) }
+    } else {
+      renderPrintSheet(stickerContent, perSheet)
+    }
+  } else {
+    // Basic color style (blue/dark/white/yellow/green)
+    const s = PRINT_STYLES[styleName] || PRINT_STYLES.blue
+    const stickerContent = `<!DOCTYPE html><html><head>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+body{font-family:Inter,sans-serif;display:flex;justify-content:center;padding:20px;background:#fff;}@page{size:auto;margin:8mm;}
+.sticker{width:280px;background:#fff;border-radius:16px;border:1.5px solid #ddd;overflow:hidden;}
+.header{background:${s.bg};color:${s.text};padding:14px 16px;text-align:center;}
+.body{padding:16px;text-align:center;background:#fff;}
+.scan{font-size:12px;color:#555;margin-top:8px;}.url{font-size:20px;font-weight:900;color:#0652b7;margin-top:2px;}
+</style></head><body><div class="sticker">
+<div class="header"><div style="font-size:18px;font-weight:900;">${hdr.title}</div><div style="font-size:11px;opacity:0.85;margin-top:2px;">${hdr.sub}</div></div>
+<div class="body"><img src="${qrDataUrl}" style="width:160px;height:160px;">
+<div class="scan">Scan or type:</div><div class="url">buddyally.com/${code}</div></div>
+</div></body></html>`
+    if (perSheet <= 1) {
+      const pw = window.open('', '_blank')
+      if (pw) { pw.document.write(stickerContent); pw.document.close(); setTimeout(() => pw.print(), 600) }
+    } else {
+      renderPrintSheet(stickerContent, perSheet)
+    }
+  }
 }
 
 export default function CodesPage() {
@@ -264,9 +378,21 @@ export default function CodesPage() {
 
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 24, marginBottom: 16 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Style</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 20 }}>
-            {['blue', 'dark', 'white', 'yellow', 'green'].map(s => (
-              <button key={s} onClick={() => setPrintStyle(s)} style={{ padding: '12px 8px', borderRadius: 10, border: printStyle === s ? '2px solid #3293CB' : '1px solid #E5E7EB', background: s === 'blue' ? '#0284C7' : s === 'dark' ? '#0F172A' : s === 'white' ? '#fff' : s === 'yellow' ? '#ffe58a' : '#065F46', color: s === 'white' ? '#111' : '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize' }}>{s}</button>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 20 }}>
+            {[
+              { key: 'contact-owner', label: 'Contact Owner', bg: '#0652b7', color: '#fff' },
+              { key: 'boy-mascot', label: 'Boy', bg: '#E0F2FE', color: '#0652b7' },
+              { key: 'dog-mascot', label: 'Dog', bg: '#E0F2FE', color: '#0652b7' },
+              { key: 'goat-mascot', label: 'Goat', bg: '#E0F2FE', color: '#0652b7' },
+              { key: 'sheep-mascot', label: 'Sheep', bg: '#E0F2FE', color: '#0652b7' },
+              { key: 'moose-mascot', label: 'Moose', bg: '#E0F2FE', color: '#0652b7' },
+              { key: 'blue', label: 'Blue', bg: '#0284C7', color: '#fff' },
+              { key: 'dark', label: 'Dark', bg: '#0F172A', color: '#fff' },
+              { key: 'white', label: 'White', bg: '#fff', color: '#111' },
+              { key: 'yellow', label: 'Yellow', bg: '#ffe58a', color: '#3a2c08' },
+              { key: 'green', label: 'Green', bg: '#065F46', color: '#fff' },
+            ].map(s => (
+              <button key={s.key} onClick={() => setPrintStyle(s.key)} style={{ padding: '12px 8px', borderRadius: 10, border: printStyle === s.key ? '2px solid #3293CB' : '1px solid #E5E7EB', background: s.bg, color: s.color, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{s.label}</button>
             ))}
           </div>
 
@@ -284,7 +410,7 @@ export default function CodesPage() {
             ))}
           </div>
 
-          <button onClick={() => doPrintBasic(c.code, c.title, c.code_type, printStyle, printContent, printCount)} style={{ padding: '14px 32px', borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer', boxShadow: '0 4px 12px rgba(50,147,203,0.25)' }}>Print Now</button>
+          <button onClick={() => doPrintSticker(c.code, c.code_type, printStyle, printCount)} style={{ padding: '14px 32px', borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer', boxShadow: '0 4px 12px rgba(50,147,203,0.25)' }}>Print Now</button>
         </div>
       </div>
     )
