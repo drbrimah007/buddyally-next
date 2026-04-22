@@ -68,9 +68,9 @@ export default function Home() {
           </Link>
 
           <div className="pills">
-            <div className="pill">Real people</div>
-            <div className="pill">CONNECT &bull; COLLAB &bull; REPEAT</div>
-            <div className="pill">Move together</div>
+            <div className="pill">CONNECT</div>
+            <div className="pill">COLLAB</div>
+            <div className="pill">COME UP</div>
           </div>
         </section>
       </main>
