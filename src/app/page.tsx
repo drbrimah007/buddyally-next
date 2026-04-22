@@ -17,7 +17,7 @@ export default function Home() {
         .logo-word .buddy{color:#111}
         .logo-word .ally{color:var(--blue)}
         .hero{position:relative;width:100%;max-width:980px}
-        .we-on{position:absolute;left:50%;top:0.25rem;transform:translateX(-205%) rotate(-16deg);transform-origin:center;background:var(--tag);color:white;padding:0 0.2rem;font-family:Impact,Haettenschweiler,"Arial Black",sans-serif;font-size:clamp(1.7rem,3.4vw,2.34rem);font-weight:900;letter-spacing:-0.03em;line-height:1.1;border-radius:4px;box-shadow:0 6px 14px rgba(47,140,255,0.22);z-index:6;animation:stickerImpact 0.62s 0.18s cubic-bezier(.175,.885,.32,1.25) both,stickerShake 2.8s 1s ease-in-out infinite}
+        .we-on{position:absolute;left:50%;top:0.25rem;transform:translateX(-172%) rotate(-16deg);background:#2f8cff;color:#ffffff;padding:0.18rem 0.38rem;font-family:Inter,Arial,Helvetica,sans-serif;font-size:clamp(1.9rem,3.8vw,2.6rem);font-weight:900;letter-spacing:-0.03em;text-transform:uppercase;border-radius:4px;box-shadow:0 6px 14px rgba(47,140,255,0.22);z-index:6;animation:stickerImpact 0.62s 0.18s cubic-bezier(.175,.885,.32,1.25) both,stickerShake 2.8s 1s ease-in-out infinite}
         .word{font-family:Impact,Haettenschweiler,"Arial Black",sans-serif;font-size:clamp(4.9rem,20vw,11.8rem);line-height:0.88;letter-spacing:-0.09em;text-transform:uppercase;text-shadow:0 12px 24px rgba(0,0,0,0.16);opacity:0}
         .buddy-word{color:var(--pink);animation:slamIn 0.72s 0.28s cubic-bezier(.175,.885,.32,1.2) forwards}
         .ally-word{color:var(--black);animation:slamIn 0.72s 0.42s cubic-bezier(.175,.885,.32,1.2) forwards}
@@ -32,15 +32,15 @@ export default function Home() {
         @keyframes spinReverse{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(-360deg)}}
         @keyframes pulse{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.72}50%{transform:translate(-50%,-50%) scale(1.08);opacity:1}}
         @keyframes dropIn{from{opacity:0;transform:translateY(-18px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
-        @keyframes stickerImpact{0%{opacity:0;transform:translateX(-153%) translateY(-22px) rotate(-24deg) scale(0.72)}65%{opacity:1;transform:translateX(-143%) translateY(3px) rotate(-13deg) scale(1.1)}100%{opacity:1;transform:translateX(-205%) translateY(0) rotate(-16deg) scale(1)}}
-        @keyframes stickerShake{0%,86%,100%{transform:translateX(-205%) rotate(-16deg)}89%{transform:translateX(-205%) rotate(-13deg)}92%{transform:translateX(-205%) rotate(-19deg)}95%{transform:translateX(-205%) rotate(-15deg)}}
+        @keyframes stickerImpact{0%{opacity:0;transform:translateX(-120%) translateY(-22px) rotate(-24deg) scale(0.72)}65%{opacity:1;transform:translateX(-110%) translateY(3px) rotate(-13deg) scale(1.1)}100%{opacity:1;transform:translateX(-172%) translateY(0) rotate(-16deg) scale(1)}}
+        @keyframes stickerShake{0%,86%,100%{transform:translateX(-172%) rotate(-16deg)}89%{transform:translateX(-172%) rotate(-13deg)}92%{transform:translateX(-172%) rotate(-19deg)}95%{transform:translateX(-172%) rotate(-15deg)}}
         @keyframes slamIn{from{opacity:0;transform:translateY(58px) scale(0.8)}to{opacity:1;transform:translateY(0) scale(1)}}
         @keyframes riseIn{from{opacity:0;transform:translateY(18px) scale(0.9)}to{opacity:1;transform:translateY(0) scale(1)}}
         @keyframes fadeIn{from{opacity:0}to{opacity:1}}
         @keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(6px)}}
-        @media(max-width:700px){.splash-content{justify-content:center;padding-top:max(4.6rem,env(safe-area-inset-top))}.logo{margin-bottom:1rem}.logo-icon{width:48px;height:48px;border-radius:15px;font-size:2.1rem}.word{font-size:clamp(4.8rem,23vw,8rem)}.we-on{top:0.15rem;transform:translateX(-190%) rotate(-16deg);animation:mobileStickerImpact 0.62s 0.18s cubic-bezier(.175,.885,.32,1.25) both,mobileStickerShake 2.8s 1s ease-in-out infinite}}
-        @keyframes mobileStickerImpact{0%{opacity:0;transform:translateX(-140%) translateY(-20px) rotate(-24deg) scale(0.72)}65%{opacity:1;transform:translateX(-130%) translateY(2px) rotate(-13deg) scale(1.08)}100%{opacity:1;transform:translateX(-190%) translateY(0) rotate(-16deg) scale(1)}}
-        @keyframes mobileStickerShake{0%,86%,100%{transform:translateX(-190%) rotate(-16deg)}89%{transform:translateX(-190%) rotate(-13deg)}92%{transform:translateX(-190%) rotate(-19deg)}95%{transform:translateX(-190%) rotate(-15deg)}}
+        @media(max-width:700px){.splash-content{justify-content:center;padding-top:max(4.6rem,env(safe-area-inset-top))}.logo{margin-bottom:1rem}.logo-icon{width:48px;height:48px;border-radius:15px;font-size:2.1rem}.word{font-size:clamp(4.8rem,23vw,8rem)}.we-on{top:0.15rem;transform:translateX(-160%) rotate(-16deg);animation:mobileStickerImpact 0.62s 0.18s cubic-bezier(.175,.885,.32,1.25) both,mobileStickerShake 2.8s 1s ease-in-out infinite}}
+        @keyframes mobileStickerImpact{0%{opacity:0;transform:translateX(-110%) translateY(-20px) rotate(-24deg) scale(0.72)}65%{opacity:1;transform:translateX(-100%) translateY(2px) rotate(-13deg) scale(1.08)}100%{opacity:1;transform:translateX(-160%) translateY(0) rotate(-16deg) scale(1)}}
+        @keyframes mobileStickerShake{0%,86%,100%{transform:translateX(-160%) rotate(-16deg)}89%{transform:translateX(-160%) rotate(-13deg)}92%{transform:translateX(-160%) rotate(-19deg)}95%{transform:translateX(-160%) rotate(-15deg)}}
       `}} />
       <main className="screen">
         <div className="rays"></div>
@@ -62,7 +62,7 @@ export default function Home() {
           <div className="summer">This Summer</div>
           <div className="sub">Real people. Real help. Real motion.</div>
 
-          <Link className="cta" href="/dashboard">
+          <Link className="cta" href="/signup">
             LINK UP. DO MORE
             <span className="arrow">&rarr;</span>
           </Link>
