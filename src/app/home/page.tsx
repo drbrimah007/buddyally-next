@@ -23,7 +23,7 @@ export default function HomePage() {
           Connect for travel, sports, learning, local activities, and everyday adventures. Verified profiles. Safer meetups. Optional tips.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link href="/signup" className="bg-[#ff0a8a] text-white font-bold text-lg px-8 py-3.5 rounded-2xl shadow-lg">Get Started Free</Link>
+          <Link href="/signup" className="bg-[#3293CB] text-white font-bold text-lg px-8 py-3.5 rounded-2xl shadow-lg">Get Started Free</Link>
           <Link href="/dashboard" className="border-2 border-gray-200 font-bold text-lg px-8 py-3.5 rounded-2xl">Explore Activities</Link>
         </div>
       </section>
@@ -92,7 +92,7 @@ export default function HomePage() {
       {/* CTA */}
       <section className="py-16 text-center">
         <h2 className="text-3xl font-black mb-4">Ready to link up?</h2>
-        <Link href="/signup" className="inline-block bg-[#ff0a8a] text-white font-bold text-lg px-10 py-4 rounded-2xl shadow-lg">Join BuddyAlly Free</Link>
+        <Link href="/signup" className="inline-block bg-[#3293CB] text-white font-bold text-lg px-10 py-4 rounded-2xl shadow-lg">Join BuddyAlly Free</Link>
       </section>
 
       {/* Footer */}
