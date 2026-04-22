@@ -60,7 +60,7 @@ export default function MessagesPage() {
             <div className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm ${m.sender_id === user?.id ? 'bg-[#3293CB] text-white' : 'bg-gray-100 text-gray-800'}`}>{m.content}</div>
           </div>
         ))}
-        {chatMessages.length === 0 && <p className="text-center text-gray-400 py-10">No messages yet</p>}
+        {chatMessages.length === 0 && <p className="text-center text-gray-600 py-10">No messages yet</p>}
       </div>
       <div className="flex gap-2">
         <input value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Type a message..." />
@@ -73,11 +73,11 @@ export default function MessagesPage() {
     <div>
       <h1 className="text-2xl font-extrabold mb-5">Messages</h1>
       {loading ? <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 animate-pulse"><div className="h-4 bg-gray-200 rounded w-1/3 mb-2" /><div className="h-3 bg-gray-100 rounded w-2/3" /></div>)}</div>
-      : conversations.length === 0 ? <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center"><p className="text-3xl mb-3">💬</p><p className="font-semibold mb-2">No messages yet</p><p className="text-sm text-gray-500">Start a conversation from an activity or profile.</p></div>
+      : conversations.length === 0 ? <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center"><p className="text-3xl mb-3">💬</p><p className="font-semibold mb-2">No messages yet</p><p className="text-sm text-gray-700">Start a conversation from an activity or profile.</p></div>
       : <div className="space-y-2">{conversations.map(c => (
         <div key={c.partnerId} onClick={() => openChat(c.partnerId, c.partnerName)} className={`bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-sm transition ${c.unread ? 'border-l-4 border-l-[#3293CB]' : ''}`}>
-          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-500 flex-shrink-0 overflow-hidden">{c.partnerAvatar ? <img src={c.partnerAvatar} className="w-full h-full object-cover" alt="" /> : c.partnerName[0]}</div>
-          <div className="flex-1 min-w-0"><div className="flex items-center justify-between"><p className="font-semibold text-sm">{c.partnerName}</p><p className="text-xs text-gray-400">{new Date(c.lastAt).toLocaleDateString()}</p></div><p className="text-sm text-gray-500 truncate">{c.lastMessage}</p></div>
+          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-700 flex-shrink-0 overflow-hidden">{c.partnerAvatar ? <img src={c.partnerAvatar} className="w-full h-full object-cover" alt="" /> : c.partnerName[0]}</div>
+          <div className="flex-1 min-w-0"><div className="flex items-center justify-between"><p className="font-semibold text-sm">{c.partnerName}</p><p className="text-xs text-gray-600">{new Date(c.lastAt).toLocaleDateString()}</p></div><p className="text-sm text-gray-700 truncate">{c.lastMessage}</p></div>
           {c.unread > 0 && <div className="bg-[#3293CB] text-white text-xs font-bold min-w-[20px] h-5 rounded-full flex items-center justify-center px-1.5">{c.unread}</div>}
         </div>
       ))}</div>}

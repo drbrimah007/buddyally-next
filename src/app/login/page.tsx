@@ -32,7 +32,7 @@ export default function LoginPage() {
 
         <div className="flex items-center gap-3 mb-4">
           <div className="flex-1 h-px bg-gray-200" />
-          <span className="text-xs text-gray-400">or</span>
+          <span className="text-xs text-gray-600">or</span>
           <div className="flex-1 h-px bg-gray-200" />
         </div>
 
@@ -40,11 +40,11 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="text-sm font-semibold text-gray-600 block mb-1">Email</label>
+            <label className="text-sm font-semibold text-gray-800 block mb-1">Email</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="you@example.com" required />
           </div>
           <div>
-            <label className="text-sm font-semibold text-gray-600 block mb-1">Password</label>
+            <label className="text-sm font-semibold text-gray-800 block mb-1">Password</label>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Your password" required />
           </div>
           <button type="submit" disabled={loading} className="w-full bg-[#3293CB] text-white font-bold py-3 rounded-xl hover:bg-[#2678A8] transition disabled:opacity-50">
@@ -52,7 +52,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-4">
+        <p className="text-center text-sm text-gray-700 mt-4">
           Don't have an account? <Link href="/signup" className="text-[#3293CB] font-semibold">Sign up free</Link>
         </p>
       </div>

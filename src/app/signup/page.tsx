@@ -70,7 +70,7 @@ export default function SignupPage() {
 
         <div className="flex items-center gap-3 mb-4">
           <div className="flex-1 h-px bg-gray-200" />
-          <span className="text-xs text-gray-400">or sign up with email</span>
+          <span className="text-xs text-gray-600">or sign up with email</span>
           <div className="flex-1 h-px bg-gray-200" />
         </div>
 
@@ -79,32 +79,32 @@ export default function SignupPage() {
         <form onSubmit={handleSignup} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-semibold text-gray-600 block mb-1">First Name *</label>
+              <label className="text-sm font-semibold text-gray-800 block mb-1">First Name *</label>
               <input type="text" value={form.firstName} onChange={e => update('firstName', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Alex" required />
             </div>
             <div>
-              <label className="text-sm font-semibold text-gray-600 block mb-1">Last Name</label>
+              <label className="text-sm font-semibold text-gray-800 block mb-1">Last Name</label>
               <input type="text" value={form.lastName} onChange={e => update('lastName', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Smith" />
             </div>
           </div>
           <div>
-            <label className="text-sm font-semibold text-gray-600 block mb-1">Email *</label>
+            <label className="text-sm font-semibold text-gray-800 block mb-1">Email *</label>
             <input type="email" value={form.email} onChange={e => update('email', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="you@example.com" required />
           </div>
           <div>
-            <label className="text-sm font-semibold text-gray-600 block mb-1">Phone</label>
+            <label className="text-sm font-semibold text-gray-800 block mb-1">Phone</label>
             <input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="+1 (555) 000-0000" />
           </div>
           <div>
-            <label className="text-sm font-semibold text-gray-600 block mb-1">Password *</label>
+            <label className="text-sm font-semibold text-gray-800 block mb-1">Password *</label>
             <input type="password" value={form.password} onChange={e => update('password', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Min 6 characters" required />
           </div>
           <div>
-            <label className="text-sm font-semibold text-gray-600 block mb-1">Confirm Password *</label>
+            <label className="text-sm font-semibold text-gray-800 block mb-1">Confirm Password *</label>
             <input type="password" value={form.password2} onChange={e => update('password2', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Re-enter password" required />
           </div>
           <div>
-            <label className="text-sm font-semibold text-gray-600 block mb-1">Home Area</label>
+            <label className="text-sm font-semibold text-gray-800 block mb-1">Home Area</label>
             <input type="text" value={form.city} onChange={e => update('city', e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Brooklyn, NY" />
           </div>
           <div>
@@ -123,7 +123,7 @@ export default function SignupPage() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-4">
+        <p className="text-center text-sm text-gray-700 mt-4">
           Already have an account? <Link href="/login" className="text-[#3293CB] font-semibold">Log in</Link>
         </p>
       </div>

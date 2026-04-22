@@ -28,7 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="h-screen flex items-center justify-center">
       <div className="text-center">
         <img src="/buddyally-logo.png" alt="BuddyAlly" className="h-14 w-14 mb-4 animate-pulse" />
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-gray-700">Loading...</p>
       </div>
     </div>
   )
@@ -45,10 +45,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Link>
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold text-gray-600">{profile?.first_name || 'User'}</span>
-            <Link href="/dashboard/profile" className="text-xs font-semibold text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50">
+            <Link href="/dashboard/profile" className="text-xs font-semibold text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50">
               Profile
             </Link>
-            <button onClick={() => signOut().then(() => router.replace('/'))} className="text-xs font-semibold text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50">
+            <button onClick={() => signOut().then(() => router.replace('/'))} className="text-xs font-semibold text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50">
               Log Out
             </button>
           </div>
@@ -69,7 +69,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center gap-0.5 px-2 py-1 text-[10px] font-medium transition ${active ? 'text-[#3293CB] font-semibold' : 'text-gray-400'}`}
+                className={`flex flex-col items-center gap-0.5 px-2 py-1 text-[10px] font-medium transition ${active ? 'text-[#3293CB] font-semibold' : 'text-gray-600'}`}
               >
                 <span className="text-lg">{item.icon}</span>
                 {item.label}

@@ -32,14 +32,14 @@ export default function GroupsPage() {
         <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
           <p className="text-3xl mb-3">👥</p>
           <p className="font-semibold mb-2">No groups yet</p>
-          <p className="text-sm text-gray-500">Groups for travel, activities, and shared interests coming soon.</p>
+          <p className="text-sm text-gray-700">Groups for travel, activities, and shared interests coming soon.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {groups.map(g => (
             <div key={g.id} className="bg-white border border-gray-200 rounded-xl p-5">
               <h3 className="font-bold">{g.name}</h3>
-              <p className="text-sm text-gray-500 mt-1">{g.description?.substring(0, 100)}</p>
+              <p className="text-sm text-gray-700 mt-1">{g.description?.substring(0, 100)}</p>
               <div className="flex gap-2 mt-3">
                 <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">{g.members?.length || 0} members</span>
                 <span className="text-xs font-semibold bg-blue-50 text-[#3293CB] px-2.5 py-1 rounded-full">{g.category}</span>

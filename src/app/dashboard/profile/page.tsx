@@ -29,7 +29,7 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({ firstName: '', lastName: '', city: '', bio: '' })
 
-  if (!profile) return <div className="text-center py-20 text-gray-500">Loading...</div>
+  if (!profile) return <div className="text-center py-20 text-gray-700">Loading...</div>
 
   function startEdit() {
     setForm({ firstName: profile!.first_name, lastName: profile!.last_name, city: profile!.city || profile!.home_display_name || '', bio: profile!.bio || '' })
@@ -46,11 +46,11 @@ export default function ProfilePage() {
   return (
     <div>
       <div className="bg-gradient-to-br from-gray-100 to-gray-50 rounded-2xl p-8 text-center mb-6">
-        <div className="w-20 h-20 rounded-full bg-gray-200 mx-auto mb-4 flex items-center justify-center text-3xl font-bold text-gray-500 overflow-hidden">
+        <div className="w-20 h-20 rounded-full bg-gray-200 mx-auto mb-4 flex items-center justify-center text-3xl font-bold text-gray-700 overflow-hidden">
           {profile.avatar_url ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="" /> : (profile.first_name?.[0] || '?')}
         </div>
         <h2 className="text-xl font-bold">{profile.first_name} {profile.last_name}</h2>
-        <p className="text-sm text-gray-500 mt-1">📍 {profile.home_display_name || profile.city || 'No location set'}</p>
+        <p className="text-sm text-gray-700 mt-1">📍 {profile.home_display_name || profile.city || 'No location set'}</p>
         <div className="flex items-center justify-center gap-2 mt-2">
           <VerifyBadge verified={verified} />
           {profile.badges?.map((b: string) => <span key={b} className="bg-[#3293CB] text-white text-xs font-semibold px-2 py-0.5 rounded-full">{b}</span>)}
@@ -67,7 +67,7 @@ export default function ProfilePage() {
         <div className="flex flex-wrap gap-2">
           {(profile.interests || []).length > 0
             ? profile.interests.map((i: string) => <span key={i} className="bg-blue-50 text-[#3293CB] text-xs font-semibold px-2.5 py-1 rounded-full">{i}</span>)
-            : <span className="text-sm text-gray-400 italic">No interests set.</span>}
+            : <span className="text-sm text-gray-600 italic">No interests set.</span>}
         </div>
       </div>
 
@@ -77,7 +77,7 @@ export default function ProfilePage() {
           {[{ key: 'email', label: 'Email', done: verified.email }, { key: 'phone', label: 'Phone', done: verified.phone }, { key: 'selfie', label: 'Selfie', done: verified.selfie }].map(v => (
             <div key={v.key} className="flex items-center gap-3">
               <span className="text-lg">{v.done ? '✅' : '⚪'}</span>
-              <div className="flex-1"><p className="font-semibold text-sm">{v.label}</p><p className="text-xs text-gray-400">{v.done ? 'Verified' : 'Not verified'}</p></div>
+              <div className="flex-1"><p className="font-semibold text-sm">{v.label}</p><p className="text-xs text-gray-600">{v.done ? 'Verified' : 'Not verified'}</p></div>
               {!v.done && <button className="text-xs font-semibold text-[#3293CB] border border-[#3293CB] rounded-lg px-3 py-1">Verify</button>}
             </div>
           ))}

@@ -75,7 +75,7 @@ export default function CodesPage() {
         <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
           <p className="text-3xl mb-3">🔗</p>
           <p className="font-semibold mb-2">No codes yet</p>
-          <p className="text-sm text-gray-500 mb-4">Create your first BuddyAlly Contact Code.</p>
+          <p className="text-sm text-gray-700 mb-4">Create your first BuddyAlly Contact Code.</p>
           <button onClick={() => setShowCreate(true)} className="bg-[#3293CB] text-white font-bold px-6 py-2.5 rounded-xl">Create My Code</button>
         </div>
       ) : (
@@ -88,7 +88,7 @@ export default function CodesPage() {
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div>
                     <h3 className="font-bold text-base">{c.title}</h3>
-                    <p className="text-sm text-gray-500">{CODE_TYPES.find(t => t.value === c.code_type)?.label} &bull; buddyally.com/{c.code}</p>
+                    <p className="text-sm text-gray-700">{CODE_TYPES.find(t => t.value === c.code_type)?.label} &bull; buddyally.com/{c.code}</p>
                   </div>
                   <span className="text-xs font-semibold bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full">{c.status}</span>
                 </div>

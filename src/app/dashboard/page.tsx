@@ -160,7 +160,7 @@ export default function ExplorePage() {
         <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
           <p className="text-3xl mb-3">🌍</p>
           <p className="font-semibold mb-2">No activities found</p>
-          <p className="text-sm text-gray-500">Be the first to create one!</p>
+          <p className="text-sm text-gray-700">Be the first to create one!</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -176,7 +176,7 @@ export default function ExplorePage() {
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div>
                       <h3 className="font-bold text-base">{a.title}</h3>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-700">
                         {a.location_mode === 'remote' ? 'Remote / Online' : a.location_display || a.location_text}
                         {a._dist != null && ` • ${formatDistance(a._dist)}`}
                         {' • '}{formatTiming(a)}
@@ -199,12 +199,12 @@ export default function ExplorePage() {
                   </div>
                   {host && (
                     <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-500">
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-700">
                         {host.avatar_url ? <img src={host.avatar_url} className="w-full h-full rounded-full object-cover" /> : (host.first_name?.[0] || '?')}
                       </div>
                       <div>
                         <p className="text-sm font-semibold">{host.first_name} {host.last_name?.[0] || ''}</p>
-                        <p className="text-xs text-gray-400">{'★'.repeat(Math.round(host.rating_avg || 0))} {host.rating_avg?.toFixed(1) || '0.0'} ({host.rating_count || 0})</p>
+                        <p className="text-xs text-gray-600">{'★'.repeat(Math.round(host.rating_avg || 0))} {host.rating_avg?.toFixed(1) || '0.0'} ({host.rating_count || 0})</p>
                       </div>
                     </div>
                   )}
