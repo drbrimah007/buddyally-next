@@ -1,125 +1,80 @@
-"use client";
-
-import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#ffcf00] text-black">
-      <AnimatedBackground />
-
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-5 pt-[max(6rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))] text-center">
-        {/* Logo */}
-        <motion.div
-          initial={{ opacity: 0, y: -20, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="mb-10"
-        >
-          <img src="/buddyally-logo.png" alt="BuddyAlly" className="h-14 w-14 sm:h-16 sm:w-16 mx-auto" />
-        </motion.div>
-
-        {/* Headline */}
-        <div className="relative">
-          <motion.div
-            initial={{ opacity: 0, x: -40, y: -20, rotate: -20 }}
-            animate={{ opacity: 1, x: 0, y: 0, rotate: -15 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="absolute -left-6 -top-4 z-20 bg-[#ff0a8a] px-4 py-2 text-white text-sm font-black uppercase shadow-xl"
-          >
-            WE ON
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 60, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="leading-[0.9]"
-          >
-            <span className="block text-[#ff0a8a] text-[clamp(4rem,18vw,10rem)] font-black tracking-[-0.08em]">
-              BUDDY
-            </span>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 60, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.45 }}
-            className="leading-[0.9]"
-          >
-            <span className="block text-black text-[clamp(4rem,18vw,10rem)] font-black tracking-[-0.08em]">
-              ALLY
-            </span>
-          </motion.div>
-        </div>
-
-        {/* This Summer */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.7 }}
-          className="mt-4 bg-black px-5 py-2 rounded-xl"
-        >
-          <span className="text-yellow-300 text-xl sm:text-2xl font-black uppercase">THIS SUMMER</span>
-        </motion.div>
-
-        {/* Subtext */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.9 }}
-          className="mt-6 text-lg font-bold text-black/70"
-        >
-          Real people. Real help. Real motion.
-        </motion.p>
-
-        {/* CTA */}
-        <motion.a
-          href="/dashboard"
-          initial={{ opacity: 0, y: 30, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.6, delay: 1 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.98 }}
-          className="mt-10 flex items-center gap-3 bg-[#ff0a8a] text-white text-xl sm:text-2xl font-black px-10 py-5 rounded-2xl shadow-2xl"
-        >
-          LINK UP. DO MORE
-          <motion.span animate={{ x: [0, 6, 0] }} transition={{ repeat: Infinity, duration: 1 }}>
-            <ArrowRight />
-          </motion.span>
-        </motion.a>
-
-        {/* Secondary links */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-          className="mt-6 flex gap-6 text-sm font-semibold text-black/50"
-        >
-          <a href="/login" className="hover:text-black transition">Log In</a>
-          <a href="/signup" className="hover:text-black transition">Sign Up Free</a>
-        </motion.div>
-      </div>
-    </main>
-  );
-}
-
-function AnimatedBackground() {
-  return (
     <>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.7)_0%,rgba(255,231,77,0.9)_20%,rgba(255,207,0,1)_50%,rgba(255,180,0,1)_100%)]" />
-      <motion.div
-        className="absolute left-1/2 top-1/2 h-[150vmax] w-[150vmax] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-40"
-        style={{ background: "repeating-conic-gradient(from 0deg, rgba(255,255,255,0.5) 0deg 3deg, transparent 3deg 12deg)" }}
-        animate={{ rotate: 360 }}
-        transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-      />
-      <motion.div
-        className="absolute left-1/2 top-1/2 h-[120vmax] w-[120vmax] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-20"
-        style={{ background: "repeating-conic-gradient(from 0deg, rgba(255,100,0,0.5) 0deg 2deg, transparent 2deg 15deg)" }}
-        animate={{ rotate: -360 }}
-        transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
-      />
+      <style dangerouslySetInnerHTML={{ __html: `
+        :root{--yellow:#ffcf00;--yellow-deep:#ffb800;--pink:#ff0a8a;--blue:#2f8cff;--black:#111111;--white:#ffffff;--tag:#2f8cff}
+        .screen{position:relative;min-height:100vh;overflow:hidden;color:var(--black);background:radial-gradient(circle at center,rgba(255,255,255,0.78) 0%,rgba(255,233,84,0.92) 16%,rgba(255,207,0,1) 46%,rgba(255,184,0,1) 100%)}
+        .rays,.rays-2{position:absolute;left:50%;top:50%;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
+        .rays{width:150vmax;height:150vmax;opacity:0.42;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,0.5) 0deg 3deg,rgba(255,207,0,0) 3deg 12deg);animation:spin 40s linear infinite}
+        .rays-2{width:118vmax;height:118vmax;opacity:0.18;background:repeating-conic-gradient(from 0deg,rgba(255,102,0,0.55) 0deg 2deg,rgba(255,207,0,0) 2deg 15deg);animation:spinReverse 56s linear infinite}
+        .sun-core{position:absolute;left:50%;top:44%;width:min(28vw,240px);height:min(28vw,240px);min-width:160px;min-height:160px;border-radius:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.78);filter:blur(30px);animation:pulse 4.5s ease-in-out infinite}
+        .splash-content{position:relative;z-index:2;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:max(5.2rem,env(safe-area-inset-top)) 1.25rem max(2rem,env(safe-area-inset-bottom))}
+        .logo{display:flex;align-items:center;justify-content:center;gap:0.65rem;margin-bottom:1.35rem;animation:dropIn 0.55s cubic-bezier(.22,1,.36,1) both}
+        .logo-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#2f8cff,#1f6fe0);display:grid;place-items:center;color:white;font-weight:900;font-size:2.4rem;line-height:1;box-shadow:0 10px 28px rgba(0,0,0,0.18)}
+        .logo-word{font-size:clamp(2.1rem,4vw,3.4rem);font-weight:900;letter-spacing:-0.05em}
+        .logo-word .buddy{color:#111}
+        .logo-word .ally{color:var(--blue)}
+        .hero{position:relative;width:100%;max-width:980px}
+        .we-on{position:absolute;left:50%;top:0.25rem;transform:translateX(-172%) rotate(-16deg);transform-origin:center;background:var(--tag);color:white;padding:0.18rem 0.38rem;font-size:clamp(1.9rem,3.8vw,2.6rem);font-weight:900;letter-spacing:-0.03em;border-radius:4px;box-shadow:0 6px 14px rgba(47,140,255,0.22);z-index:6;animation:stickerImpact 0.62s 0.18s cubic-bezier(.175,.885,.32,1.25) both,stickerShake 2.8s 1s ease-in-out infinite}
+        .word{font-family:Impact,Haettenschweiler,"Arial Black",sans-serif;font-size:clamp(4.9rem,20vw,11.8rem);line-height:0.88;letter-spacing:-0.09em;text-transform:uppercase;text-shadow:0 12px 24px rgba(0,0,0,0.16);opacity:0}
+        .buddy-word{color:var(--pink);animation:slamIn 0.72s 0.28s cubic-bezier(.175,.885,.32,1.2) forwards}
+        .ally-word{color:var(--black);animation:slamIn 0.72s 0.42s cubic-bezier(.175,.885,.32,1.2) forwards}
+        .summer{margin-top:0.75rem;display:inline-block;background:#000;color:#ffe34d;padding:0.9rem 1.25rem;border-radius:1.1rem;font-size:clamp(1.25rem,4vw,2.6rem);font-weight:900;text-transform:uppercase;letter-spacing:-0.04em;box-shadow:0 18px 45px rgba(0,0,0,0.22);animation:riseIn 0.5s 0.58s cubic-bezier(.22,1,.36,1) both}
+        .sub{margin-top:1.2rem;max-width:720px;color:rgba(0,0,0,0.68);font-size:clamp(1rem,2.2vw,1.8rem);font-weight:900;line-height:1.2;animation:fadeIn 0.5s 0.78s both}
+        .cta{margin-top:2.8rem;display:inline-flex;align-items:center;justify-content:center;gap:0.8rem;width:min(100%,430px);background:var(--pink);color:white;text-decoration:none;padding:1.2rem 1.4rem;border-radius:1.6rem;font-size:clamp(1.2rem,4vw,2rem);font-weight:900;text-transform:uppercase;letter-spacing:-0.03em;box-shadow:0 22px 60px rgba(255,10,138,0.38);animation:riseIn 0.56s 0.96s cubic-bezier(.22,1,.36,1) both}
+        .arrow{display:inline-block;animation:nudge 1.1s ease-in-out infinite}
+        .pills{margin-top:1rem;width:min(100%,760px);display:grid;grid-template-columns:repeat(3,1fr);gap:0.6rem;animation:fadeIn 0.5s 1.08s both}
+        .pill{background:rgba(255,255,255,0.38);border:1px solid rgba(0,0,0,0.08);border-radius:1rem;padding:0.95rem 0.8rem;font-size:0.82rem;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:rgba(0,0,0,0.72);backdrop-filter:blur(8px)}
+        .footer-glow{position:absolute;inset-inline:0;bottom:0;height:180px;background:linear-gradient(to top,rgba(255,166,0,0.42),transparent);z-index:1}
+        @keyframes spin{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+        @keyframes spinReverse{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(-360deg)}}
+        @keyframes pulse{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.72}50%{transform:translate(-50%,-50%) scale(1.08);opacity:1}}
+        @keyframes dropIn{from{opacity:0;transform:translateY(-18px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+        @keyframes stickerImpact{0%{opacity:0;transform:translateX(-123%) translateY(-22px) rotate(-24deg) scale(0.72)}65%{opacity:1;transform:translateX(-113%) translateY(3px) rotate(-13deg) scale(1.1)}100%{opacity:1;transform:translateX(-170%) translateY(0) rotate(-16deg) scale(1)}}
+        @keyframes stickerShake{0%,86%,100%{transform:translateX(-170%) rotate(-16deg)}89%{transform:translateX(-170%) rotate(-13deg)}92%{transform:translateX(-170%) rotate(-19deg)}95%{transform:translateX(-170%) rotate(-15deg)}}
+        @keyframes slamIn{from{opacity:0;transform:translateY(58px) scale(0.8)}to{opacity:1;transform:translateY(0) scale(1)}}
+        @keyframes riseIn{from{opacity:0;transform:translateY(18px) scale(0.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        @keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(6px)}}
+        @media(max-width:700px){.splash-content{justify-content:center;padding-top:max(4.6rem,env(safe-area-inset-top))}.logo{margin-bottom:1rem}.logo-icon{width:48px;height:48px;border-radius:15px;font-size:2.1rem}.word{font-size:clamp(4.8rem,23vw,8rem)}.we-on{top:0.15rem;transform:translateX(-158%) rotate(-16deg);animation:mobileStickerImpact 0.62s 0.18s cubic-bezier(.175,.885,.32,1.25) both,mobileStickerShake 2.8s 1s ease-in-out infinite}.pills{grid-template-columns:1fr}}
+        @keyframes mobileStickerImpact{0%{opacity:0;transform:translateX(-113%) translateY(-20px) rotate(-24deg) scale(0.72)}65%{opacity:1;transform:translateX(-101%) translateY(2px) rotate(-13deg) scale(1.08)}100%{opacity:1;transform:translateX(-158%) translateY(0) rotate(-16deg) scale(1)}}
+        @keyframes mobileStickerShake{0%,86%,100%{transform:translateX(-158%) rotate(-16deg)}89%{transform:translateX(-158%) rotate(-13deg)}92%{transform:translateX(-158%) rotate(-19deg)}95%{transform:translateX(-158%) rotate(-15deg)}}
+      `}} />
+      <main className="screen">
+        <div className="rays"></div>
+        <div className="rays-2"></div>
+        <div className="sun-core"></div>
+        <div className="footer-glow"></div>
+
+        <section className="splash-content">
+          <div className="logo">
+            <div className="logo-icon">B</div>
+            <div className="logo-word"><span className="buddy">buddy</span><span className="ally">ally</span></div>
+          </div>
+
+          <div className="hero">
+            <div className="we-on">WE ON</div>
+            <div className="word buddy-word">BUDDY</div>
+            <div className="word ally-word">ALLY</div>
+          </div>
+
+          <div className="summer">This Summer</div>
+          <div className="sub">Real people. Real help. Real motion.</div>
+
+          <Link className="cta" href="/dashboard">
+            LINK UP. DO MORE
+            <span className="arrow">&rarr;</span>
+          </Link>
+
+          <div className="pills">
+            <div className="pill">Real people</div>
+            <div className="pill">Connect. Help. Repeat.</div>
+            <div className="pill">Move together</div>
+          </div>
+        </section>
+      </main>
     </>
   );
 }
