@@ -294,7 +294,7 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
           </div>
 
           {/* Location with autocomplete */}
-          <div style={{ ...sectionCard, position: 'relative' }}>
+          <div style={sectionCard}>
             <label style={labelStyle}>Where does this happen? *</label>
             <select value={form.locationMode} onChange={e => update('locationMode', e.target.value)} style={{ ...selectStyle, marginBottom: 8 }}>
               <option value="area">City or area</option>
@@ -305,19 +305,24 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
             </select>
             {form.locationMode !== 'remote' && form.locationMode !== 'nationwide' && (
               <>
-                <input value={form.location} onChange={e => searchLocation(e.target.value)} style={inputStyle} placeholder="Search for a city or place..." />
+                {/* Wrap the search input + dropdown in a relative container so
+                    the autocomplete menu positions correctly regardless of
+                    whether the venue details block is below it. */}
+                <div style={{ position: 'relative' }}>
+                  <input value={form.location} onChange={e => searchLocation(e.target.value)} style={inputStyle} placeholder="Search for a city or place..." />
+                  {showPlaces && placeResults.length > 0 && (
+                    <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 999, maxHeight: 200, overflowY: 'auto' }}>
+                      {placeResults.map((p: any, i: number) => (
+                        <div key={i} onClick={() => selectPlace(p)} style={{ padding: '10px 14px', fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #f3f4f6', color: '#111827' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
+                          onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
+                          {p.display_name?.substring(0, 60)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {placeSelected && <p style={{ fontSize: 12, color: '#059669', marginTop: 6, fontWeight: 600 }}>✓ Used for search and distance</p>}
-                {showPlaces && placeResults.length > 0 && (
-                  <div style={{ position: 'absolute', left: 14, right: 14, top: 'calc(100% - 48px)', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 999, maxHeight: 200, overflowY: 'auto' }}>
-                    {placeResults.map((p: any, i: number) => (
-                      <div key={i} onClick={() => selectPlace(p)} style={{ padding: '10px 14px', fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #f3f4f6', color: '#111827' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
-                        onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
-                        {p.display_name?.substring(0, 60)}
-                      </div>
-                    ))}
-                  </div>
-                )}
                 <div style={{ marginTop: 10 }}>
                   <label style={labelStyle}>Venue details <span style={{ fontWeight: 500, color: '#9CA3AF', textTransform: 'none', letterSpacing: 0 }}>optional</span></label>
                   <input value={form.venueNote} onChange={e => update('venueNote', e.target.value)} style={inputStyle} placeholder="Meeting point, room number, etc." />

@@ -224,9 +224,14 @@ export default function ActivityPage() {
             </>
           ) : isOwner ? (
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <span style={{ background: '#3293CB', color: '#fff', fontWeight: 600, padding: '12px 24px', borderRadius: 14, fontSize: 15 }}>Your Activity</span>
+              <button
+                onClick={() => router.push('/dashboard/activities')}
+                style={{ background: '#3293CB', color: '#fff', fontWeight: 700, padding: '12px 24px', borderRadius: 14, border: 'none', cursor: 'pointer', fontSize: 15, boxShadow: '0 4px 12px rgba(50,147,203,0.25)' }}
+              >
+                Manage My Activities
+              </button>
               <button onClick={() => setEditOpen(true)} style={{ background: '#fff', color: '#111827', fontWeight: 600, padding: '12px 24px', borderRadius: 14, border: '1px solid #E5E7EB', cursor: 'pointer', fontSize: 15 }}>Edit</button>
-              <button onClick={() => { supabase.from('activities').update({ status: 'cancelled' }).eq('id', id).then(() => router.push('/dashboard/activities')) }} style={{ background: '#FEE2E2', color: '#DC2626', fontWeight: 600, padding: '12px 24px', borderRadius: 14, border: 'none', cursor: 'pointer', fontSize: 15 }}>Cancel Activity</button>
+              <button onClick={() => { if (!confirm('Cancel this activity? Participants will see it marked Cancelled.')) return; supabase.from('activities').update({ status: 'cancelled' }).eq('id', id).then(() => router.push('/dashboard/activities')) }} style={{ background: '#FEE2E2', color: '#DC2626', fontWeight: 600, padding: '12px 24px', borderRadius: 14, border: 'none', cursor: 'pointer', fontSize: 15 }}>Cancel Activity</button>
             </div>
           ) : isJoined ? (
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>

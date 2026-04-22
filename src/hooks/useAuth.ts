@@ -43,7 +43,10 @@ export function useAuth() {
   async function signUpWithEmail(email: string, password: string, meta: Record<string, string>) {
     const { data, error } = await supabase.auth.signUp({
       email, password,
-      options: { data: meta }
+      options: {
+        data: meta,
+        emailRedirectTo: window.location.origin + '/dashboard',
+      }
     })
     if (error) return { error: error.message }
     return { user: data.user }

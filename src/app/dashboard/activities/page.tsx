@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
 import CreateActivityModal from '@/components/CreateActivityModal'
 import ActivityDetailModal from '@/components/ActivityDetailModal'
+import { toast } from '@/components/ToastProvider'
 
 export default function MyActivitiesPage() {
   const { user } = useAuth()

@@ -138,43 +138,52 @@ export default function ProfilePage() {
     img.src = URL.createObjectURL(file)
   }
 
-  // Phone verification
+  // Phone verification — uses Supabase Edge Function (vonage-verify)
   async function sendPhoneOTP() {
     if (!phoneNumber.trim()) return
+    if (!phoneNumber.startsWith('+')) { toastError('Include country code (e.g. +1 for US)'); return }
     try {
-      const res = await fetch('/api/verify-phone', {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { toastError('Please log in first'); return }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/vonage-verify`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phoneNumber, action: 'send' })
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        },
+        body: JSON.stringify({ action: 'send', phone_number: phoneNumber })
       })
       const data = await res.json()
-      if (data.request_id) {
-        setPhoneRequestId(data.request_id)
-        setPhoneStep('verify')
-      } else {
-        toastError(data.error || 'Failed to send code')
-      }
+      if (!res.ok || data.error) { toastError('Failed: ' + (data.error || 'Unknown error')); return }
+      setPhoneRequestId(data.request_id)
+      setPhoneStep('verify')
+      success('Code sent! Check your phone.')
     } catch { toastError('Failed to send verification code') }
   }
 
   async function verifyPhoneOTP() {
-    if (!phoneCode.trim()) return
+    if (!phoneCode.trim() || phoneCode.length < 6) { toastError('Enter the 6-digit code'); return }
     try {
-      const res = await fetch('/api/verify-phone', {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { toastError('Please log in first'); return }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/vonage-verify`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request_id: phoneRequestId, code: phoneCode, action: 'verify' })
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        },
+        body: JSON.stringify({ action: 'check', request_id: phoneRequestId, code: phoneCode })
       })
       const data = await res.json()
-      if (data.verified) {
-        await updateProfile({ verified_phone: true, phone: phoneNumber } as any)
-        refreshProfile()
-        setPhoneVerifying(false)
-        setPhoneStep('enter')
-        setPhoneCode('')
-      } else {
-        toastError(data.error || 'Invalid code')
-      }
+      if (!res.ok || data.error) { toastError('Invalid code: ' + (data.error || 'Try again')); return }
+      await updateProfile({ verified_phone: true, phone: phoneNumber } as any)
+      refreshProfile()
+      setPhoneVerifying(false)
+      setPhoneStep('enter')
+      setPhoneCode('')
+      success('Phone verified!')
     } catch { toastError('Verification failed') }
   }
 

@@ -49,7 +49,6 @@ export default function SignupPage() {
         city: form.city,
         home_display_name: form.city,
         interests,
-        verified_email: true,
         badges: ['New Member'],
       }).eq('id', result.user.id)
     }
