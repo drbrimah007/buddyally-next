@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useActivities } from '@/hooks/useActivities'
 import { useAuth } from '@/hooks/useAuth'
+import CreateActivityModal from '@/components/CreateActivityModal'
 
 function haversineMiles(lat1: number, lng1: number, lat2: number, lng2: number) {
   const toRad = (d: number) => d * Math.PI / 180
@@ -38,6 +39,7 @@ export default function ExplorePage() {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
   const [showAll, setShowAll] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
 
   const userInterests = profile?.interests || []
   const categories = showAll || userInterests.length === 0
@@ -74,7 +76,7 @@ export default function ExplorePage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-extrabold">Explore Activities</h1>
-        <button className="bg-[#3293CB] text-white font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-[#2678A8] transition">
+        <button onClick={() => setShowCreate(true)} className="bg-[#3293CB] text-white font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-[#2678A8] transition">
           + New Activity
         </button>
       </div>
@@ -212,6 +214,7 @@ export default function ExplorePage() {
           })}
         </div>
       )}
+      {showCreate && <CreateActivityModal onClose={() => setShowCreate(false)} />}
     </div>
   )
 }
