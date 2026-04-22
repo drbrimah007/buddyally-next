@@ -25,7 +25,7 @@ export default function Home() {
         .sub{margin-top:1.2rem;max-width:720px;color:rgba(0,0,0,0.68);font-size:clamp(1rem,2.2vw,1.8rem);font-weight:900;line-height:1.2;animation:fadeIn 0.5s 0.78s both}
         .cta{margin-top:2.8rem;display:inline-flex;align-items:center;justify-content:center;gap:0.8rem;width:min(100%,430px);background:var(--pink);color:white;text-decoration:none;padding:1.2rem 1.4rem;border-radius:1.6rem;font-size:clamp(1.2rem,4vw,2rem);font-weight:900;text-transform:uppercase;letter-spacing:-0.03em;box-shadow:0 22px 60px rgba(255,10,138,0.38);animation:riseIn 0.56s 0.96s cubic-bezier(.22,1,.36,1) both}
         .arrow{display:inline-block;animation:nudge 1.1s ease-in-out infinite}
-        .pills{margin-top:1rem;width:min(100%,760px);display:grid;grid-template-columns:repeat(3,1fr);gap:0.6rem;animation:fadeIn 0.5s 1.08s both}
+        .pills{margin-top:1rem;width:min(100%,760px);display:flex;justify-content:center;gap:0.6rem;flex-wrap:wrap;animation:fadeIn 0.5s 1.08s both}
         .pill{background:rgba(255,255,255,0.38);border:1px solid rgba(0,0,0,0.08);border-radius:1rem;padding:0.95rem 0.8rem;font-size:0.82rem;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:rgba(0,0,0,0.72);backdrop-filter:blur(8px)}
         .footer-glow{position:absolute;inset-inline:0;bottom:0;height:180px;background:linear-gradient(to top,rgba(255,166,0,0.42),transparent);z-index:1}
         @keyframes spin{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}
@@ -38,7 +38,7 @@ export default function Home() {
         @keyframes riseIn{from{opacity:0;transform:translateY(18px) scale(0.9)}to{opacity:1;transform:translateY(0) scale(1)}}
         @keyframes fadeIn{from{opacity:0}to{opacity:1}}
         @keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(6px)}}
-        @media(max-width:700px){.splash-content{justify-content:center;padding-top:max(4.6rem,env(safe-area-inset-top))}.logo{margin-bottom:1rem}.logo-icon{width:48px;height:48px;border-radius:15px;font-size:2.1rem}.word{font-size:clamp(4.8rem,23vw,8rem)}.we-on{top:0.15rem;transform:translateX(-190%) rotate(-16deg);animation:mobileStickerImpact 0.62s 0.18s cubic-bezier(.175,.885,.32,1.25) both,mobileStickerShake 2.8s 1s ease-in-out infinite}.pills{grid-template-columns:1fr}}
+        @media(max-width:700px){.splash-content{justify-content:center;padding-top:max(4.6rem,env(safe-area-inset-top))}.logo{margin-bottom:1rem}.logo-icon{width:48px;height:48px;border-radius:15px;font-size:2.1rem}.word{font-size:clamp(4.8rem,23vw,8rem)}.we-on{top:0.15rem;transform:translateX(-190%) rotate(-16deg);animation:mobileStickerImpact 0.62s 0.18s cubic-bezier(.175,.885,.32,1.25) both,mobileStickerShake 2.8s 1s ease-in-out infinite}}
         @keyframes mobileStickerImpact{0%{opacity:0;transform:translateX(-140%) translateY(-20px) rotate(-24deg) scale(0.72)}65%{opacity:1;transform:translateX(-130%) translateY(2px) rotate(-13deg) scale(1.08)}100%{opacity:1;transform:translateX(-190%) translateY(0) rotate(-16deg) scale(1)}}
         @keyframes mobileStickerShake{0%,86%,100%{transform:translateX(-190%) rotate(-16deg)}89%{transform:translateX(-190%) rotate(-13deg)}92%{transform:translateX(-190%) rotate(-19deg)}95%{transform:translateX(-190%) rotate(-15deg)}}
       `}} />
