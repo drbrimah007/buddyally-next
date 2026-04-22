@@ -13,6 +13,10 @@ export default function ActivityPage() {
   const [activity, setActivity] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [joining, setJoining] = useState(false)
+  const [tab, setTab] = useState<'details' | 'chat'>('details')
+  const [chatMessages, setChatMessages] = useState<any[]>([])
+  const [chatMsg, setChatMsg] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
 
   useEffect(() => { loadActivity() }, [id])
 
@@ -26,6 +30,28 @@ export default function ActivityPage() {
     setActivity(data)
     setLoading(false)
   }
+
+  async function loadChat() {
+    setChatLoading(true)
+    const { data } = await supabase.from('messages')
+      .select('*, sender:profiles!sender_id(first_name, last_name, avatar_url)')
+      .eq('activity_id', id)
+      .order('created_at', { ascending: true })
+      .limit(100)
+    setChatMessages(data || [])
+    setChatLoading(false)
+  }
+
+  async function sendChat() {
+    if (!chatMsg.trim() || !user) return
+    await supabase.from('messages').insert({ sender_id: user.id, activity_id: id, content: chatMsg.trim() })
+    setChatMsg('')
+    loadChat()
+  }
+
+  useEffect(() => {
+    if (tab === 'chat' && user) loadChat()
+  }, [tab])
 
   async function joinActivity() {
     if (!user) { router.push('/signup'); return }
@@ -103,6 +129,45 @@ export default function ActivityPage() {
           <h1 style={{ fontSize: 24, fontWeight: 700 }}>{activity.title}</h1>
         </div>
 
+        {/* Details / Chat tabs */}
+        {user && (isJoined || isOwner) && (
+          <div style={{ display: 'flex', borderBottom: '2px solid #E5E7EB', marginBottom: 16 }}>
+            <button onClick={() => setTab('details')} style={{ padding: '8px 16px', fontSize: 14, fontWeight: 600, borderBottom: tab === 'details' ? '2px solid #3293CB' : '2px solid transparent', marginBottom: -2, color: tab === 'details' ? '#3293CB' : '#4B5563', background: 'none', border: 'none', cursor: 'pointer' }}>Details</button>
+            <button onClick={() => setTab('chat')} style={{ padding: '8px 16px', fontSize: 14, fontWeight: 600, borderBottom: tab === 'chat' ? '2px solid #3293CB' : '2px solid transparent', marginBottom: -2, color: tab === 'chat' ? '#3293CB' : '#4B5563', background: 'none', border: 'none', cursor: 'pointer' }}>Chat</button>
+          </div>
+        )}
+
+        {/* Chat tab */}
+        {tab === 'chat' && user && (
+          <div>
+            <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 16, marginBottom: 16, minHeight: 300, maxHeight: 500, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {chatLoading ? (
+                <p style={{ textAlign: 'center', color: '#6B7280', padding: 40 }}>Loading chat...</p>
+              ) : chatMessages.length === 0 ? (
+                <p style={{ textAlign: 'center', color: '#6B7280', padding: 40 }}>No messages yet. Start the conversation!</p>
+              ) : chatMessages.map((m, i) => {
+                const isMine = m.sender_id === user.id
+                const sender = m.sender as any
+                return (
+                  <div key={i} style={{ alignSelf: isMine ? 'flex-end' : 'flex-start', maxWidth: '78%' }}>
+                    {!isMine && <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 2, color: '#4B5563' }}>{sender?.first_name || 'User'}</p>}
+                    <div style={{ padding: '10px 14px', borderRadius: 16, fontSize: 14, lineHeight: 1.5, ...(isMine ? { background: '#3293CB', color: '#fff' } : { background: '#F9FAFB', color: '#111827' }) }}>
+                      {m.content}
+                      <p style={{ fontSize: 10, opacity: 0.7, marginTop: 3 }}>{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input value={chatMsg} onChange={e => setChatMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} style={{ flex: 1, border: '1.5px solid #E5E7EB', borderRadius: 12, padding: '12px 14px', fontSize: 14, color: '#111827' }} placeholder="Type a message..." />
+              <button onClick={sendChat} style={{ padding: '0 24px', borderRadius: 12, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Send</button>
+            </div>
+          </div>
+        )}
+
+        {/* Details tab content */}
+        {tab === 'details' && <>
         {/* Host card */}
         {host && (
           <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 16, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -200,6 +265,7 @@ export default function ActivityPage() {
             </ul>
           </div>
         </div>
+        </>}
       </main>
     </div>
   )
