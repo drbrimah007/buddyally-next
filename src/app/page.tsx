@@ -26,7 +26,7 @@ export default function Home() {
         .cta{margin-top:2.8rem;display:inline-flex;align-items:center;justify-content:center;gap:0.8rem;width:min(100%,430px);background:var(--pink);color:white;text-decoration:none;padding:1.2rem 1.4rem;border-radius:1.6rem;font-size:clamp(1.2rem,4vw,2rem);font-weight:900;text-transform:uppercase;letter-spacing:-0.03em;box-shadow:0 22px 60px rgba(255,10,138,0.38);animation:riseIn 0.56s 0.96s cubic-bezier(.22,1,.36,1) both}
         .arrow{display:inline-block;animation:nudge 1.1s ease-in-out infinite}
         .pills{margin-top:1rem;width:min(100%,760px);display:flex;justify-content:center;gap:0.6rem;flex-wrap:wrap;animation:fadeIn 0.5s 1.08s both}
-        .pill{background:rgba(255,255,255,0.38);border:1px solid rgba(0,0,0,0.08);border-radius:1rem;padding:0.95rem 0.8rem;font-size:0.82rem;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:rgba(0,0,0,0.72);backdrop-filter:blur(8px)}
+        .pill{background:rgba(255,255,255,0.38);border:1px solid rgba(0,0,0,0.08);border-radius:999px;padding:0.45rem 0.9rem;font-size:0.78rem;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:rgba(0,0,0,0.72);backdrop-filter:blur(8px)}
         .footer-glow{position:absolute;inset-inline:0;bottom:0;height:180px;background:linear-gradient(to top,rgba(255,166,0,0.42),transparent);z-index:1}
         @keyframes spin{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}
         @keyframes spinReverse{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(-360deg)}}
