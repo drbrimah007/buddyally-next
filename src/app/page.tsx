@@ -64,7 +64,7 @@ export default function Home() {
           <div className="summer">This Summer</div>
           <div className="sub">Real people. Real help. Real motion.</div>
 
-          <Link className="cta" href="/dashboard">
+          <Link className="cta" href="/home">
             LINK UP. DO MORE
             <span className="arrow">&rarr;</span>
           </Link>
