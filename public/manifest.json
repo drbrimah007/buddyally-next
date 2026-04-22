@@ -1,0 +1,17 @@
+{
+  "name": "BuddyAlly",
+  "short_name": "BuddyAlly",
+  "description": "Find your people. Do more together. Private contact codes for cars, pets, and lost items.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0284C7",
+  "icons": [
+    {
+      "src": "/buddyally-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
