@@ -508,25 +508,33 @@ export default function CodesPage() {
   }
 
   async function toggleStatus(codeId: string, currentStatus: string) {
-    await supabase.from('connect_codes').update({ status: currentStatus === 'active' ? 'paused' : 'active' }).eq('id', codeId)
+    const next = currentStatus === 'active' ? 'paused' : 'active'
+    const { error } = await supabase.from('connect_codes').update({ status: next }).eq('id', codeId)
+    if (error) { toast(error.message || 'Could not update code status.', 'error'); return }
+    toast(next === 'active' ? 'Code activated' : 'Code paused', 'success')
     loadCodes()
   }
 
   async function deleteCode(codeId: string) {
     if (!confirm('Delete this code? Messages will also be removed.')) return
-    await supabase.from('connect_messages').delete().eq('code_id', codeId)
-    await supabase.from('connect_codes').delete().eq('id', codeId)
+    const { error: mErr } = await supabase.from('connect_messages').delete().eq('code_id', codeId)
+    if (mErr) { toast(mErr.message || 'Could not delete messages.', 'error'); return }
+    const { error: cErr } = await supabase.from('connect_codes').delete().eq('id', codeId)
+    if (cErr) { toast(cErr.message || 'Could not delete code.', 'error'); return }
+    toast('Code deleted', 'success')
     setViewingCode(null); loadCodes()
   }
 
   async function markRead(msgId: string) {
-    await supabase.from('connect_messages').update({ read: true, read_at: new Date().toISOString() }).eq('id', msgId)
+    const { error } = await supabase.from('connect_messages').update({ read: true, read_at: new Date().toISOString() }).eq('id', msgId)
+    if (error) { toast(error.message || 'Could not mark message as read.', 'error'); return }
     setMessages(prev => prev.map(m => m.id === msgId ? { ...m, read: true } : m))
   }
 
   async function deleteMessage(msgId: string) {
     if (!confirm('Delete this message?')) return
-    await supabase.from('connect_messages').delete().eq('id', msgId)
+    const { error } = await supabase.from('connect_messages').delete().eq('id', msgId)
+    if (error) { toast(error.message || 'Could not delete message.', 'error'); return }
     setMessages(prev => prev.filter(m => m.id !== msgId))
   }
 
@@ -630,7 +638,21 @@ export default function CodesPage() {
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
                 <span style={{ background: '#E0F2FE', color: '#0284C7', fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999 }}>{c.scan_count || 0} scans</span>
-                <span style={{ fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999, ...(unread > 0 ? { background: '#FEF3C7', color: '#D97706' } : { background: '#F3F4F6', color: '#4B5563' }) }}>{cMsgs.length} messages{unread > 0 ? ` (${unread} new)` : ''}</span>
+                <button
+                  onClick={() => document.getElementById('code-messages')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  aria-label="Jump to messages"
+                  style={{
+                    border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                    padding: '5px 12px', borderRadius: 999,
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    ...(unread > 0
+                      ? { background: '#FEF3C7', color: '#D97706', boxShadow: '0 0 0 2px rgba(217,119,6,0.25)' }
+                      : { background: '#F3F4F6', color: '#4B5563' }),
+                  }}
+                >
+                  💬 {cMsgs.length} {cMsgs.length === 1 ? 'message' : 'messages'}
+                  {unread > 0 && <span style={{ background: '#DC2626', color: '#fff', fontSize: 10, fontWeight: 800, padding: '1px 6px', borderRadius: 999 }}>{unread} new</span>}
+                </button>
                 <span style={{ background: '#F0FDF4', color: '#059669', fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999 }}>Active</span>
                 <span style={{ fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999, ...(c.push_enabled !== false ? { background: '#F0FDF4', color: '#065F46' } : { background: '#FEF2F2', color: '#991B1B' }) }}>Push: {c.push_enabled !== false ? 'On' : 'Off'}</span>
                 <span style={{ fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999, ...(c.email_enabled !== false ? { background: '#F0FDF4', color: '#065F46' } : { background: '#FEF2F2', color: '#991B1B' }) }}>Email: {c.email_enabled !== false ? 'On' : 'Off'}</span>
@@ -650,7 +672,7 @@ export default function CodesPage() {
         </div>
 
         {/* Messages */}
-        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Messages ({cMsgs.length})</h3>
+        <h3 id="code-messages" style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, scrollMarginTop: 80 }}>Messages ({cMsgs.length})</h3>
         {cMsgs.length === 0 ? (
           <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 32, textAlign: 'center' }}>
             <p style={{ color: '#6B7280', fontSize: 14 }}>No messages yet. Share your code to start receiving messages.</p>
@@ -774,29 +796,56 @@ export default function CodesPage() {
             const cMsgs = messages.filter(m => m.code_id === c.id)
             const unread = cMsgs.filter((m: any) => !m.read).length
             const tp = CODE_TYPES[c.code_type] || CODE_TYPES.other
+            const isPaused = c.status !== 'active'
             return (
-              <div key={c.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 24, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                  <div>
-                    <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>{c.title}</h3>
+              <div key={c.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 24, marginBottom: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', opacity: isPaused ? 0.82 : 1 }}>
+                {/* Header: clickable title/code opens the detail view */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4, gap: 12 }}>
+                  <button
+                    onClick={() => setViewingCode(c)}
+                    style={{ textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', minWidth: 0, flex: 1 }}
+                    aria-label={`Open ${c.title}`}
+                  >
+                    <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4, color: '#111827' }}>{c.title}</h3>
                     <div style={{ fontFamily: "'SF Mono', Menlo, Consolas, monospace", fontWeight: 800, color: '#3293CB', letterSpacing: '0.12em', fontSize: 16 }}>{c.code}</div>
-                  </div>
-                  <span style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, ...(c.status === 'active' ? { background: '#F0FDF4', color: '#059669' } : { background: '#FEF3C7', color: '#D97706' }) }}>{c.status}</span>
+                  </button>
+                  <span style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', ...(c.status === 'active' ? { background: '#F0FDF4', color: '#059669' } : { background: '#FEF3C7', color: '#D97706' }) }}>{c.status}</span>
                 </div>
                 <div style={{ fontSize: 14, color: '#6B7280', marginBottom: 14 }}>{tp.emoji} {tp.label} &bull; buddyally.com/{c.code}</div>
 
                 <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 14 }}>
                   <div style={{ flexShrink: 0 }}><QRCode code={c.code} size={3} /></div>
-                  <div>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* Stats row — messages badge is clickable */}
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
                       <span style={{ background: '#E0F2FE', color: '#0284C7', fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999 }}>{c.scan_count || 0} scans</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999, ...(unread > 0 ? { background: '#FEF3C7', color: '#D97706' } : { background: '#F3F4F6', color: '#4B5563' }) }}>{cMsgs.length} messages{unread > 0 ? ` (${unread} new)` : ''}</span>
+                      <button
+                        onClick={() => setViewingCode(c)}
+                        aria-label={`View messages for ${c.title}`}
+                        style={{
+                          border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                          padding: '5px 12px', borderRadius: 999,
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          ...(unread > 0
+                            ? { background: '#FEF3C7', color: '#D97706', boxShadow: '0 0 0 2px rgba(217,119,6,0.25)' }
+                            : { background: '#F3F4F6', color: '#4B5563' }),
+                        }}
+                      >
+                        💬 {cMsgs.length} {cMsgs.length === 1 ? 'message' : 'messages'}
+                        {unread > 0 && <span style={{ background: '#DC2626', color: '#fff', fontSize: 10, fontWeight: 800, padding: '1px 6px', borderRadius: 999 }}>{unread} new</span>}
+                      </button>
                     </div>
+                    {/* Primary action: Open — plus quick utilities */}
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <button onClick={() => setShowPrint(c)} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: '#3293CB', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Print</button>
-                      <button onClick={() => copyLink(c.code)} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Copy Link</button>
-                      <button onClick={() => downloadQR(c.code)} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Download QR</button>
-                      <button onClick={() => setViewingCode(c)} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>View / Edit</button>
+                      <button
+                        onClick={() => setViewingCode(c)}
+                        style={{ padding: '8px 18px', borderRadius: 10, border: 'none', background: '#3293CB', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 6px rgba(50,147,203,0.25)' }}
+                      >
+                        Open{unread > 0 ? ` · ${unread}` : ''}
+                      </button>
+                      <button onClick={() => openEdit(c)} style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
+                      <button onClick={() => setShowPrint(c)} style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Print</button>
+                      <button onClick={() => copyLink(c.code)} style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Copy Link</button>
                     </div>
                   </div>
                 </div>

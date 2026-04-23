@@ -15,6 +15,7 @@ export default function SignupPage() {
   const [interests, setInterests] = useState<string[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [confirmSent, setConfirmSent] = useState(false)
 
   function update(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -51,6 +52,16 @@ export default function SignupPage() {
         interests,
         badges: ['New Member'],
       }).eq('id', result.user.id)
+
+      // If email confirmation is required, show confirmation message
+      // If auto-confirmed, go straight to dashboard
+      if (result.user.email_confirmed_at) {
+        router.replace('/dashboard')
+      } else {
+        setConfirmSent(true)
+        setLoading(false)
+      }
+      return
     }
 
     router.replace('/dashboard')
@@ -58,6 +69,21 @@ export default function SignupPage() {
 
   const inputStyle = { width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }
   const labelStyle = { fontSize: 13, fontWeight: 600 as const, color: '#4B5563', display: 'block' as const, marginBottom: 6 }
+
+  if (confirmSent) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', padding: 16, fontFamily: "'Inter', -apple-system, sans-serif" }}>
+        <div style={{ background: '#fff', borderRadius: 20, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: 40, width: '100%', maxWidth: 480, textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>📧</div>
+          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12 }}>Check your email</h2>
+          <p style={{ fontSize: 15, color: '#4B5563', lineHeight: 1.6, marginBottom: 8 }}>We sent a confirmation link to <strong>{form.email}</strong></p>
+          <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 24 }}>Click the link in the email to activate your account, then come back and log in.</p>
+          <Link href="/login" style={{ display: 'inline-block', background: '#3293CB', color: '#fff', fontWeight: 600, padding: '12px 32px', borderRadius: 14, textDecoration: 'none', fontSize: 15 }}>Go to Login</Link>
+          <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 16 }}>Didn&apos;t get the email? Check your spam folder.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', padding: '16px', fontFamily: "'Inter', -apple-system, sans-serif" }}>
