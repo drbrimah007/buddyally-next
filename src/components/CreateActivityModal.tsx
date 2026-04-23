@@ -8,6 +8,7 @@ import { useActivities } from '@/hooks/useActivities'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ToastProvider'
+import { searchPlaces as searchPlacesApi, pickPlace, renderPlaceLabel } from '@/lib/geo'
 
 const CATEGORIES = ['Travel','Local Activities','Sports / Play','Learning','Help / Support','Events','Outdoor','Gaming','Wellness','Ride Share','Dog Walk','Babysit','Party','Pray','Others']
 const TIMING_OPTIONS = ['TBA','Anytime','This week','Weekends','Evenings','Daytime','This month','Not Set']
@@ -138,26 +139,19 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
     if (searchTimeout.current) clearTimeout(searchTimeout.current)
     if (!val || val.length < 2) { setPlaceResults([]); setShowPlaces(false); return }
     searchTimeout.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&addressdetails=1&limit=5`)
-        const data = await res.json()
-        setPlaceResults(data)
-        setShowPlaces(data.length > 0)
-      } catch { setPlaceResults([]); setShowPlaces(false) }
+      const data = await searchPlacesApi(val, 5)
+      setPlaceResults(data)
+      setShowPlaces(data.length > 0)
     }, 300)
   }
 
   function selectPlace(place: any) {
-    const addr = place.address || {}
-    const name = addr.borough || addr.city || addr.town || addr.village || addr.county || place.display_name.split(',')[0]
-    const state = addr.state || ''
-    const display = state ? `${name}, ${state}` : name
-    update('location', form.locationMode === 'precise_place' ? place.display_name.split(',').slice(0, 2).join(',') : display)
-    setSelectedCoords({
-      lat: parseFloat(place.lat),
-      lon: parseFloat(place.lon),
-      state: (addr['ISO3166-2-lvl4'] || '').replace('US-', '')
-    })
+    const pick = pickPlace(place)
+    // Precise-place mode wants a richer label (street + locality),
+    // every other mode just wants "Queens, New York".
+    const precise = (place.display_name || '').split(',').slice(0, 2).join(',').trim()
+    update('location', form.locationMode === 'precise_place' ? precise : pick.display)
+    setSelectedCoords({ lat: pick.lat, lon: pick.lng, state: pick.stateCode })
     setPlaceSelected(true)
     setPlaceResults([])
     setShowPlaces(false)
@@ -198,15 +192,13 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
     let stateCode = selectedCoords?.state || null
 
     if (!lat && form.locationMode !== 'remote' && form.locationMode !== 'nationwide' && form.location) {
-      try {
-        const resp = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(form.location)}&format=json&addressdetails=1&limit=1`)
-        const results = await resp.json()
-        if (results.length > 0) {
-          lat = parseFloat(results[0].lat)
-          lng = parseFloat(results[0].lon)
-          stateCode = (results[0].address?.['ISO3166-2-lvl4'] || '').replace('US-', '')
-        }
-      } catch {}
+      const results = await searchPlacesApi(form.location, 1)
+      if (results.length > 0) {
+        const pick = pickPlace(results[0])
+        lat = pick.lat
+        lng = pick.lng
+        stateCode = pick.stateCode || null
+      }
     }
 
     const payload: any = {
@@ -312,13 +304,17 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
                   <input value={form.location} onChange={e => searchLocation(e.target.value)} style={inputStyle} placeholder="Search for a city or place..." />
                   {showPlaces && placeResults.length > 0 && (
                     <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 999, maxHeight: 200, overflowY: 'auto' }}>
-                      {placeResults.map((p: any, i: number) => (
-                        <div key={i} onClick={() => selectPlace(p)} style={{ padding: '10px 14px', fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #f3f4f6', color: '#111827' }}
-                          onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
-                          onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
-                          {p.display_name?.substring(0, 60)}
-                        </div>
-                      ))}
+                      {placeResults.map((p: any, i: number) => {
+                        const lbl = renderPlaceLabel(p)
+                        return (
+                          <div key={i} onClick={() => selectPlace(p)} style={{ padding: '10px 14px', fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #f3f4f6', color: '#111827' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
+                            onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
+                            <div style={{ fontWeight: 600 }}>{lbl.primary}</div>
+                            {lbl.secondary && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{lbl.secondary}</div>}
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                 </div>

@@ -254,10 +254,9 @@ export default function ActivityPage() {
         {/* Action links */}
         {user && !isOwner && (
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 24 }}>
-            <button onClick={async () => {
+            <button onClick={() => {
               if (!user || !host) return
-              await supabase.from('messages').insert({ sender_id: user.id, recipient_id: host.id, content: `Hi! I'm interested in your activity "${activity.title}"` })
-              router.push('/dashboard/messages')
+              router.push(`/dashboard/messages?to=${host.id}&about=${encodeURIComponent(activity.title)}`)
             }} style={{ background: 'none', border: 'none', color: '#3293CB', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Message Host</button>
             <button onClick={() => { navigator.share?.({ title: activity.title, url: window.location.href }).catch(() => { navigator.clipboard.writeText(window.location.href); toast('Link copied', 'info') }) }} style={{ background: 'none', border: 'none', color: '#6B7280', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Share</button>
             <button onClick={async () => {

@@ -357,19 +357,24 @@ async function doPrintSticker(code: string, codeType: string, styleName: string,
       renderPrintSheet(stickerContent, perSheet)
     }
   } else {
-    // Basic color style (blue/dark/white/yellow/green)
+    // Basic color style (blue/dark/white/yellow/green).
+    // Intrinsic dimensions are sized to match the mascot stickers so that
+    // renderPrintSheet's uniform scale-to-fit lands at the same visual size
+    // for both families on the same N-up sheet. (Mascot widths range
+    // ~294–336px; we pick 320px here, mid-range, with a 200px QR so the
+    // overall height also matches.)
     const s = PRINT_STYLES[styleName] || PRINT_STYLES.blue
     const stickerContent = `<!DOCTYPE html><html><head>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
 body{font-family:Inter,sans-serif;display:flex;justify-content:center;padding:20px;background:#fff;}@page{size:auto;margin:8mm;}
-.sticker{width:280px;background:#fff;border-radius:16px;border:1.5px solid #ddd;overflow:hidden;}
-.header{background:${s.bg};color:${s.text};padding:14px 16px;text-align:center;}
-.body{padding:16px;text-align:center;background:#fff;}
-.scan{font-size:12px;color:#555;margin-top:8px;}.url{font-size:20px;font-weight:900;color:#0652b7;margin-top:2px;}
+.sticker{width:320px;background:#fff;border-radius:16px;border:1.5px solid #ddd;overflow:hidden;}
+.header{background:${s.bg};color:${s.text};padding:16px 18px;text-align:center;}
+.body{padding:18px;text-align:center;background:#fff;}
+.scan{font-size:13px;color:#555;margin-top:10px;}.url{font-size:22px;font-weight:900;color:#0652b7;margin-top:2px;letter-spacing:-0.02em;}
 </style></head><body><div class="sticker">
-<div class="header"><div style="font-size:18px;font-weight:900;">${hdr.title}</div><div style="font-size:11px;opacity:0.85;margin-top:2px;">${hdr.sub}</div></div>
-<div class="body"><img src="${qrDataUrl}" style="width:160px;height:160px;">
+<div class="header"><div style="font-size:20px;font-weight:900;">${hdr.title}</div><div style="font-size:12px;opacity:0.85;margin-top:3px;">${hdr.sub}</div></div>
+<div class="body"><img src="${qrDataUrl}" style="width:200px;height:200px;">
 <div class="scan">Scan or type:</div><div class="url">buddyally.com/${code}</div></div>
 </div></body></html>`
     if (perSheet <= 1) {

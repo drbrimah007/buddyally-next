@@ -248,11 +248,10 @@ export default function ActivityDetailModal({ activityId, onClose }: { activityI
               {/* Action links */}
               {user && !isOwner && (
                 <div style={{ display: 'flex', gap: 16, justifyContent: 'center', paddingTop: 12, borderTop: '1px solid #E5E7EB' }}>
-                  <button onClick={async () => {
+                  <button onClick={() => {
                     if (!user || !host) return
-                    await supabase.from('messages').insert({ sender_id: user.id, recipient_id: host.id, content: `Hi! I'm interested in your activity "${activity.title}"` })
                     onClose()
-                    router.push('/dashboard/messages')
+                    router.push(`/dashboard/messages?to=${host.id}&about=${encodeURIComponent(activity.title)}`)
                   }} style={{ background: 'none', border: 'none', color: '#3293CB', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Message Host</button>
                   <button onClick={() => { navigator.share?.({ title: activity.title, url: `https://buddyally.com/a/${activityId}` }).catch(() => { navigator.clipboard.writeText(`https://buddyally.com/a/${activityId}`); toast('Link copied', 'info') }) }} style={{ background: 'none', border: 'none', color: '#6B7280', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Share</button>
                   <button onClick={async () => {

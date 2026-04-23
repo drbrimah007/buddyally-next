@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/activities', label: 'Activities', badgeKey: null, icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
   { href: '/dashboard/groups', label: 'Groups', badgeKey: null, icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
   { href: '/dashboard/messages', label: 'Messages', badgeKey: 'messages', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> },
+  { href: '/dashboard/contacts', label: 'Contacts', badgeKey: 'contacts', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg> },
   { href: '/dashboard/alerts', label: 'Alerts', badgeKey: 'alerts', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> },
   { href: '/dashboard/codes', label: 'Codes', badgeKey: 'codes', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> },
 ]
@@ -20,7 +21,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, profile, loading, signOut } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
-  const [badges, setBadges] = useState<Record<string, number>>({ messages: 0, alerts: 0, codes: 0 })
+  const [badges, setBadges] = useState<Record<string, number>>({ messages: 0, alerts: 0, codes: 0, contacts: 0 })
 
   useEffect(() => {
     if (!loading && !user) router.replace('/')
@@ -31,15 +32,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!user) return
     async function loadBadges() {
       try {
-        const [msgResult, alertResult, codeResult] = await Promise.allSettled([
+        const [msgResult, alertResult, codeResult, contactReqResult] = await Promise.allSettled([
           supabase.from('messages').select('id', { count: 'exact', head: true }).eq('recipient_id', user!.id).eq('read', false).is('activity_id', null).is('group_id', null),
           supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user!.id).eq('read', false),
           supabase.from('connect_messages').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).eq('read', false),
+          // Contacts badge = pending incoming link-up requests
+          supabase.from('link_requests').select('id', { count: 'exact', head: true }).eq('recipient_id', user!.id).eq('status', 'pending'),
         ])
         setBadges({
           messages: msgResult.status === 'fulfilled' ? (msgResult.value.count || 0) : 0,
           alerts: alertResult.status === 'fulfilled' ? (alertResult.value.count || 0) : 0,
           codes: codeResult.status === 'fulfilled' ? (codeResult.value.count || 0) : 0,
+          contacts: contactReqResult.status === 'fulfilled' ? (contactReqResult.value.count || 0) : 0,
         })
       } catch {}
     }

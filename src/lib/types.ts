@@ -78,3 +78,29 @@ export type Message = {
   read: boolean
   created_at: string
 }
+
+export type Contact = {
+  id: string
+  user_id: string
+  contact_user_id: string
+  status: 'active' | 'archived' | 'blocked'
+  source: 'message' | 'request' | 'manual'
+  last_interaction_at: string
+  created_at: string
+  updated_at: string
+  // Optional joined profile
+  contact?: Pick<Profile, 'id' | 'first_name' | 'last_name' | 'avatar_url' | 'city'>
+}
+
+export type ContactRequest = {
+  id: string
+  sender_id: string
+  recipient_id: string
+  message: string
+  status: 'pending' | 'accepted' | 'denied' | 'blocked' | 'cancelled'
+  created_at: string
+  responded_at: string | null
+  // Optional joined profiles
+  sender?: Pick<Profile, 'id' | 'first_name' | 'last_name' | 'avatar_url' | 'city'>
+  recipient?: Pick<Profile, 'id' | 'first_name' | 'last_name' | 'avatar_url' | 'city'>
+}

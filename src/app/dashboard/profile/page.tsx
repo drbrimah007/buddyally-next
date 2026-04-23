@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ToastProvider'
 import InstallAppButton from '@/components/InstallAppButton'
+import { searchPlaces as searchPlacesApi, pickPlace, renderPlaceLabel } from '@/lib/geo'
 
 const ALL_CATEGORIES = ['Travel','Local Activities','Sports / Play','Learning','Help / Support','Events','Outdoor','Gaming','Wellness','Ride Share','Dog Walk','Babysit','Party','Pray','Others']
 
@@ -36,6 +37,12 @@ export default function ProfilePage() {
   const [phoneVerifying, setPhoneVerifying] = useState(false)
   const [selfieCapturing, setSelfieCapturing] = useState(false)
   const [form, setForm] = useState({ firstName: '', lastName: '', city: '', bio: '' })
+  // Geo-picker scratchpad for the profile's Home Area edit. Latches coords
+  // when user picks a place, so saveEdit can write home_lat/home_lng.
+  const [homeCoords, setHomeCoords] = useState<{ lat: number; lng: number; stateCode: string } | null>(null)
+  const [homeResults, setHomeResults] = useState<any[]>([])
+  const [showHomeResults, setShowHomeResults] = useState(false)
+  const homeSearchTimer = useRef<any>(null)
   const [interestsForm, setInterestsForm] = useState<string[]>([])
   const [socialsForm, setSocialsForm] = useState({ instagram: '', twitter: '', linkedin: '', website: '' })
   const [phoneNumber, setPhoneNumber] = useState('')
@@ -71,11 +78,51 @@ export default function ProfilePage() {
 
   function startEdit() {
     setForm({ firstName: profile!.first_name, lastName: profile!.last_name, city: profile!.city || profile!.home_display_name || '', bio: profile!.bio || '' })
+    // Seed coords from profile if they exist; otherwise saveEdit will null them out
+    // (so the user is forced to pick from the list to enable geo filtering).
+    if (profile!.home_lat != null && profile!.home_lng != null) {
+      setHomeCoords({ lat: profile!.home_lat, lng: profile!.home_lng, stateCode: '' })
+    } else {
+      setHomeCoords(null)
+    }
     setEditing(true)
   }
 
+  function searchHome(val: string) {
+    setForm(p => ({ ...p, city: val }))
+    setHomeCoords(null)
+    if (homeSearchTimer.current) clearTimeout(homeSearchTimer.current)
+    if (!val || val.length < 2) { setHomeResults([]); setShowHomeResults(false); return }
+    homeSearchTimer.current = setTimeout(async () => {
+      const data = await searchPlacesApi(val, 5)
+      setHomeResults(data)
+      setShowHomeResults(data.length > 0)
+    }, 300)
+  }
+
+  function selectHomePlace(place: any) {
+    const pick = pickPlace(place)
+    setForm(p => ({ ...p, city: pick.display }))
+    setHomeCoords({ lat: pick.lat, lng: pick.lng, stateCode: pick.stateCode })
+    setHomeResults([])
+    setShowHomeResults(false)
+  }
+
   async function saveEdit() {
-    await updateProfile({ first_name: form.firstName, last_name: form.lastName, city: form.city, home_display_name: form.city, bio: form.bio } as any)
+    const updates: any = {
+      first_name: form.firstName,
+      last_name: form.lastName,
+      city: form.city,
+      home_display_name: form.city,
+      bio: form.bio,
+    }
+    // Only write coords if we actually have them — don't clobber previous
+    // saved coords when the user edits just their bio without re-picking.
+    if (homeCoords) {
+      updates.home_lat = homeCoords.lat
+      updates.home_lng = homeCoords.lng
+    }
+    await updateProfile(updates)
     setEditing(false)
   }
 
@@ -476,7 +523,34 @@ export default function ProfilePage() {
                 <div><label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>First Name</label><input value={form.firstName} onChange={e => setForm(p => ({ ...p, firstName: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} /></div>
                 <div><label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Last Name</label><input value={form.lastName} onChange={e => setForm(p => ({ ...p, lastName: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} /></div>
               </div>
-              <div><label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Home Area</label><input value={form.city} onChange={e => setForm(p => ({ ...p, city: e.target.value }))} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }} /></div>
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Home Area</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    value={form.city}
+                    onChange={e => searchHome(e.target.value)}
+                    placeholder="Search a city, neighborhood, or borough..."
+                    style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }}
+                  />
+                  {showHomeResults && homeResults.length > 0 && (
+                    <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 999, maxHeight: 220, overflowY: 'auto' }}>
+                      {homeResults.map((p: any, i: number) => {
+                        const lbl = renderPlaceLabel(p)
+                        return (
+                          <div key={i} onClick={() => selectHomePlace(p)} style={{ padding: '10px 14px', fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #f3f4f6', color: '#111827' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
+                            onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
+                            <div style={{ fontWeight: 600 }}>{lbl.primary}</div>
+                            {lbl.secondary && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{lbl.secondary}</div>}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+                {homeCoords && <p style={{ fontSize: 12, color: '#059669', marginTop: 6, fontWeight: 600 }}>✓ Home coordinates saved — used for Explore radius and distance.</p>}
+                {!homeCoords && form.city && <p style={{ fontSize: 12, color: '#DC2626', marginTop: 6 }}>Pick a suggestion above to enable miles-based Explore filtering.</p>}
+              </div>
               <div><label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Bio</label><textarea value={form.bio} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))} rows={3} style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827', resize: 'none' }} /></div>
               <div style={{ display: 'flex', gap: 12 }}>
                 <button onClick={saveEdit} style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Save</button>

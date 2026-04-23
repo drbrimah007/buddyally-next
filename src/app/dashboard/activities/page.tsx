@@ -36,7 +36,7 @@ export default function MyActivitiesPage() {
     setLoading(true)
     const [{ data: mine }, { data: parts }] = await Promise.all([
       supabase.from('activities').select('*, participants:activity_participants(user_id)').eq('created_by', user.id).order('created_at', { ascending: false }),
-      supabase.from('activity_participants').select('activity_id, activity:activities(*, host:profiles!created_by(first_name, last_name))').eq('user_id', user.id),
+      supabase.from('activity_participants').select('activity_id, activity:activities(*, host:profiles!created_by(id, first_name, last_name))').eq('user_id', user.id),
     ])
     setCreated(mine || [])
     setJoined((parts || []).map((p: any) => p.activity).filter(Boolean))
@@ -178,7 +178,7 @@ export default function MyActivitiesPage() {
                 </div>
                 {a.description && <p style={{ fontSize: 13, color: '#4B5563', marginTop: 8, lineHeight: 1.6 }}>{a.description.substring(0, 100)}{a.description.length > 100 ? '...' : ''}</p>}
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                  <button onClick={e => { e.stopPropagation(); window.location.href = `/dashboard/messages` }} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Message</button>
+                  <button onClick={e => { e.stopPropagation(); const url = a.host?.id ? `/dashboard/messages?to=${a.host.id}&about=${encodeURIComponent(a.title)}` : `/dashboard/messages`; window.location.href = url }} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Message</button>
                   <button onClick={async e => { e.stopPropagation(); if (!confirm('Leave this activity?')) return; const { error } = await supabase.from('activity_participants').delete().eq('activity_id', a.id).eq('user_id', user!.id); if (error) { toast(error.message || 'Could not leave activity.', 'error'); return } toast('Left activity', 'success'); loadData() }} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: '#FEE2E2', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Leave</button>
                 </div>
               </div>

@@ -9,24 +9,18 @@ import CreateActivityModal from '@/components/CreateActivityModal'
 import ActivityDetailModal from '@/components/ActivityDetailModal'
 import SafetyBanner from '@/components/SafetyBanner'
 import Paginator from '@/components/Paginator'
+import {
+  haversineMiles,
+  formatDistance,
+  searchPlaces as searchPlacesApi,
+  reverseGeocode,
+  pickPlace,
+  getIpLocation,
+  renderPlaceLabel,
+} from '@/lib/geo'
 
 // 3 cards per row × 10 rows = 30 per page.
 const EXPLORE_PAGE_SIZE = 30
-
-function haversineMiles(lat1: number, lng1: number, lat2: number, lng2: number) {
-  const toRad = (d: number) => d * Math.PI / 180
-  const R = 3958.8
-  const dLat = toRad(lat2 - lat1)
-  const dLng = toRad(lng2 - lng1)
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
-  return 2 * R * Math.asin(Math.sqrt(a))
-}
-
-function formatDistance(miles: number) {
-  if (miles < 0.3) return Math.round(miles * 5280) + ' ft away'
-  if (miles < 1) return (Math.round(miles * 10) / 10) + ' mi away'
-  return Math.round(miles) + ' mi away'
-}
 
 function formatTiming(a: any) {
   if (a.timing_mode === 'flexible') return a.availability_label || 'Flexible'
@@ -64,14 +58,33 @@ export default function ExplorePage() {
   useEffect(() => { setExplorePage(0) }, [search, category, radius, cityCoords?.lat, cityCoords?.lon, showAll])
 
   useEffect(() => {
-    // Load from sessionStorage first (instant)
+    // Default location resolution order (each step skipped if a later one
+    // already set state in a prior effect run):
+    //   1) sessionStorage    — instant, last picked
+    //   2) profile           — user's saved home location
+    //   3) IP geolocation    — coarse approximation, no permission prompt
+    let didSet = false
     const cached = sessionStorage.getItem('ba_city')
     const cachedCoords = sessionStorage.getItem('ba_coords')
-    if (cached) setCityInput(cached)
-    if (cachedCoords) { try { setCityCoords(JSON.parse(cachedCoords)) } catch {} }
-    // Then fall back to profile
-    if (!cached && profile?.home_display_name) setCityInput(profile.home_display_name)
-    if (!cachedCoords && profile?.home_lat && profile?.home_lng) setCityCoords({ lat: profile.home_lat, lon: profile.home_lng })
+    if (cached) { setCityInput(cached); didSet = true }
+    if (cachedCoords) {
+      try { setCityCoords(JSON.parse(cachedCoords)); didSet = true } catch {}
+    }
+    if (!cached && profile?.home_display_name) { setCityInput(profile.home_display_name); didSet = true }
+    if (!cachedCoords && profile?.home_lat && profile?.home_lng) {
+      setCityCoords({ lat: profile.home_lat, lon: profile.home_lng })
+      didSet = true
+    }
+    if (didSet) return
+    // Last-resort: IP-based default. Don't persist to sessionStorage so a
+    // real user pick still wins next render.
+    ;(async () => {
+      const ip = await getIpLocation()
+      if (!ip) return
+      setCityInput(ip.display)
+      setCityCoords({ lat: ip.lat, lon: ip.lng, state: ip.stateCode || undefined })
+      setUserStateCode(ip.stateCode)
+    })()
   }, [profile])
 
   const userInterests = profile?.interests || []
@@ -79,18 +92,16 @@ export default function ExplorePage() {
     ? ['Travel','Local Activities','Sports / Play','Learning','Help / Support','Events','Outdoor','Gaming','Wellness','Ride Share','Dog Walk','Babysit','Party','Pray','Others']
     : userInterests
 
-  // Nominatim city search
+  // Nominatim city search — uses shared lib so Queens/Brooklyn/etc. resolve
+  // to their specific name, not collapsed to "New York".
   function searchPlaces(val: string) {
     setCityInput(val)
     if (searchTimeout.current) clearTimeout(searchTimeout.current)
     if (!val || val.length < 2) { setPlaceResults([]); setShowPlaces(false); return }
     searchTimeout.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&addressdetails=1&limit=5`)
-        const data = await res.json()
-        setPlaceResults(data)
-        setShowPlaces(data.length > 0)
-      } catch { setPlaceResults([]); setShowPlaces(false) }
+      const data = await searchPlacesApi(val, 5)
+      setPlaceResults(data)
+      setShowPlaces(data.length > 0)
     }, 300)
   }
 
@@ -112,18 +123,13 @@ export default function ExplorePage() {
   }
 
   function selectPlace(place: any) {
-    const addr = place.address || {}
-    const name = addr.borough || addr.city || addr.town || addr.village || addr.county || place.display_name.split(',')[0]
-    const state = addr.state || ''
-    const stateCode = (addr['ISO3166-2-lvl4'] || '').replace('US-', '')
-    const display = state ? `${name}, ${state}` : name
-    const lat = parseFloat(place.lat), lon = parseFloat(place.lon)
-    setCityInput(display)
-    setCityCoords({ lat, lon, state: stateCode || undefined })
-    setUserStateCode(stateCode)
+    const pick = pickPlace(place)
+    setCityInput(pick.display)
+    setCityCoords({ lat: pick.lat, lon: pick.lng, state: pick.stateCode || undefined })
+    setUserStateCode(pick.stateCode)
     setPlaceResults([])
     setShowPlaces(false)
-    saveExploreState(display, lat, lon, radius)
+    saveExploreState(pick.display, pick.lat, pick.lng, radius)
   }
 
   function clearCity() {
@@ -134,35 +140,46 @@ export default function ExplorePage() {
     saveExploreState('', null, null, radius)
   }
 
-  // GPS
+  // GPS — ask browser for coords, then reverse-geocode through the shared lib
+  // so the name extractor picks the right sub-locality (Queens vs New York).
   function useGPS() {
-    if (!navigator.geolocation) return
+    if (!navigator.geolocation) { toastErrorLike('GPS not supported in this browser.'); return }
     setGpsLoading(true)
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`)
-          const data = await res.json()
-          const addr = data.address || {}
-          const name = addr.borough || addr.city || addr.town || addr.village || addr.county || 'Your Location'
-          const state = addr.state || ''
-          const stateCode = (addr['ISO3166-2-lvl4'] || '').replace('US-', '')
-          const display = state ? `${name}, ${state}` : name
-          setCityCoords({ lat: latitude, lon: longitude, state: stateCode || undefined })
-          setUserStateCode(stateCode)
-          setCityInput(display)
-          saveExploreState(display, latitude, longitude, radius)
-        } catch {
+        const place = await reverseGeocode(latitude, longitude)
+        if (place) {
+          const pick = pickPlace(place)
+          setCityCoords({ lat: latitude, lon: longitude, state: pick.stateCode || undefined })
+          setUserStateCode(pick.stateCode)
+          setCityInput(pick.display)
+          saveExploreState(pick.display, latitude, longitude, radius)
+        } else {
           setCityCoords({ lat: latitude, lon: longitude })
           setCityInput('Current Location')
           saveExploreState('Current Location', latitude, longitude, radius)
         }
         setGpsLoading(false)
       },
-      () => { setGpsLoading(false) },
-      { enableHighAccuracy: true, timeout: 10000 }
+      (err) => {
+        setGpsLoading(false)
+        const msg =
+          err.code === err.PERMISSION_DENIED
+            ? 'Location permission denied. Enable it in your browser settings.'
+            : err.code === err.POSITION_UNAVAILABLE
+              ? 'Could not determine your location.'
+              : 'Location request timed out.'
+        toastErrorLike(msg)
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60_000 }
     )
+  }
+
+  // Small helper since dashboard uses window.alert sparingly; prefer console
+  // + non-blocking UI in failures rather than swallowing silently.
+  function toastErrorLike(msg: string) {
+    if (typeof window !== 'undefined') console.warn('[explore/geo]', msg)
   }
 
   // Filter activities
@@ -275,13 +292,17 @@ export default function ExplorePage() {
         {/* Place results dropdown */}
         {showPlaces && placeResults.length > 0 && (
           <div style={{ position: 'absolute', top: 42, left: 0, width: 280, background: '#fff', border: '1px solid #E5E7EB', borderRadius: '0 0 10px 10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 999, maxHeight: 220, overflowY: 'auto' }}>
-            {placeResults.map((p: any, i: number) => (
-              <div key={i} onClick={() => selectPlace(p)} style={{ padding: '10px 14px', fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #f3f4f6' }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
-                onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
-                {p.display_name?.substring(0, 60)}
-              </div>
-            ))}
+            {placeResults.map((p: any, i: number) => {
+              const lbl = renderPlaceLabel(p)
+              return (
+                <div key={i} onClick={() => selectPlace(p)} style={{ padding: '10px 14px', fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #f3f4f6' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
+                  <div style={{ fontWeight: 600, color: '#111827' }}>{lbl.primary}</div>
+                  {lbl.secondary && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{lbl.secondary}</div>}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

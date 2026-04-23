@@ -22,6 +22,9 @@ export default function MessagesPage() {
   const { error: err } = useToast()
   const searchParams = useSearchParams()
   const deepLinkTo = searchParams.get('to')
+  // ?about=<activity title> preloads the composer with an opener about that
+  // activity — used by the "Message Host" button on activity detail views.
+  const deepLinkAbout = searchParams.get('about')
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [convPage, setConvPage] = useState(0)
@@ -39,15 +42,19 @@ export default function MessagesPage() {
   useEffect(() => { if (user) loadConversations() }, [user])
 
   // Deep-link: /dashboard/messages?to=<uid> opens a chat with that user.
+  // ?about=<title> primes the composer with an opener.
   useEffect(() => {
     if (!deepLinkTo || !user || chatWith === deepLinkTo) return
     ;(async () => {
       const { data } = await supabase.from('profiles').select('first_name, last_name').eq('id', deepLinkTo).single()
       const name = `${data?.first_name || ''} ${data?.last_name || ''}`.trim() || 'User'
-      openChat(deepLinkTo, name)
+      await openChat(deepLinkTo, name)
+      if (deepLinkAbout) {
+        setNewMsg(`Hi! I'm interested in your activity "${deepLinkAbout}". `)
+      }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deepLinkTo, user])
+  }, [deepLinkTo, deepLinkAbout, user])
 
   async function loadConversations() {
     if (!user) return
@@ -123,6 +130,16 @@ export default function MessagesPage() {
   async function sendMessage() {
     if (!newMsg.trim() || !user || !chatWith) return
     const text = newMsg.trim()
+    // Don't let a user DM someone who has blocked them. RLS on messages
+    // is permissive, so this check lives in app code. We look for a contacts
+    // row on the recipient's side with status='blocked' pointed at me.
+    const { data: blockRow } = await supabase.from('user_contacts')
+      .select('id')
+      .eq('user_id', chatWith)
+      .eq('contact_user_id', user.id)
+      .eq('status', 'blocked')
+      .maybeSingle()
+    if (blockRow) { err('You can\'t send messages to this user.'); return }
     setNewMsg('')
     const { data, error } = await supabase.from('messages')
       .insert({ sender_id: user.id, recipient_id: chatWith, content: text })
