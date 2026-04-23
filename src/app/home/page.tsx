@@ -181,8 +181,17 @@ export default function BuddyallyDesktopLanding() {
             </a>
           </div>
 
-          <div className="mt-6 rounded-[32px] border border-black/[0.05] bg-[#ECE8E0] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] overflow-x-auto">
-            <div ref={boardRef} className="relative h-[530px] overflow-hidden rounded-[28px] bg-[#F3EFE8]" style={{minWidth:1100}}>
+          <div className="relative mt-6 rounded-[32px] border border-black/[0.05] bg-[#ECE8E0] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
+            {/* Center text — stays centered on screen, not inside scroll */}
+            <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-[56%] text-center pointer-events-none" style={{width:'min(430px, 80vw)'}}>
+              <div className="text-[14px] font-extrabold uppercase tracking-[0.28em] text-[#80848a]">WHAT&apos;S GOING ON?</div>
+              <div className="mt-3 text-[clamp(3.5rem,11vw,82px)] font-black leading-[0.9] tracking-[-0.07em] text-black">Someone&apos;s</div>
+              <div className="-mt-2 text-[clamp(3.5rem,11vw,84px)] font-black leading-[0.86] tracking-[-0.075em]" style={{color:'#3293cb'}}>going your</div>
+              <div className="-mt-4 text-[clamp(3.5rem,11vw,84px)] font-black leading-[0.86] tracking-[-0.075em]" style={{color:'#3293cb'}}>way.</div>
+              <div className="mt-4 text-[clamp(12px,3vw,18px)] font-extrabold uppercase tracking-[0.22em] text-[#8A8C92]">DON&apos;T PAY FOR IT.</div>
+            </div>
+            <div className="overflow-x-auto rounded-[28px]">
+            <div ref={boardRef} className="relative h-[530px] overflow-hidden rounded-[28px] bg-[#F3EFE8]" style={{minWidth:770}}>
               <div className="absolute inset-0 opacity-60" style={{
                 backgroundImage: "radial-gradient(circle at 20% 18%, rgba(0,0,0,0.04) 0 2px, transparent 3px), radial-gradient(circle at 78% 12%, rgba(124,58,237,0.65) 0 4px, transparent 5px), radial-gradient(circle at 64% 46%, rgba(239,68,68,0.55) 0 4px, transparent 5px), radial-gradient(circle at 47% 14%, rgba(47,128,237,0.5) 0 4px, transparent 5px), radial-gradient(circle at 30% 54%, rgba(76,175,80,0.55) 0 4px, transparent 5px), radial-gradient(circle at 89% 41%, rgba(239,68,68,0.5) 0 4px, transparent 5px), radial-gradient(circle at 92% 80%, rgba(47,128,237,0.45) 0 4px, transparent 5px), radial-gradient(circle at 8% 78%, rgba(47,128,237,0.45) 0 4px, transparent 5px)",
                 backgroundSize: "100% 100%",
@@ -205,13 +214,6 @@ export default function BuddyallyDesktopLanding() {
                 <FilterPill label="Help" dot="bg-[#22c55e]" />
               </div>
 
-              <div className="absolute left-1/2 top-1/2 z-10 w-[430px] -translate-x-1/2 -translate-y-[56%] text-center">
-                <div className="text-[14px] font-extrabold uppercase tracking-[0.28em] text-[#80848a]">WHAT&apos;S GOING ON?</div>
-                <div className="mt-3 text-[82px] font-black leading-[0.9] tracking-[-0.07em] text-black">Someone&apos;s</div>
-                <div className="-mt-2 text-[84px] font-black leading-[0.86] tracking-[-0.075em]" style={{color:'#3293cb'}}>going your</div>
-                <div className="-mt-4 text-[84px] font-black leading-[0.86] tracking-[-0.075em]" style={{color:'#3293cb'}}>way.</div>
-                <div className="mt-4 text-[18px] font-extrabold uppercase tracking-[0.22em] text-[#8A8C92]">DON&apos;T PAY FOR IT.</div>
-              </div>
 
               {bubbles.map((bubble, index) => (
                 <BubbleCard key={`${bubble.title}-${index}`} bubble={bubble} index={index} constraintsRef={boardRef} />
@@ -221,6 +223,7 @@ export default function BuddyallyDesktopLanding() {
                 <div className="flex-1 text-[16px] text-[#A0A4AA]">I&apos;m driving to Philly Friday...</div>
                 <button className="rounded-full bg-[#DDD7CD] px-8 py-3 text-[16px] font-black text-[#2A2A2A]">Post</button>
               </div>
+            </div>
             </div>
           </div>
           <div className="mx-auto mt-6 max-w-3xl text-center">
