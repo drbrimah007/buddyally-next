@@ -24,17 +24,6 @@ const bubbles: Bubble[] = [
   { type: "help", text: "Can teach beginner tennis Saturday morning. Kids welcome.", className: "right-[4%] top-[52%] max-w-[16rem] z-10" },
 ];
 
-const mobileBubbles = [
-  "Why pay for rides when someone's going your way?",
-  "Driving Houston → Austin Friday. Three seats open.",
-  "Flying Miami → Santo Domingo. Space for a small parcel.",
-  "Packages — someone's coming or going. Link in.",
-  "Hey neighbor — your pipe is leaking. I can take a look.",
-  "Block party down the street tonight. Pull up.",
-  "Anyone coming from Texas this week?",
-  "Can teach beginner tennis Saturday morning. Kids welcome.",
-];
-
 export default function BuddyallyPostSplashLanding() {
   return (
     <main className="min-h-screen bg-[#f5f6f8] text-slate-900">
@@ -55,14 +44,14 @@ export default function BuddyallyPostSplashLanding() {
 
             <a
               href="/dashboard"
-              className="hidden shrink-0 items-center gap-2 rounded-2xl bg-[#3293cb] px-6 py-4 text-base font-black uppercase tracking-[-0.02em] text-white shadow-[0_18px_40px_rgba(50,147,203,0.28)] md:inline-flex"
+              className="shrink-0 items-center gap-2 rounded-2xl bg-[#3293cb] px-6 py-4 text-base font-black uppercase tracking-[-0.02em] text-white shadow-[0_18px_40px_rgba(50,147,203,0.28)] md:inline-flex"
             >
               Link Up. Do More.
               <ArrowRight className="h-5 w-5" />
             </a>
           </div>
 
-          <div className="relative mt-10 hidden h-[44rem] overflow-hidden rounded-[2rem] border border-black/5 bg-[#f3efe8] lg:block">
+          <div className="relative mt-10 h-[44rem] overflow-hidden rounded-[2rem] border border-black/5 bg-[#f3efe8] lg:block">
             <div className="absolute right-6 top-5 flex items-center gap-4 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500 backdrop-blur-sm">
               <span>Filter:</span>
               <span className="text-slate-900">All</span>
@@ -123,13 +112,13 @@ export default function BuddyallyPostSplashLanding() {
             </div>
           </div>
 
-          <div className="mx-auto mt-6 hidden max-w-3xl text-center lg:block">
+          <div className="mx-auto mt-6 max-w-3xl text-center">
             <p className="text-base font-medium leading-7 text-slate-600">
               Rides, packages, events, help — already in motion.
             </p>
           </div>
 
-          <div className="mt-6 hidden lg:flex justify-center">
+          <div className="mt-6 flex justify-center">
             <a
               href="/dashboard"
               className="w-full max-w-3xl inline-flex items-center justify-center gap-3 rounded-2xl bg-[#3293cb] px-8 py-5 text-xl font-black uppercase tracking-[-0.02em] text-white shadow-[0_18px_40px_rgba(50,147,203,0.28)]"
@@ -139,37 +128,6 @@ export default function BuddyallyPostSplashLanding() {
             </a>
           </div>
 
-          <div className="mt-8 space-y-3 lg:hidden">
-            <div className="rounded-[1.6rem] border border-black/5 bg-white p-5 shadow-sm">
-              <div className="text-base font-black uppercase tracking-[0.14em] text-slate-500">What&apos;s going on?</div>
-              <div className="mt-2 text-[clamp(2.3rem,10vw,3.6rem)] font-black leading-none tracking-[-0.08em]">
-                <span className="text-black">buddy</span><span className="text-[#3293cb]">ally</span>
-              </div>
-              <p className="mt-3 text-sm leading-6 text-slate-600">Rides, packages, events, neighbor help, and connections already happening.</p>
-            </div>
-
-            <div className="grid gap-3">
-              {mobileBubbles.map((text, index) => (
-                <motion.div
-                  key={text}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.06 * index }}
-                  className="relative rounded-[1.6rem] border-2 border-black bg-white px-4 py-4 shadow-[0_6px_0px_rgba(0,0,0,0.15)] before:content-['B'] before:absolute before:bottom-[-8px] before:left-5 before:w-5 before:h-5 before:rounded-[0.8rem] before:bg-black before:text-white before:flex before:items-center before:justify-center before:text-[12px] before:font-black after:content-[''] after:absolute after:bottom-[-5px] after:left-7 after:w-2 after:h-2 after:rounded-full after:bg-[#3293cb]"
-                >
-                  <div className="text-sm font-bold leading-6 text-slate-800">{text}</div>
-                </motion.div>
-              ))}
-            </div>
-
-            <a
-              href="/dashboard"
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#3293cb] px-6 py-4 text-base font-black uppercase tracking-[-0.02em] text-white shadow-[0_18px_40px_rgba(50,147,203,0.28)]"
-            >
-              Link Up. Do More.
-              <ArrowRight className="h-5 w-5" />
-            </a>
-          </div>
         </div>
       </section>
 
