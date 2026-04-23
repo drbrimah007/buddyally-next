@@ -243,7 +243,7 @@ export default function BuddyallyDesktopLanding() {
       </div>
 
       <footer className="border-t border-black/[0.06] bg-[#F4F4F4]">
-        <div className="mx-auto grid max-w-[1365px] grid-cols-2 sm:grid-cols-[1.55fr_0.85fr_0.85fr_0.8fr_0.95fr] gap-8 px-6 sm:px-14 py-7">
+        <div className="mx-auto grid max-w-[1365px] grid-cols-1 sm:grid-cols-[1.55fr_0.85fr_0.85fr_0.8fr_0.95fr] gap-8 px-6 sm:px-14 py-7">
           <div>
             <div className="text-[58px] font-black leading-[0.88] tracking-[-0.08em]">
               <span className="text-black">buddy</span><span style={{color:'#3293cb'}}>ally</span>
