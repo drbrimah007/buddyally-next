@@ -166,13 +166,13 @@ export default function BuddyallyDesktopLanding() {
               <h1 className="text-[64px] font-black leading-[0.95] tracking-[-0.055em] text-black">What&apos;s going on?</h1>
               <div className="mt-2 text-[78px] font-black leading-[0.88] tracking-[-0.08em]">
                 <span className="text-black">buddy</span>
-                <span className="text-[#3293cb]">ally</span>
+                <span style={{ color: '#3293cb' }}>ally</span>
               </div>
               <p className="mt-4 max-w-[520px] text-[18px] leading-8 text-[#4B5563]">
                 Link into rides, packages, events, and help<br />already in motion across cities and neighborhoods.
               </p>
             </div>
-            <a href="/dashboard" className="mt-7 inline-flex items-center gap-5 rounded-full bg-[#3293cb] px-9 py-5 text-[16px] font-black uppercase tracking-[-0.02em] text-white shadow-[0_12px_26px_rgba(34,121,242,0.25)]">
+            <a href="/signup" className="mt-7 inline-flex items-center gap-5 rounded-full bg-[#3293cb] px-9 py-5 text-[16px] font-black uppercase tracking-[-0.02em] text-white shadow-[0_12px_26px_rgba(34,121,242,0.25)]">
               LINK UP. DO MORE.
               <ArrowIcon className="h-[22px] w-[22px]" />
             </a>
@@ -205,8 +205,8 @@ export default function BuddyallyDesktopLanding() {
               <div className="absolute left-1/2 top-1/2 z-10 w-[430px] -translate-x-1/2 -translate-y-[56%] text-center">
                 <div className="text-[14px] font-extrabold uppercase tracking-[0.28em] text-[#80848a]">WHAT&apos;S GOING ON?</div>
                 <div className="mt-3 text-[82px] font-black leading-[0.9] tracking-[-0.07em] text-black">Someone&apos;s</div>
-                <div className="-mt-2 text-[84px] font-black leading-[0.86] tracking-[-0.075em] text-[#3293cb]">going your</div>
-                <div className="-mt-4 text-[84px] font-black leading-[0.86] tracking-[-0.075em] text-[#3293cb]">way.</div>
+                <div className="-mt-2 text-[84px] font-black leading-[0.86] tracking-[-0.075em]" style={{color:'#3293cb'}}>going your</div>
+                <div className="-mt-4 text-[84px] font-black leading-[0.86] tracking-[-0.075em]" style={{color:'#3293cb'}}>way.</div>
                 <div className="mt-4 text-[18px] font-extrabold uppercase tracking-[0.22em] text-[#8A8C92]">DON&apos;T PAY FOR IT.</div>
               </div>
 
@@ -216,7 +216,7 @@ export default function BuddyallyDesktopLanding() {
 
               <div className="absolute bottom-[18px] left-1/2 z-20 flex h-[60px] w-[456px] -translate-x-1/2 items-center rounded-full bg-white/95 pl-8 pr-4 shadow-[0_8px_22px_rgba(15,23,42,0.1)] ring-1 ring-black/[0.04]">
                 <div className="flex-1 text-[16px] text-[#A0A4AA]">I&apos;m driving to Philly Friday...</div>
-                <button className="rounded-full bg-[#3293cb] px-8 py-3 text-[16px] font-black text-white">Post</button>
+                <button className="rounded-full bg-[#DDD7CD] px-8 py-3 text-[16px] font-black text-[#2A2A2A]">Post</button>
               </div>
             </div>
           </div>
@@ -225,7 +225,7 @@ export default function BuddyallyDesktopLanding() {
           </div>
 
           <div className="mt-4 flex justify-center px-5">
-            <a href="/dashboard" className="w-full max-w-3xl inline-flex items-center justify-center gap-3 rounded-full bg-[#3293cb] px-8 py-5 text-xl font-black uppercase tracking-[-0.02em] text-white shadow-[0_12px_26px_rgba(50,147,203,0.28)]">
+            <a href="/signup" className="w-full max-w-3xl inline-flex items-center justify-center gap-3 rounded-full bg-[#3293cb] px-8 py-5 text-xl font-black uppercase tracking-[-0.02em] text-white shadow-[0_12px_26px_rgba(50,147,203,0.28)]">
               LINK UP. DO MORE.
               <ArrowIcon className="h-6 w-6" />
             </a>
@@ -243,7 +243,7 @@ export default function BuddyallyDesktopLanding() {
         <div className="mx-auto grid max-w-[1365px] grid-cols-[1.55fr_0.85fr_0.85fr_0.8fr_0.95fr] gap-8 px-14 py-7">
           <div>
             <div className="text-[58px] font-black leading-[0.88] tracking-[-0.08em]">
-              <span className="text-black">buddy</span><span className="text-[#3293cb]">ally</span>
+              <span className="text-black">buddy</span><span style={{color:'#3293cb'}}>ally</span>
             </div>
             <div className="mt-2 text-[16px] font-black text-[#1B1E23]">What&apos;s going on?</div>
             <div className="mt-1 text-[16px] text-[#2E3136]">Someone&apos;s going your way.</div>
