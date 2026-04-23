@@ -35,7 +35,7 @@ self.addEventListener('fetch', event => {
         caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {})
       }
       return res
-    }).catch(() => hit))
+    }).catch(() => hit || new Response('', { status: 408 })))
   )
 })
 

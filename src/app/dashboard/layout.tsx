@@ -30,16 +30,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (!user) return
     async function loadBadges() {
-      const [msgResult, alertResult, codeResult] = await Promise.all([
-        supabase.from('messages').select('id', { count: 'exact', head: true }).eq('recipient_id', user!.id).eq('read', false),
-        supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user!.id).eq('read', false),
-        supabase.from('connect_messages').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).eq('read', false),
-      ])
-      setBadges({
-        messages: msgResult.count || 0,
-        alerts: alertResult.count || 0,
-        codes: codeResult.count || 0,
-      })
+      try {
+        const [msgResult, alertResult, codeResult] = await Promise.allSettled([
+          supabase.from('messages').select('id', { count: 'exact', head: true }).eq('recipient_id', user!.id).eq('read', false).is('activity_id', null).is('group_id', null),
+          supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user!.id).eq('read', false),
+          supabase.from('connect_messages').select('id', { count: 'exact', head: true }).eq('owner_id', user!.id).eq('read', false),
+        ])
+        setBadges({
+          messages: msgResult.status === 'fulfilled' ? (msgResult.value.count || 0) : 0,
+          alerts: alertResult.status === 'fulfilled' ? (alertResult.value.count || 0) : 0,
+          codes: codeResult.status === 'fulfilled' ? (codeResult.value.count || 0) : 0,
+        })
+      } catch {}
     }
     loadBadges()
     const interval = setInterval(loadBadges, 30000) // refresh every 30s

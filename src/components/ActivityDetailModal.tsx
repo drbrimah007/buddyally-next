@@ -225,7 +225,13 @@ export default function ActivityDetailModal({ activityId, onClose }: { activityI
                       Manage My Activities
                     </button>
                     <button onClick={() => setEditOpen(true)} style={{ background: '#fff', color: '#111827', fontWeight: 600, padding: '12px 20px', borderRadius: 12, border: '1px solid #E5E7EB', cursor: 'pointer', fontSize: 14 }}>Edit</button>
-                    <button onClick={() => { if (!confirm('Cancel this activity? Participants will see it marked Cancelled.')) return; supabase.from('activities').update({ status: 'cancelled' }).eq('id', activityId).then(() => { onClose() }) }} style={{ background: '#FEE2E2', color: '#DC2626', fontWeight: 600, padding: '12px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 14 }}>Cancel</button>
+                    <button onClick={async () => {
+                      if (!confirm('Cancel this activity? Participants will see it marked Cancelled.')) return
+                      const { error } = await supabase.from('activities').update({ status: 'cancelled' }).eq('id', activityId)
+                      if (error) { toast(error.message || 'Could not cancel activity.', 'error'); return }
+                      toast('Activity cancelled', 'success')
+                      onClose()
+                    }} style={{ background: '#FEE2E2', color: '#DC2626', fontWeight: 600, padding: '12px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 14 }}>Cancel</button>
                   </>
                 ) : isJoined ? (
                   <>

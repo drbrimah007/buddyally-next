@@ -44,20 +44,22 @@ export default function PublicCodePage() {
         sender_email: form.email.trim(), sender_phone: form.phone.trim(),
         message: (priority === 'urgent' ? '[URGENT] ' : '') + form.message.trim(),
       })
-      // Email notification (fire and forget)
+      // Notify the owner: email + push + in-app alert via /api/notify.
+      // The route honors the owner's push_enabled / email_enabled flags.
       try {
         const { data: owner } = await supabase.from('profiles').select('email, first_name').eq('id', codeData.user_id).single()
-        if (owner?.email) {
-          fetch('/api/notify', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              ownerEmail: owner.email, ownerName: owner.first_name,
-              senderName: form.name.trim() || 'Anonymous', message: form.message.trim(),
-              code: codeData.code, codeTitle: codeData.title, priority,
-              senderEmail: form.email.trim(), senderPhone: form.phone.trim(), ownerId: codeData.user_id,
-            }),
-          }).catch(() => {})
-        }
+        fetch('/api/notify', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ownerEmail: owner?.email || '', ownerName: owner?.first_name || '',
+            senderName: form.name.trim() || 'Anonymous', message: form.message.trim(),
+            code: codeData.code, codeTitle: codeData.title, priority,
+            senderEmail: form.email.trim(), senderPhone: form.phone.trim(),
+            ownerId: codeData.user_id,
+            push_enabled: codeData.push_enabled !== false,
+            email_enabled: codeData.email_enabled !== false,
+          }),
+        }).catch(() => {})
       } catch {}
       setSentPriority(priority)
       setSent(true)

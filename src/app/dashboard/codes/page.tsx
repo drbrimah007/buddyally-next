@@ -346,14 +346,25 @@ export default function CodesPage() {
   const [emailEnabled, setEmailEnabled] = useState(true)
   const imageRef = useRef<HTMLInputElement>(null)
 
-  // Auto mark-as-read when viewing a code (must be top-level, not inside conditional)
+  // Auto mark-as-read when viewing a code (must be top-level, not inside conditional).
+  // IMPORTANT: Supabase PostgREST queries are lazy — they only execute when awaited
+  // (or `.then()`-chained). Before this fix the update was created but never sent,
+  // so messages stayed unread and badges never cleared.
   useEffect(() => {
     if (!viewingCode) return
     const cMsgs = messages.filter(m => m.code_id === viewingCode.id)
     const unreadIds = cMsgs.filter(m => !m.read).map(m => m.id)
-    if (unreadIds.length > 0) {
-      supabase.from('connect_messages').update({ read: true, read_at: new Date().toISOString() }).in('id', unreadIds)
-    }
+    if (unreadIds.length === 0) return
+    const readAt = new Date().toISOString()
+    ;(async () => {
+      const { error } = await supabase
+        .from('connect_messages')
+        .update({ read: true, read_at: readAt })
+        .in('id', unreadIds)
+      if (error) { console.error('[codes] mark-as-read failed', error); return }
+      // Reflect locally so the badge clears immediately without a full reload.
+      setMessages(prev => prev.map(m => unreadIds.includes(m.id) ? { ...m, read: true, read_at: readAt } : m))
+    })()
   }, [viewingCode, messages])
 
   const loadCodes = useCallback(async () => {

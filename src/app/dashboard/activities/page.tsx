@@ -34,18 +34,26 @@ export default function MyActivitiesPage() {
 
   async function cancelActivity(id: string) {
     if (!confirm('Cancel this activity? Participants will see it marked Cancelled.')) return
-    await supabase.from('activities').update({ status: 'cancelled' }).eq('id', id)
+    const { error } = await supabase.from('activities').update({ status: 'cancelled' }).eq('id', id)
+    if (error) { toast(error.message || 'Could not cancel activity.', 'error'); return }
+    toast('Activity cancelled', 'success')
     loadData()
   }
 
   async function reactivateActivity(id: string) {
-    await supabase.from('activities').update({ status: 'active' }).eq('id', id)
+    // DB default for activities.status is 'open' — reactivating must restore that value
+    // so the activity returns to the Explore feed (which filters by status='open').
+    const { error } = await supabase.from('activities').update({ status: 'open' }).eq('id', id)
+    if (error) { toast(error.message || 'Could not reactivate activity.', 'error'); return }
+    toast('Activity reactivated', 'success')
     loadData()
   }
 
   async function deleteActivity(id: string) {
-    if (!confirm('Delete this activity permanently?')) return
-    await supabase.from('activities').delete().eq('id', id)
+    if (!confirm('Delete this activity permanently? This cannot be undone.')) return
+    const { error } = await supabase.from('activities').delete().eq('id', id)
+    if (error) { toast(error.message || 'Could not delete activity.', 'error'); return }
+    toast('Activity deleted', 'success')
     loadData()
   }
 

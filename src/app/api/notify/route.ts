@@ -1,19 +1,23 @@
 // POST /api/notify
-// Fan-out notification endpoint: inserts a notifications row and pushes FCM.
-// Port of v1's api/notify.js (Node + Firebase Admin).
+// Dual-shape notification endpoint. v1 parity for the contact-code flow
+// (email + push) plus the typed shape used for in-app notifications.
 //
-// Expected body:
-//   { user_id: uuid, type: string, title: string, body: string,
-//     reference_id?: uuid, reference_type?: string,
-//     urgent?: boolean }
+// Accepted shapes:
+//   A) Contact-code message (v1 parity) — what /c/[code] posts:
+//      { ownerEmail, ownerName?, senderName, message,
+//        code, codeTitle?, priority, senderEmail?, senderPhone?, ownerId,
+//        push_enabled?, email_enabled? }
 //
-// Env required:
-//   SUPABASE_SERVICE_ROLE_KEY
-//   FIREBASE_SERVICE_ACCOUNT_JSON  (stringified JSON of a service account)
+//   B) Typed in-app notification:
+//      { user_id, type, title, body,
+//        reference_id?, reference_type?, urgent? }
+//
+// Env:
+//   SUPABASE_SERVICE_ROLE_KEY        (required for DB writes + token lookup)
+//   FIREBASE_SERVICE_ACCOUNT_JSON    (stringified service account; optional — skips FCM if unset)
+//   RESEND_API_KEY                   (optional — skips email if unset)
+//   NOTIFY_EMAIL_FROM                (optional — defaults to "BuddyAlly <alerts@buddyally.com>")
 //   NEXT_PUBLIC_SUPABASE_URL
-//
-// Falls back gracefully when Firebase isn't configured (still writes the
-// notifications row so the in-app bell works).
 
 import { NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase-server'
@@ -21,7 +25,24 @@ import { createServiceRoleClient } from '@/lib/supabase-server'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-type NotifyBody = {
+// ---------- Shape detection ----------
+
+type CodeMessageBody = {
+  ownerEmail: string
+  ownerName?: string
+  senderName: string
+  message: string
+  code: string
+  codeTitle?: string
+  priority?: 'normal' | 'urgent' | string
+  senderEmail?: string
+  senderPhone?: string
+  ownerId: string
+  push_enabled?: boolean
+  email_enabled?: boolean
+}
+
+type TypedBody = {
   user_id: string
   type: string
   title: string
@@ -31,21 +52,26 @@ type NotifyBody = {
   urgent?: boolean
 }
 
-// Lazy Firebase Admin init (only when env is configured).
+function isCodeMessageBody(b: any): b is CodeMessageBody {
+  return b && typeof b === 'object' && typeof b.ownerId === 'string' && typeof b.message === 'string' && typeof b.code === 'string'
+}
+
+function isTypedBody(b: any): b is TypedBody {
+  return b && typeof b === 'object' && typeof b.user_id === 'string' && typeof b.type === 'string' && typeof b.title === 'string' && typeof b.body === 'string'
+}
+
+// ---------- Firebase Admin (lazy) ----------
+
 let fbAdmin: any = null
 async function getFirebaseAdmin() {
   if (fbAdmin) return fbAdmin
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
   if (!raw) return null
   try {
-    // Dynamic import kept out of TS static graph so the build doesn't fail
-    // when firebase-admin isn't installed (it's optional for push).
-    // @ts-ignore -- optional peer; install firebase-admin to enable FCM
+    // @ts-ignore -- optional peer
     const admin = await import('firebase-admin')
     if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert(JSON.parse(raw)),
-      })
+      admin.initializeApp({ credential: admin.credential.cert(JSON.parse(raw)) })
     }
     fbAdmin = admin
     return admin
@@ -55,72 +81,40 @@ async function getFirebaseAdmin() {
   }
 }
 
-export async function POST(req: Request) {
-  let payload: NotifyBody
-  try {
-    payload = await req.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
-  const { user_id, type, title, body, reference_id, reference_type, urgent } = payload
-  if (!user_id || !type || !title || !body) {
-    return NextResponse.json({ error: 'user_id, type, title, body are required' }, { status: 400 })
-  }
+// ---------- FCM send + token pruning ----------
 
-  let supabase
-  try {
-    supabase = createServiceRoleClient()
-  } catch {
-    return NextResponse.json({ error: 'Service role key not configured' }, { status: 500 })
-  }
-
-  // 1) Write the in-app notification row (non-blocking on FCM failure).
-  const { error: insErr } = await supabase.from('notifications').insert({
-    user_id, type, title, body, reference_id, reference_type,
-  })
-  if (insErr) {
-    console.error('[notify] insert failed', insErr)
-    return NextResponse.json({ error: 'Insert failed', detail: insErr.message }, { status: 500 })
-  }
-
-  // 2) Fan out FCM push (if configured + tokens exist for this user).
+async function sendFcm(opts: {
+  supabase: any
+  userId: string
+  title: string
+  body: string
+  urgent: boolean
+  data?: Record<string, string>
+  link?: string
+}) {
+  const { supabase, userId, title, body, urgent, data, link } = opts
   const admin = await getFirebaseAdmin()
-  if (!admin) {
-    return NextResponse.json({ ok: true, push: 'skipped_no_fcm' })
-  }
+  if (!admin) return { push: 'skipped_no_fcm' as const }
 
   const { data: tokens } = await supabase
     .from('fcm_tokens')
     .select('token, urgent_only')
-    .eq('user_id', user_id)
+    .eq('user_id', userId)
 
-  if (!tokens || tokens.length === 0) {
-    return NextResponse.json({ ok: true, push: 'skipped_no_tokens' })
-  }
+  if (!tokens || tokens.length === 0) return { push: 'skipped_no_tokens' as const }
 
-  const targets = tokens
-    .filter(t => (urgent ? true : !t.urgent_only))
-    .map(t => t.token)
-
-  if (targets.length === 0) {
-    return NextResponse.json({ ok: true, push: 'skipped_all_urgent_only' })
-  }
+  const targets = tokens.filter((t: any) => (urgent ? true : !t.urgent_only)).map((t: any) => t.token)
+  if (targets.length === 0) return { push: 'skipped_all_urgent_only' as const }
 
   try {
     const res = await admin.messaging().sendEachForMulticast({
       tokens: targets,
       notification: { title, body },
-      data: {
-        type,
-        reference_id: reference_id || '',
-        reference_type: reference_type || '',
-      },
-      webpush: {
-        fcmOptions: { link: '/dashboard/alerts' },
-      },
+      data: data || {},
+      webpush: { fcmOptions: { link: link || '/dashboard/alerts' } },
     })
 
-    // Prune dead tokens.
+    // Prune dead tokens
     const dead: string[] = []
     res.responses.forEach((r: any, i: number) => {
       if (!r.success) {
@@ -131,19 +125,182 @@ export async function POST(req: Request) {
         ) dead.push(targets[i])
       }
     })
-    if (dead.length) {
-      await supabase.from('fcm_tokens').delete().in('token', dead)
-    }
+    if (dead.length) await supabase.from('fcm_tokens').delete().in('token', dead)
 
-    return NextResponse.json({
-      ok: true,
-      push: 'sent',
+    return {
+      push: 'sent' as const,
       success: res.successCount,
       failure: res.failureCount,
       pruned: dead.length,
-    })
+    }
   } catch (e: any) {
     console.error('[notify] FCM send failed', e)
-    return NextResponse.json({ ok: true, push: 'fcm_error', detail: String(e?.message || e) })
+    return { push: 'fcm_error' as const, detail: String(e?.message || e) }
   }
+}
+
+// ---------- Resend email ----------
+
+async function sendEmailViaResend(opts: {
+  to: string
+  subject: string
+  html: string
+  replyTo?: string
+}) {
+  const key = process.env.RESEND_API_KEY
+  if (!key) return { email: 'skipped_no_resend' as const }
+  const from = process.env.NOTIFY_EMAIL_FROM || 'BuddyAlly <alerts@buddyally.com>'
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to: [opts.to],
+        subject: opts.subject,
+        html: opts.html,
+        ...(opts.replyTo ? { reply_to: [opts.replyTo] } : {}),
+      }),
+    })
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '')
+      console.error('[notify] Resend failed', res.status, detail)
+      return { email: 'resend_error' as const, status: res.status, detail }
+    }
+    return { email: 'sent' as const }
+  } catch (e: any) {
+    console.error('[notify] Resend threw', e)
+    return { email: 'resend_error' as const, detail: String(e?.message || e) }
+  }
+}
+
+function escapeHtml(s: string) {
+  return (s || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
+function codeMessageEmailHtml(p: CodeMessageBody) {
+  const urgent = p.priority === 'urgent'
+  const title = p.codeTitle || p.code
+  return `<!doctype html><html><body style="margin:0;padding:0;background:#F9FAFB;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#111827">
+  <div style="max-width:560px;margin:0 auto;padding:24px 16px">
+    <div style="background:#fff;border:1px solid #E5E7EB;border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.06)">
+      <div style="background:${urgent ? '#DC2626' : '#0284C7'};color:#fff;padding:18px 22px;font-weight:700;font-size:16px">
+        ${urgent ? '🚨 URGENT — ' : ''}New message on your BuddyAlly code
+      </div>
+      <div style="padding:22px">
+        <p style="margin:0 0 6px;color:#6B7280;font-size:13px">Code</p>
+        <p style="margin:0 0 14px;font-weight:700;font-size:16px">${escapeHtml(title)} <span style="color:#6B7280;font-weight:500">(${escapeHtml(p.code)})</span></p>
+        <p style="margin:0 0 6px;color:#6B7280;font-size:13px">From</p>
+        <p style="margin:0 0 14px;font-weight:600">${escapeHtml(p.senderName || 'Anonymous')}</p>
+        ${p.senderEmail ? `<p style="margin:0 0 6px;color:#6B7280;font-size:13px">Reply to</p><p style="margin:0 0 14px"><a href="mailto:${escapeHtml(p.senderEmail)}" style="color:#0284C7">${escapeHtml(p.senderEmail)}</a></p>` : ''}
+        ${p.senderPhone ? `<p style="margin:0 0 6px;color:#6B7280;font-size:13px">Phone</p><p style="margin:0 0 14px"><a href="tel:${escapeHtml(p.senderPhone)}" style="color:#0284C7">${escapeHtml(p.senderPhone)}</a></p>` : ''}
+        <p style="margin:0 0 6px;color:#6B7280;font-size:13px">Message</p>
+        <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:14px;font-size:15px;line-height:1.6;white-space:pre-wrap">${escapeHtml(p.message)}</div>
+        <p style="margin:22px 0 0;color:#6B7280;font-size:12px">Open your BuddyAlly dashboard to see the full thread and reply.</p>
+      </div>
+    </div>
+    <p style="text-align:center;color:#9CA3AF;font-size:12px;margin-top:16px">
+      You received this because someone scanned your BuddyAlly code <strong>${escapeHtml(p.code)}</strong>.
+    </p>
+  </div></body></html>`
+}
+
+// ---------- Handler ----------
+
+export async function POST(req: Request) {
+  let payload: any
+  try {
+    payload = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+
+  let supabase
+  try {
+    supabase = createServiceRoleClient()
+  } catch {
+    return NextResponse.json({ error: 'Service role key not configured' }, { status: 500 })
+  }
+
+  // --- Shape A: contact-code message (v1 parity) ---
+  if (isCodeMessageBody(payload)) {
+    const p = payload as CodeMessageBody
+    const urgent = p.priority === 'urgent'
+    const pushAllowed = p.push_enabled !== false
+    const emailAllowed = p.email_enabled !== false
+
+    // 1) Write in-app notification row
+    const title = urgent ? `🚨 URGENT: new message on ${p.codeTitle || p.code}` : `New message on ${p.codeTitle || p.code}`
+    const body = p.message.length > 140 ? p.message.slice(0, 137) + '...' : p.message
+    const { error: insErr } = await supabase.from('notifications').insert({
+      user_id: p.ownerId,
+      type: 'code_message',
+      title,
+      body,
+      reference_type: 'connect_code',
+    })
+    if (insErr) console.error('[notify] notifications insert failed', insErr)
+
+    // 2) Fan out push + email in parallel, respecting owner's flags
+    const pushPromise = pushAllowed
+      ? sendFcm({
+          supabase,
+          userId: p.ownerId,
+          title,
+          body,
+          urgent,
+          data: { type: 'code_message', code: p.code },
+          link: '/dashboard/codes',
+        })
+      : Promise.resolve({ push: 'skipped_disabled_by_owner' as const })
+
+    const emailPromise = emailAllowed && p.ownerEmail
+      ? sendEmailViaResend({
+          to: p.ownerEmail,
+          subject: title,
+          html: codeMessageEmailHtml(p),
+          replyTo: p.senderEmail || undefined,
+        })
+      : Promise.resolve({ email: 'skipped_disabled_or_no_email' as const })
+
+    const [pushRes, emailRes] = await Promise.all([pushPromise, emailPromise])
+    return NextResponse.json({ ok: true, ...pushRes, ...emailRes })
+  }
+
+  // --- Shape B: typed in-app notification ---
+  if (isTypedBody(payload)) {
+    const { user_id, type, title, body, reference_id, reference_type, urgent } = payload
+
+    const { error: insErr } = await supabase.from('notifications').insert({
+      user_id, type, title, body, reference_id, reference_type,
+    })
+    if (insErr) {
+      console.error('[notify] insert failed', insErr)
+      return NextResponse.json({ error: 'Insert failed', detail: insErr.message }, { status: 500 })
+    }
+
+    const pushRes = await sendFcm({
+      supabase,
+      userId: user_id,
+      title,
+      body,
+      urgent: !!urgent,
+      data: {
+        type,
+        reference_id: reference_id || '',
+        reference_type: reference_type || '',
+      },
+    })
+    return NextResponse.json({ ok: true, ...pushRes })
+  }
+
+  return NextResponse.json(
+    { error: 'Unrecognized payload shape — expected contact-code message or typed notification' },
+    { status: 400 },
+  )
 }

@@ -231,7 +231,13 @@ export default function ActivityPage() {
                 Manage My Activities
               </button>
               <button onClick={() => setEditOpen(true)} style={{ background: '#fff', color: '#111827', fontWeight: 600, padding: '12px 24px', borderRadius: 14, border: '1px solid #E5E7EB', cursor: 'pointer', fontSize: 15 }}>Edit</button>
-              <button onClick={() => { if (!confirm('Cancel this activity? Participants will see it marked Cancelled.')) return; supabase.from('activities').update({ status: 'cancelled' }).eq('id', id).then(() => router.push('/dashboard/activities')) }} style={{ background: '#FEE2E2', color: '#DC2626', fontWeight: 600, padding: '12px 24px', borderRadius: 14, border: 'none', cursor: 'pointer', fontSize: 15 }}>Cancel Activity</button>
+              <button onClick={async () => {
+                if (!confirm('Cancel this activity? Participants will see it marked Cancelled.')) return
+                const { error } = await supabase.from('activities').update({ status: 'cancelled' }).eq('id', id)
+                if (error) { toast(error.message || 'Could not cancel activity.', 'error'); return }
+                toast('Activity cancelled', 'success')
+                router.push('/dashboard/activities')
+              }} style={{ background: '#FEE2E2', color: '#DC2626', fontWeight: 600, padding: '12px 24px', borderRadius: 14, border: 'none', cursor: 'pointer', fontSize: 15 }}>Cancel Activity</button>
             </div>
           ) : isJoined ? (
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
