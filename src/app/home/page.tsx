@@ -220,6 +220,16 @@ export default function BuddyallyDesktopLanding() {
               </div>
             </div>
           </div>
+          <div className="mx-auto mt-6 max-w-3xl text-center">
+            <p className="text-base font-medium leading-7 text-[#4B5563]">Rides, packages, events, help — already in motion.</p>
+          </div>
+
+          <div className="mt-4 flex justify-center px-5">
+            <a href="/dashboard" className="w-full max-w-3xl inline-flex items-center justify-center gap-3 rounded-full bg-[#3293cb] px-8 py-5 text-xl font-black uppercase tracking-[-0.02em] text-white shadow-[0_12px_26px_rgba(50,147,203,0.28)]">
+              LINK UP. DO MORE.
+              <ArrowIcon className="h-6 w-6" />
+            </a>
+          </div>
         </section>
 
         <section className="grid grid-cols-3 gap-3 px-1 py-3">
