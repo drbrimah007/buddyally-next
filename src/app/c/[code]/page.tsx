@@ -30,7 +30,11 @@ export default function PublicCodePage() {
       setLoading(false); return
     }
     setCodeData(data); setLoading(false)
-    supabase.from('connect_scans').insert({ code_id: data.id, user_agent: navigator.userAgent }).then(() => {})
+    // Fire-and-forget scan record — surface errors instead of silently dropping.
+    ;(async () => {
+      const { error: scanErr } = await supabase.from('connect_scans').insert({ code_id: data.id, user_agent: navigator.userAgent })
+      if (scanErr) console.error('[c/code] connect_scans insert failed', scanErr)
+    })()
   }
 
   async function sendMessage() {

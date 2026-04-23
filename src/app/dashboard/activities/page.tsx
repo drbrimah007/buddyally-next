@@ -6,7 +6,10 @@ import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
 import CreateActivityModal from '@/components/CreateActivityModal'
 import ActivityDetailModal from '@/components/ActivityDetailModal'
+import Paginator from '@/components/Paginator'
 import { toast } from '@/components/ToastProvider'
+
+const ACT_PAGE_SIZE = 10
 
 export default function MyActivitiesPage() {
   const { user } = useAuth()
@@ -17,6 +20,11 @@ export default function MyActivitiesPage() {
   const [created, setCreated] = useState<any[]>([])
   const [joined, setJoined] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  // Each tab keeps its own page cursor so switching tabs doesn't lose position.
+  const [createdPage, setCreatedPage] = useState(0)
+  const [joinedPage, setJoinedPage] = useState(0)
+  // Reset to first page whenever the tab changes (familiar UX).
+  useEffect(() => { setCreatedPage(0); setJoinedPage(0) }, [tab])
 
   useEffect(() => { if (user) loadData() }, [user])
 
@@ -90,9 +98,13 @@ export default function MyActivitiesPage() {
             <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>Create your first activity to get started.</p>
             <button onClick={() => setShowCreate(true)} style={{ padding: '12px 24px', borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Create Activity</button>
           </div>
-        ) : (
+        ) : (() => {
+          const totalPages = Math.max(1, Math.ceil(created.length / ACT_PAGE_SIZE))
+          const page = Math.min(createdPage, totalPages - 1)
+          const pageItems = created.slice(page * ACT_PAGE_SIZE, (page + 1) * ACT_PAGE_SIZE)
+          return (
           <div>
-            {created.map(a => {
+            {pageItems.map(a => {
               const isCancelled = a.status === 'cancelled'
               return (
                 <div key={a.id} onClick={() => setViewActivityId(a.id)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, cursor: 'pointer', opacity: isCancelled ? 0.75 : 1 }}>
@@ -124,8 +136,10 @@ export default function MyActivitiesPage() {
                 </div>
               )
             })}
+            <Paginator page={page} totalPages={totalPages} onChange={setCreatedPage} />
           </div>
-        )
+          )
+        })()
       ) : (
         joined.length === 0 ? (
           <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 40, textAlign: 'center' }}>
@@ -134,9 +148,13 @@ export default function MyActivitiesPage() {
             <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>Browse and join activities from Explore.</p>
             <Link href="/dashboard" style={{ display: 'inline-block', padding: '12px 24px', borderRadius: 14, background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>Explore Activities</Link>
           </div>
-        ) : (
+        ) : (() => {
+          const totalPages = Math.max(1, Math.ceil(joined.length / ACT_PAGE_SIZE))
+          const page = Math.min(joinedPage, totalPages - 1)
+          const pageItems = joined.slice(page * ACT_PAGE_SIZE, (page + 1) * ACT_PAGE_SIZE)
+          return (
           <div>
-            {joined.map((a: any) => (
+            {pageItems.map((a: any) => (
               <div key={a.id} onClick={() => setViewActivityId(a.id)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, cursor: 'pointer' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div>
@@ -149,12 +167,14 @@ export default function MyActivitiesPage() {
                 {a.description && <p style={{ fontSize: 13, color: '#4B5563', marginTop: 8, lineHeight: 1.6 }}>{a.description.substring(0, 100)}{a.description.length > 100 ? '...' : ''}</p>}
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                   <button onClick={e => { e.stopPropagation(); window.location.href = `/dashboard/messages` }} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Message</button>
-                  <button onClick={async e => { e.stopPropagation(); if (!confirm('Leave this activity?')) return; await supabase.from('activity_participants').delete().eq('activity_id', a.id).eq('user_id', user!.id); loadData() }} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: '#FEE2E2', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Leave</button>
+                  <button onClick={async e => { e.stopPropagation(); if (!confirm('Leave this activity?')) return; const { error } = await supabase.from('activity_participants').delete().eq('activity_id', a.id).eq('user_id', user!.id); if (error) { toast(error.message || 'Could not leave activity.', 'error'); return } toast('Left activity', 'success'); loadData() }} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: '#FEE2E2', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Leave</button>
                 </div>
               </div>
             ))}
+            <Paginator page={page} totalPages={totalPages} onChange={setJoinedPage} />
           </div>
-        )
+          )
+        })()
       )}
       {showCreate && <CreateActivityModal onClose={() => { setShowCreate(false); loadData() }} />}
       {editActivity && <CreateActivityModal initialActivity={editActivity} onClose={() => setEditActivity(null)} onSaved={() => { setEditActivity(null); loadData() }} />}

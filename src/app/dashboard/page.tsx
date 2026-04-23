@@ -8,6 +8,9 @@ import { useRouter } from 'next/navigation'
 import CreateActivityModal from '@/components/CreateActivityModal'
 import ActivityDetailModal from '@/components/ActivityDetailModal'
 import SafetyBanner from '@/components/SafetyBanner'
+import Paginator from '@/components/Paginator'
+
+const EXPLORE_PAGE_SIZE = 12
 
 function haversineMiles(lat1: number, lng1: number, lat2: number, lng2: number) {
   const toRad = (d: number) => d * Math.PI / 180
@@ -52,7 +55,12 @@ export default function ExplorePage() {
   const [gpsLoading, setGpsLoading] = useState(false)
   const [userStateCode, setUserStateCode] = useState('')
   const [viewActivityId, setViewActivityId] = useState<string | null>(null)
+  const [explorePage, setExplorePage] = useState(0)
   const searchTimeout = useRef<any>(null)
+
+  // Reset pagination when the visible set changes (filter/search/location/radius).
+  // Keeps the user from being stuck on an empty "page 5" after narrowing.
+  useEffect(() => { setExplorePage(0) }, [search, category, radius, cityCoords?.lat, cityCoords?.lon, showAll])
 
   useEffect(() => {
     // Load from sessionStorage first (instant)
@@ -90,7 +98,13 @@ export default function ExplorePage() {
     const updates: any = { explore_display_name: display, explore_radius_miles: rad }
     if (lat != null && lon != null) { updates.explore_lat = lat; updates.explore_lng = lon }
     else { updates.explore_lat = null; updates.explore_lng = null }
-    supabase.from('profiles').update(updates).eq('id', user.id).then(() => {})
+    // Fire-and-forget from a sync caller — we await inside an IIFE so the query
+    // runs AND any RLS/schema errors surface in the console instead of being
+    // silently dropped by a no-op .then().
+    ;(async () => {
+      const { error } = await supabase.from('profiles').update(updates).eq('id', user.id)
+      if (error) console.error('[explore] saveExploreState failed', error)
+    })()
     sessionStorage.setItem('ba_city', display)
     if (lat != null && lon != null) sessionStorage.setItem('ba_coords', JSON.stringify({ lat, lon }))
     else sessionStorage.removeItem('ba_coords')
@@ -317,9 +331,13 @@ export default function ExplorePage() {
             {cityInput && <button onClick={clearCity} style={{ padding: '12px 24px', borderRadius: 14, border: '1px solid #E5E7EB', background: '#fff', color: '#111827', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Show All</button>}
           </div>
         </div>
-      ) : (
+      ) : (() => {
+        const totalPages = Math.max(1, Math.ceil(withDistance.length / EXPLORE_PAGE_SIZE))
+        const page = Math.min(explorePage, totalPages - 1)
+        const pageItems = withDistance.slice(page * EXPLORE_PAGE_SIZE, (page + 1) * EXPLORE_PAGE_SIZE)
+        return (
         <div>
-          {withDistance.map(a => {
+          {pageItems.map(a => {
             const host = a.host as any
             const spotsLeft = a.max_participants - (a.participants?.length || 0)
             const isOwner = user && a.created_by === user.id
@@ -386,8 +404,10 @@ export default function ExplorePage() {
               </div>
             )
           })}
+          <Paginator page={page} totalPages={totalPages} onChange={setExplorePage} />
         </div>
-      )}
+        )
+      })()}
       <SafetyBanner />
       {showCreate && <CreateActivityModal onClose={() => { setShowCreate(false); fetchActivities() }} />}
       {viewActivityId && <ActivityDetailModal activityId={viewActivityId} onClose={() => { setViewActivityId(null); fetchActivities() }} />}

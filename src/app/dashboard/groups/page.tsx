@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
+import Paginator from '@/components/Paginator'
 
 const GROUP_CATEGORIES = ['Travel','Sports','Learning','Social','Outdoor','Gaming','Wellness','Help','Events','Other']
+const GROUP_PAGE_SIZE = 12
 
 export default function GroupsPage() {
   const { user } = useAuth()
@@ -22,8 +24,11 @@ export default function GroupsPage() {
   const [newCat, setNewCat] = useState('Social')
   const [newPrivacy, setNewPrivacy] = useState('open')
   const [newMax, setNewMax] = useState(50)
+  const [page, setPage] = useState(0)
 
   useEffect(() => { if (user) loadGroups() }, [user])
+  // Reset pagination when the filter/tab/search changes so the user lands on page 1.
+  useEffect(() => { setPage(0) }, [tab, search, catFilter])
 
   async function loadGroups() {
     setLoading(true)
@@ -194,9 +199,13 @@ export default function GroupsPage() {
           <p style={{ fontWeight: 600, marginBottom: 8 }}>{tab === 'mine' ? 'No groups joined yet' : 'No groups found'}</p>
           <p style={{ fontSize: 14, color: '#6B7280' }}>{tab === 'mine' ? 'Browse and join groups from Discover.' : 'Create or join groups for travel, activities, and shared interests.'}</p>
         </div>
-      ) : (
+      ) : (() => {
+        const totalPages = Math.max(1, Math.ceil(displayed.length / GROUP_PAGE_SIZE))
+        const clampedPage = Math.min(page, totalPages - 1)
+        const pageItems = displayed.slice(clampedPage * GROUP_PAGE_SIZE, (clampedPage + 1) * GROUP_PAGE_SIZE)
+        return (
         <div>
-          {displayed.map(g => {
+          {pageItems.map(g => {
             const members = (g.members || []).filter((m: any) => m.status === 'joined')
             const isMember = members.some((m: any) => m.user_id === user?.id)
             const isOwner = g.created_by === user?.id
@@ -224,8 +233,10 @@ export default function GroupsPage() {
               </div>
             )
           })}
+          <Paginator page={clampedPage} totalPages={totalPages} onChange={setPage} />
         </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

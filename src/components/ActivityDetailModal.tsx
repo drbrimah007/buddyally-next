@@ -255,7 +255,12 @@ export default function ActivityDetailModal({ activityId, onClose }: { activityI
                     router.push('/dashboard/messages')
                   }} style={{ background: 'none', border: 'none', color: '#3293CB', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Message Host</button>
                   <button onClick={() => { navigator.share?.({ title: activity.title, url: `https://buddyally.com/a/${activityId}` }).catch(() => { navigator.clipboard.writeText(`https://buddyally.com/a/${activityId}`); toast('Link copied', 'info') }) }} style={{ background: 'none', border: 'none', color: '#6B7280', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Share</button>
-                  <button onClick={() => { if (confirm('Report this activity?')) { supabase.from('reports').insert({ reporter_id: user!.id, reported_type: 'activity', reported_id: activityId, reason: 'inappropriate' }).then(() => toast('Report submitted', 'success')) } }} style={{ background: 'none', border: 'none', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Report</button>
+                  <button onClick={async () => {
+                    if (!confirm('Report this activity?')) return
+                    const { error } = await supabase.from('reports').insert({ reporter_id: user!.id, reported_type: 'activity', reported_id: activityId, reason: 'inappropriate' })
+                    if (error) { toast(error.message || 'Could not submit report.', 'error'); return }
+                    toast('Report submitted', 'success')
+                  }} style={{ background: 'none', border: 'none', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Report</button>
                 </div>
               )}
             </>

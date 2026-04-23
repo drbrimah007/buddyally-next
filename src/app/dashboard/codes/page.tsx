@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from '@/components/ToastProvider'
+import Paginator from '@/components/Paginator'
 
 const CODE_TYPES: Record<string, { label: string; emoji: string }> = {
   contact_me: { label: 'Contact me', emoji: '💬' },
@@ -353,6 +354,10 @@ export default function CodesPage() {
   const MSG_PAGE_SIZE = 20
   // Reset pagination whenever tab changes or you switch to a different code
   useEffect(() => { setMsgPage(0) }, [msgTab, viewingCode?.id])
+
+  // Codes list pagination (client-side — we already load all codes for this user)
+  const [codePage, setCodePage] = useState(0)
+  const CODE_PAGE_SIZE = 10
 
   // Auto mark-as-read when viewing a code (must be top-level, not inside conditional).
   // IMPORTANT: Supabase PostgREST queries are lazy — they only execute when awaited
@@ -762,26 +767,8 @@ export default function CodesPage() {
                 )
               })}
 
-              {/* Pagination */}
-              {active.length > MSG_PAGE_SIZE && (
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 12 }}>
-                  <button
-                    onClick={() => setMsgPage(p => Math.max(0, p - 1))}
-                    disabled={page === 0}
-                    style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: page === 0 ? 'not-allowed' : 'pointer', opacity: page === 0 ? 0.5 : 1 }}
-                  >
-                    ← Previous
-                  </button>
-                  <span style={{ fontSize: 13, color: '#6B7280', fontWeight: 600 }}>Page {page + 1} of {totalPages}</span>
-                  <button
-                    onClick={() => setMsgPage(p => Math.min(totalPages - 1, p + 1))}
-                    disabled={page >= totalPages - 1}
-                    style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer', opacity: page >= totalPages - 1 ? 0.5 : 1 }}
-                  >
-                    Next →
-                  </button>
-                </div>
-              )}
+              {/* Pagination (shared Paginator — hides itself if totalPages ≤ 1) */}
+              <Paginator page={page} totalPages={totalPages} onChange={setMsgPage} compact />
             </>
           )
         })()}
@@ -959,7 +946,14 @@ export default function CodesPage() {
         </div>
       ) : (
         <div>
-          {codes.map(c => {
+          {(() => {
+            // Clamp the current page in case codes got deleted below the cursor
+            const totalPages = Math.max(1, Math.ceil(codes.length / CODE_PAGE_SIZE))
+            const page = Math.min(codePage, totalPages - 1)
+            const pageCodes = codes.slice(page * CODE_PAGE_SIZE, (page + 1) * CODE_PAGE_SIZE)
+            return (
+              <>
+          {pageCodes.map(c => {
             const cMsgs = messages.filter(m => m.code_id === c.id)
             const unread = cMsgs.filter((m: any) => !m.read).length
             const tp = CODE_TYPES[c.code_type] || CODE_TYPES.other
@@ -1019,6 +1013,10 @@ export default function CodesPage() {
               </div>
             )
           })}
+          <Paginator page={page} totalPages={totalPages} onChange={setCodePage} />
+              </>
+            )
+          })()}
         </div>
       )}
     </div>

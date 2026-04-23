@@ -10,6 +10,9 @@ import { useToast } from '@/components/ToastProvider'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import SafetyBanner from '@/components/SafetyBanner'
+import Paginator from '@/components/Paginator'
+
+const CONV_PAGE_SIZE = 15
 
 type Conversation = { partnerId: string; partnerName: string; partnerAvatar: string; lastMessage: string; lastAt: string; unread: number }
 type PickerUser = { id: string; first_name: string; last_name: string; avatar_url: string; city: string | null }
@@ -21,6 +24,7 @@ export default function MessagesPage() {
   const deepLinkTo = searchParams.get('to')
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
+  const [convPage, setConvPage] = useState(0)
   const [chatWith, setChatWith] = useState<string | null>(null)
   const [chatMessages, setChatMessages] = useState<any[]>([])
   const [newMsg, setNewMsg] = useState('')
@@ -103,7 +107,12 @@ export default function MessagesPage() {
         const m = p.new as any
         if (m.sender_id === chatWith) {
           setChatMessages(prev => [...prev, m])
-          supabase.from('messages').update({ read: true }).eq('id', m.id).then(() => {})
+          // Fire-and-forget mark-as-read from a sync realtime callback — IIFE
+          // so the query runs AND any error surfaces instead of being dropped.
+          ;(async () => {
+            const { error } = await supabase.from('messages').update({ read: true }).eq('id', m.id)
+            if (error) console.error('[dm] realtime mark-as-read failed', error)
+          })()
           queueMicrotask(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }))
         }
       })
@@ -214,9 +223,13 @@ export default function MessagesPage() {
           <p style={{ fontWeight: 600, marginBottom: 8 }}>No messages yet</p>
           <p style={{ fontSize: 14, color: '#6B7280' }}>Tap &ldquo;+ New Message&rdquo; above or message someone from an activity or profile.</p>
         </div>
-      ) : (
+      ) : (() => {
+        const totalPages = Math.max(1, Math.ceil(conversations.length / CONV_PAGE_SIZE))
+        const page = Math.min(convPage, totalPages - 1)
+        const pageConversations = conversations.slice(page * CONV_PAGE_SIZE, (page + 1) * CONV_PAGE_SIZE)
+        return (
         <div>
-          {conversations.map(c => (
+          {pageConversations.map(c => (
             <div key={c.partnerId} onClick={() => openChat(c.partnerId, c.partnerName)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 16, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer', transition: 'all 0.15s', ...(c.unread ? { borderLeft: '3px solid #3293CB' } : {}) }}>
               <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#4B5563', flexShrink: 0, overflow: 'hidden' }}>
                 {c.partnerAvatar ? <img src={c.partnerAvatar} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : c.partnerName[0]}
@@ -231,8 +244,10 @@ export default function MessagesPage() {
               {c.unread > 0 && <div style={{ background: '#DC2626', color: '#fff', fontSize: 9, fontWeight: 700, minWidth: 16, height: 16, borderRadius: 8, lineHeight: '16px', textAlign: 'center', padding: '0 3px' }}>{c.unread}</div>}
             </div>
           ))}
+          <Paginator page={page} totalPages={totalPages} onChange={setConvPage} />
         </div>
-      )}
+        )
+      })()}
       <SafetyBanner />
     </div>
   )
