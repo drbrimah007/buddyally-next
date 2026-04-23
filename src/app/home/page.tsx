@@ -83,15 +83,18 @@ function GlobeIcon({ className = "" }: { className?: string }) {
 }
 
 const bubbles = [
-  { type: "ride", title: "RIDE", icon: RideIcon, iconBg: "bg-[#2F80ED]", iconText: "text-[#2F80ED]", author: "Naya", text: "Driving Houston \u2192 Austin Friday 6pm. Three seats open, splitting gas.", className: "left-[42px] top-[26px] w-[194px]" },
-  { type: "ride", title: "RIDE", icon: RideIcon, iconBg: "bg-[#2F80ED]", iconText: "text-[#2F80ED]", author: "Chen", text: "NYC \u2192 Philly Friday evening. Two open seats.", className: "left-[288px] top-[82px] w-[172px]" },
-  { type: "package", title: "PACKAGE", icon: PackageIcon, iconBg: "bg-[#7C3AED]", iconText: "text-[#7C3AED]", author: "Devon", text: "Flying Miami \u2192 Santo Domingo Sunday. Space for a small parcel.", className: "right-[274px] top-[62px] w-[208px]" },
-  { type: "package", title: "PACKAGE", icon: PackageIcon, iconBg: "bg-[#7C3AED]", iconText: "text-[#7C3AED]", author: "Aisha", text: "Packages \u2014 someone\u2019s coming or going. Link in.", className: "right-[46px] top-[120px] w-[198px]" },
-  { type: "event", title: "EVENT", icon: EventIcon, iconBg: "bg-[#EF4444]", iconText: "text-[#EF4444]", author: "James", text: "Extra concert ticket tonight in Bushwick. Free to a good ear.", className: "left-[36px] top-[224px] w-[178px]" },
-  { type: "help", title: "HELP", icon: HelpIcon, iconBg: "bg-[#4CAF50]", iconText: "text-[#4CAF50]", author: "Rae", text: "Dog sitter available this weekend in Crown Heights.", className: "left-[262px] top-[290px] w-[168px]" },
-  { type: "help", title: "HELP", icon: HelpIcon, iconBg: "bg-[#4CAF50]", iconText: "text-[#4CAF50]", author: "Milo", text: "Hey neighbor \u2014 your pipe is leaking this afternoon.", className: "left-[142px] bottom-[18px] w-[182px]" },
-  { type: "event", title: "EVENT", icon: EventIcon, iconBg: "bg-[#EF4444]", iconText: "text-[#EF4444]", author: "Priya", text: "Block party down the street tonight. Pull up.", className: "right-[92px] top-[262px] w-[174px]" },
-  { type: "ride", title: "RIDE", icon: RideIcon, iconBg: "bg-[#2F80ED]", iconText: "text-[#2F80ED]", author: "Juliet", text: "Anyone coming from Texas this week? Open room for one bag.", className: "right-[208px] bottom-[30px] w-[184px]" },
+  // TOP ROW — above center text
+  { type: "ride", title: "RIDE", icon: RideIcon, iconBg: "bg-[#2F80ED]", iconText: "text-[#2F80ED]", author: "Naya", text: "Driving Houston \u2192 Austin Friday 6pm. Three seats open, splitting gas.", className: "left-[32px] top-[14px] w-[194px]" },
+  { type: "package", title: "PACKAGE", icon: PackageIcon, iconBg: "bg-[#7C3AED]", iconText: "text-[#7C3AED]", author: "Devon", text: "Flying Miami \u2192 Santo Domingo Sunday. Space for a small parcel.", className: "left-[280px] top-[38px] w-[208px]" },
+  { type: "ride", title: "RIDE", icon: RideIcon, iconBg: "bg-[#2F80ED]", iconText: "text-[#2F80ED]", author: "Chen", text: "NYC \u2192 Philly Friday evening. Two open seats.", className: "right-[260px] top-[18px] w-[172px]" },
+  { type: "package", title: "PACKAGE", icon: PackageIcon, iconBg: "bg-[#7C3AED]", iconText: "text-[#7C3AED]", author: "Aisha", text: "Packages \u2014 someone\u2019s coming or going. Link in.", className: "right-[38px] top-[58px] w-[198px]" },
+  // MIDDLE — flanking center text
+  { type: "help", title: "HELP", icon: HelpIcon, iconBg: "bg-[#4CAF50]", iconText: "text-[#4CAF50]", author: "Rae", text: "Dog sitter available this weekend in Crown Heights.", className: "left-[24px] top-[230px] w-[168px]" },
+  { type: "event", title: "EVENT", icon: EventIcon, iconBg: "bg-[#EF4444]", iconText: "text-[#EF4444]", author: "Priya", text: "Block party down the street tonight. Pull up.", className: "right-[28px] top-[240px] w-[174px]" },
+  // BOTTOM ROW — below center text
+  { type: "event", title: "EVENT", icon: EventIcon, iconBg: "bg-[#EF4444]", iconText: "text-[#EF4444]", author: "James", text: "Extra concert ticket tonight in Bushwick. Free to a good ear.", className: "left-[56px] bottom-[52px] w-[178px]" },
+  { type: "help", title: "HELP", icon: HelpIcon, iconBg: "bg-[#4CAF50]", iconText: "text-[#4CAF50]", author: "Milo", text: "Hey neighbor \u2014 your pipe is leaking this afternoon.", className: "left-[290px] bottom-[24px] w-[182px]" },
+  { type: "ride", title: "RIDE", icon: RideIcon, iconBg: "bg-[#2F80ED]", iconText: "text-[#2F80ED]", author: "Juliet", text: "Anyone coming from Texas this week? Open room for one bag.", className: "right-[180px] bottom-[46px] w-[184px]" },
 ];
 
 function BubbleCard({ bubble, index, constraintsRef }: { bubble: (typeof bubbles)[number]; index: number; constraintsRef: React.RefObject<HTMLDivElement | null> }) {
