@@ -30,6 +30,14 @@ export function useAuth() {
 
   async function loadProfile(userId: string) {
     const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
+    // Sync email verification from auth state → profile
+    if (data && !data.verified_email) {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (authUser?.email_confirmed_at) {
+        await supabase.from('profiles').update({ verified_email: true }).eq('id', userId)
+        data.verified_email = true
+      }
+    }
     setProfile(data)
     setLoading(false)
   }
