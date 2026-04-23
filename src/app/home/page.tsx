@@ -172,7 +172,7 @@ export default function BuddyallyDesktopLanding() {
                 Link into rides, packages, events, and help<br />already in motion across cities and neighborhoods.
               </p>
             </div>
-            <a href="/signup" className="mt-7 inline-flex items-center gap-5 rounded-full bg-[#3293cb] px-9 py-5 text-[16px] font-black uppercase tracking-[-0.02em] text-white shadow-[0_12px_26px_rgba(34,121,242,0.25)]">
+            <a href="/signup" className="mt-7 inline-flex items-center gap-5 rounded-full px-9 py-5 text-[16px] font-black uppercase tracking-[-0.02em]" style={{background:'#3293cb',color:'#fff',boxShadow:'0 12px 26px rgba(50,147,203,0.28)'}}>
               LINK UP. DO MORE.
               <ArrowIcon className="h-[22px] w-[22px]" />
             </a>
@@ -225,7 +225,7 @@ export default function BuddyallyDesktopLanding() {
           </div>
 
           <div className="mt-4 flex justify-center px-5 hidden lg:flex">
-            <a href="/signup" className="w-full max-w-3xl inline-flex items-center justify-center gap-3 rounded-full bg-[#3293cb] px-8 py-5 text-xl font-black uppercase tracking-[-0.02em] text-white shadow-[0_12px_26px_rgba(50,147,203,0.28)]">
+            <a href="/signup" className="w-full max-w-3xl inline-flex items-center justify-center gap-3 rounded-full px-8 py-5 text-xl font-black uppercase tracking-[-0.02em]" style={{background:'#3293cb',color:'#fff',boxShadow:'0 12px 26px rgba(50,147,203,0.28)'}}>
               LINK UP. DO MORE.
               <ArrowIcon className="h-6 w-6" />
             </a>
