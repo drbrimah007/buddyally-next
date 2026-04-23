@@ -159,12 +159,12 @@ export default function BuddyallyDesktopLanding() {
   const boardRef = React.useRef<HTMLDivElement>(null);
   return (
     <main className="min-h-screen bg-[#f3f3f3] text-[#111827]">
-      <div className="mx-auto max-w-[1365px] px-10 pb-0 pt-6">
+      <div className="mx-auto max-w-[1365px] px-4 sm:px-10 pb-0 pt-6 overflow-x-hidden">
         <section>
-          <div className="flex items-start justify-between gap-10 px-5">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-4 sm:gap-10 px-2 sm:px-5">
             <div>
-              <h1 className="text-[64px] font-black leading-[0.95] tracking-[-0.055em] text-black">What&apos;s going on?</h1>
-              <div className="mt-2 text-[78px] font-black leading-[0.88] tracking-[-0.08em]">
+              <h1 className="text-[clamp(2rem,8vw,64px)] font-black leading-[0.95] tracking-[-0.055em] text-black">What&apos;s going on?</h1>
+              <div className="mt-2 text-[clamp(2.5rem,10vw,78px)] font-black leading-[0.88] tracking-[-0.08em]">
                 <span className="text-black">buddy</span>
                 <span style={{ color: '#3293cb' }}>ally</span>
               </div>
@@ -178,7 +178,7 @@ export default function BuddyallyDesktopLanding() {
             </a>
           </div>
 
-          <div className="mt-6 rounded-[32px] border border-black/[0.05] bg-[#ECE8E0] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
+          <div className="mt-6 rounded-[32px] border border-black/[0.05] bg-[#ECE8E0] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] hidden lg:block">
             <div ref={boardRef} className="relative h-[530px] overflow-hidden rounded-[28px] bg-[#F3EFE8]">
               <div className="absolute inset-0 opacity-60" style={{
                 backgroundImage: "radial-gradient(circle at 20% 18%, rgba(0,0,0,0.04) 0 2px, transparent 3px), radial-gradient(circle at 78% 12%, rgba(124,58,237,0.65) 0 4px, transparent 5px), radial-gradient(circle at 64% 46%, rgba(239,68,68,0.55) 0 4px, transparent 5px), radial-gradient(circle at 47% 14%, rgba(47,128,237,0.5) 0 4px, transparent 5px), radial-gradient(circle at 30% 54%, rgba(76,175,80,0.55) 0 4px, transparent 5px), radial-gradient(circle at 89% 41%, rgba(239,68,68,0.5) 0 4px, transparent 5px), radial-gradient(circle at 92% 80%, rgba(47,128,237,0.45) 0 4px, transparent 5px), radial-gradient(circle at 8% 78%, rgba(47,128,237,0.45) 0 4px, transparent 5px)",
@@ -220,11 +220,11 @@ export default function BuddyallyDesktopLanding() {
               </div>
             </div>
           </div>
-          <div className="mx-auto mt-6 max-w-3xl text-center">
+          <div className="mx-auto mt-6 max-w-3xl text-center hidden lg:block">
             <p className="text-base font-medium leading-7 text-[#4B5563]">Rides, packages, events, help — already in motion.</p>
           </div>
 
-          <div className="mt-4 flex justify-center px-5">
+          <div className="mt-4 flex justify-center px-5 hidden lg:flex">
             <a href="/signup" className="w-full max-w-3xl inline-flex items-center justify-center gap-3 rounded-full bg-[#3293cb] px-8 py-5 text-xl font-black uppercase tracking-[-0.02em] text-white shadow-[0_12px_26px_rgba(50,147,203,0.28)]">
               LINK UP. DO MORE.
               <ArrowIcon className="h-6 w-6" />
@@ -232,7 +232,7 @@ export default function BuddyallyDesktopLanding() {
           </div>
         </section>
 
-        <section className="grid grid-cols-3 gap-3 px-1 py-3">
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 px-1 py-3">
           <FeatureCard title="Real people. Real moves." body="Join a network of neighbors and travelers already making things happen." icon={<PeopleIcon />} tint="bg-[#E9EDF6]" iconTint="text-[#3B82F6]" />
           <FeatureCard title="Share what you&apos;ve got." body="Rides, packages, events, skills, or help—post it and connect." icon={<GiftIcon />} tint="bg-[#EEE8F7]" iconTint="text-[#8B5CF6]" />
           <FeatureCard title="Stronger together." body="Less waste, more connection, better communities." icon={<GlobeIcon />} tint="bg-[#EEF4EA]" iconTint="text-[#43A047]" />
@@ -240,7 +240,7 @@ export default function BuddyallyDesktopLanding() {
       </div>
 
       <footer className="border-t border-black/[0.06] bg-[#F4F4F4]">
-        <div className="mx-auto grid max-w-[1365px] grid-cols-[1.55fr_0.85fr_0.85fr_0.8fr_0.95fr] gap-8 px-14 py-7">
+        <div className="mx-auto grid max-w-[1365px] grid-cols-2 sm:grid-cols-[1.55fr_0.85fr_0.85fr_0.8fr_0.95fr] gap-8 px-6 sm:px-14 py-7">
           <div>
             <div className="text-[58px] font-black leading-[0.88] tracking-[-0.08em]">
               <span className="text-black">buddy</span><span style={{color:'#3293cb'}}>ally</span>
