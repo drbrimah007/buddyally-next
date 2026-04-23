@@ -195,11 +195,12 @@ export default function BuddyallyPostSplashLanding() {
 
       <footer className="border-t border-black/5 bg-[#fbfbfc]">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 py-8 text-sm font-semibold text-slate-500 sm:px-6 lg:px-8">
-          <a href="/signup" className="hover:text-slate-900">Sign Up</a>
-          <a href="/login" className="hover:text-slate-900">Log In</a>
+          <a href="#" className="hover:text-slate-900">How It Works</a>
+          <a href="#" className="hover:text-slate-900">Trust &amp; Safety</a>
           <a href="/contact" className="hover:text-slate-900">Contact Codes</a>
-          <a href="/privacy" className="hover:text-slate-900">Privacy</a>
-          <a href="/terms" className="hover:text-slate-900">Terms</a>
+          <a href="#" className="hover:text-slate-900">Safety</a>
+          <a href="#" className="hover:text-slate-900">Site Rules</a>
+          <a href="/contact" className="hover:text-slate-900">Contact</a>
         </div>
       </footer>
     </main>
