@@ -83,13 +83,35 @@ function downloadQR(code: string) {
   }, 'image/png')
 }
 
-const MASCOT_SIZING: Record<string, { qrSize: number; mascotW: number; mascotH: number; side: string }> = {
+// Per-style mascot sizing for the printed sticker.
+//   qrSize   — QR width/height in px (ignored when onBoard is true; QR is sized by board rect)
+//   mascotW/mascotH — mascot container box in px; image is object-fit:contain inside
+//   side     — 'left' | 'right' — which side of the QR the mascot sits on
+//   overlap  — negative-margin pull toward the QR in px (tightens the gap beyond
+//              the PNG's own transparent margin). Only used when onBoard=false.
+//   onBoard  — render QR *inside* the mascot's board, instead of beside the mascot.
+//              Used for the goat-with-whiteboard mascot (user asks for tall mascot
+//              under the headers with the code shown on the sign it's holding).
+//   boardRect — where on the mascot image the QR sits when onBoard=true.
+//               Values are percentages of mascotW/mascotH. The QR is centered
+//               inside this rectangle with a small inset so the board frame shows.
+const MASCOT_SIZING: Record<string, {
+  qrSize: number; mascotW: number; mascotH: number; side: string;
+  overlap?: number;
+  onBoard?: boolean;
+  boardRect?: { x: number; y: number; w: number; h: number };
+}> = {
   'contact-owner': { qrSize: 180, mascotW: 0, mascotH: 0, side: 'right' },
-  'boy-mascot': { qrSize: 150, mascotW: 130, mascotH: 170, side: 'left' },
-  'dog-mascot': { qrSize: 150, mascotW: 130, mascotH: 170, side: 'left' },
-  'goat-mascot': { qrSize: 150, mascotW: 130, mascotH: 170, side: 'right' },
-  'sheep-mascot': { qrSize: 150, mascotW: 130, mascotH: 170, side: 'left' },
-  'moose-mascot': { qrSize: 160, mascotW: 140, mascotH: 190, side: 'right' },
+  'boy-mascot':    { qrSize: 150, mascotW: 130, mascotH: 170, side: 'left',  overlap: 14 },
+  'dog-mascot':    { qrSize: 150, mascotW: 140, mascotH: 160, side: 'left',  overlap: 14 },
+  // Goat-with-whiteboard: QR renders on the board, mascot stands tall beside it.
+  // Board occupies roughly left-lower 2/3 of the image; we nest the QR a little
+  // inside the edges so the board's rounded frame still reads as a frame.
+  'goat-mascot':   { qrSize: 150, mascotW: 260, mascotH: 270, side: 'right',
+                     onBoard: true,
+                     boardRect: { x: 4, y: 34, w: 42, h: 52 } },
+  'sheep-mascot':  { qrSize: 150, mascotW: 150, mascotH: 150, side: 'left',  overlap: 12 },
+  'moose-mascot':  { qrSize: 160, mascotW: 160, mascotH: 210, side: 'right', overlap: 12 },
 }
 const MASCOT_IMG: Record<string, string> = {
   'boy-mascot': '/mascot-boy.png',
@@ -133,18 +155,58 @@ async function loadImageAsDataUrl(src: string): Promise<string> {
   })
 }
 
-function buildStickerHTML(opts: { cautionUrl: string; qrDataUrl: string; code: string; hdr: { title: string; sub: string }; mascotUrl?: string; qrSize: number; mascotW: number; mascotH: number; mascotSide: string }) {
-  const { cautionUrl, qrDataUrl, code, hdr, mascotUrl, qrSize, mascotW, mascotH, mascotSide } = opts
+function buildStickerHTML(opts: {
+  cautionUrl: string
+  qrDataUrl: string
+  code: string
+  hdr: { title: string; sub: string }
+  mascotUrl?: string
+  qrSize: number
+  mascotW: number
+  mascotH: number
+  mascotSide: string
+  overlap?: number
+  onBoard?: boolean
+  boardRect?: { x: number; y: number; w: number; h: number }
+}) {
+  const { cautionUrl, qrDataUrl, code, hdr, mascotUrl, qrSize, mascotW, mascotH, mascotSide, overlap, onBoard, boardRect } = opts
   const qS = qrSize || 200
   const mW = mascotW || 130
   const mH = mascotH || 200
   const hasMascot = !!mascotUrl
-  const sW = hasMascot ? qS + mW + 28 : qS + 28
   const titleParts = hdr.title.split(' ')
   const side = mascotSide || 'right'
-  const qrHtml = `<img src="${qrDataUrl}" style="width:${qS}px;height:${qS}px;display:block;">`
-  const mascotHtml = hasMascot ? `<img src="${mascotUrl}" style="width:${mW}px;height:${mH}px;object-fit:contain;display:block;">` : ''
-  const contentInner = side === 'left' ? mascotHtml + qrHtml : qrHtml + mascotHtml
+
+  // Build the inner visual — either (a) QR sits beside the mascot (default), or
+  // (b) QR is overlaid on the mascot's board (onBoard).
+  let contentInner: string
+  let sW: number
+  if (hasMascot && onBoard && boardRect) {
+    // QR-on-board: mascot alone defines the visual width, QR absolutely positioned on its sign.
+    const bX = Math.round((mW * boardRect.x) / 100)
+    const bY = Math.round((mH * boardRect.y) / 100)
+    const bW = Math.round((mW * boardRect.w) / 100)
+    const bH = Math.round((mH * boardRect.h) / 100)
+    contentInner = `
+      <div style="position:relative;width:${mW}px;height:${mH}px;">
+        <img src="${mascotUrl}" style="width:100%;height:100%;object-fit:contain;display:block;">
+        <img src="${qrDataUrl}" style="position:absolute;left:${bX}px;top:${bY}px;width:${bW}px;height:${bH}px;object-fit:contain;display:block;background:#fff;padding:2px;border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,0.06);">
+      </div>`
+    sW = mW + 28
+  } else {
+    const qrHtml = `<img src="${qrDataUrl}" style="width:${qS}px;height:${qS}px;display:block;">`
+    // Pull the mascot toward the QR with a negative margin on the abutting side so
+    // the two visuals read as one unit instead of floating apart with the PNG's
+    // built-in transparent margin. 0 if no overlap specified.
+    const pull = overlap && overlap > 0 ? overlap : 0
+    const mascotStyle = hasMascot
+      ? `width:${mW}px;height:${mH}px;object-fit:contain;display:block;` +
+        (pull ? (side === 'left' ? `margin-right:-${pull}px;` : `margin-left:-${pull}px;`) : '')
+      : ''
+    const mascotHtml = hasMascot ? `<img src="${mascotUrl}" style="${mascotStyle}">` : ''
+    contentInner = side === 'left' ? mascotHtml + qrHtml : qrHtml + mascotHtml
+    sW = hasMascot ? qS + mW + 28 - (pull || 0) : qS + 28
+  }
 
   return `<!DOCTYPE html><html><head>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -156,7 +218,7 @@ body{font-family:Inter,sans-serif;display:flex;justify-content:center;align-item
 .top{background:#0652b7!important;color:#fff!important;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:900;font-size:20px;}
 .warn img{height:20px;width:auto;display:block;}.owner{color:#ffd22e!important;}
 .sub{text-align:center;font-size:21px;color:#555;margin-top:6px;font-weight:600;}
-.content{display:flex;align-items:center;justify-content:center;gap:0;margin-top:8px;}
+.content{display:flex;align-items:center;justify-content:center;gap:0;margin-top:6px;}
 .scan{text-align:center;margin-top:8px;font-size:12px;color:#555;}
 .url{text-align:center;margin-top:2px;font-size:20px;font-weight:900;color:#0652b7;letter-spacing:-0.02em;}
 </style></head><body><div class="sticker">
@@ -167,6 +229,12 @@ body{font-family:Inter,sans-serif;display:flex;justify-content:center;align-item
 </div></body></html>`
 }
 
+// Paginate N stickers onto US Letter using an invisible grid.
+// Each sticker is rendered at its NATURAL intrinsic size (as composed by
+// buildStickerHTML), then uniformly scaled via CSS transform to occupy most
+// of its cell without any aspect-ratio change. No stretching, no reflow —
+// only a shrink factor applied to the whole sticker so every proportion is
+// preserved end-to-end.
 function renderPrintSheet(stickerContent: string, perSheet: number) {
   const printWin = window.open('', '_blank')
   if (!printWin) return
@@ -174,27 +242,91 @@ function renderPrintSheet(stickerContent: string, perSheet: number) {
   const stickerBody = bodyMatch ? bodyMatch[1] : stickerContent
   const styleMatch = stickerContent.match(/<style[^>]*>([\s\S]*?)<\/style>/i)
   const styles = styleMatch ? styleMatch[1] : ''
+
+  // [cols, rows, gap, page-padding]. Smaller pads/gaps = bigger cells, which
+  // lets the intrinsic sticker scale up closer to 1:1.
   const layouts: Record<number, [number, number, string, string]> = {
-    1:[1,1,'0','2in 0.75in'],2:[2,1,'0.25in','0.25in'],4:[2,2,'0.25in','0.25in'],
-    6:[2,3,'0.25in','0.25in'],9:[3,3,'0.17in','0.25in'],12:[3,4,'0.17in','0.25in'],
-    16:[4,4,'0.15in','0.25in'],20:[4,5,'0.13in','0.25in'],
+    1:  [1, 1, '0',      '2in 0.75in'],
+    2:  [1, 2, '0.15in', '0.3in 0.4in'],
+    4:  [2, 2, '0.2in',  '0.3in'],
+    6:  [2, 3, '0.15in', '0.25in'],
+    9:  [3, 3, '0.12in', '0.2in'],
+    12: [3, 4, '0.1in',  '0.2in'],
+    16: [4, 4, '0.08in', '0.15in'],
+    20: [4, 5, '0.07in', '0.12in'],
   }
-  const [cols, rows, gap, pad] = layouts[perSheet] || [1,1,'0','2in 0.75in']
-  const cellsHtml = Array.from({length: perSheet}, () => '<div class="sticker">' + stickerBody + '</div>').join('')
+  const [cols, rows, gap, pad] = layouts[perSheet] || [1, 1, '0', '2in 0.75in']
+  const cellsHtml = Array.from({ length: perSheet }, () =>
+    `<div class="print-cell"><div class="sticker">${stickerBody}</div></div>`).join('')
+
+  // The sticker keeps its natural width (set inline by buildStickerHTML as
+  // `width:${sW}px`). We DO NOT override it here — that's how proportions
+  // survive. The cell just clips + centers, and the inline script scales.
   printWin.document.write(
     `<!doctype html><html><head><meta charset="utf-8"><title>Print ${perSheet} per sheet</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>${styles}
 *{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
-@page{size:letter;margin:0;}html,body{margin:0;padding:0;background:#fff;font-family:Inter,sans-serif;}
+@page{size:letter;margin:0;}
+html,body{margin:0;padding:0;background:#fff;font-family:Inter,sans-serif;}
 .print-sheet{width:8.5in;height:11in;padding:${pad};margin:0 auto;display:grid;grid-template:repeat(${rows},1fr)/repeat(${cols},1fr);gap:${gap};page-break-after:always;overflow:hidden;}
 .print-sheet:last-child{page-break-after:auto;}
-.print-sheet .sticker{width:100%!important;max-width:100%!important;margin:0!important;overflow:hidden;}
-@media screen{body{background:#e5e7eb;padding:20px 0;}.print-sheet{box-shadow:0 4px 20px rgba(0,0,0,0.15);}}
-</style></head><body><div class="print-sheet">${cellsHtml}</div></body></html>`)
+.print-cell{display:flex;align-items:center;justify-content:center;overflow:hidden;min-width:0;min-height:0;}
+/* CRITICAL: do NOT set width on .sticker here — keep its intrinsic pixel width
+   so the JS below can compute an honest uniform scale factor. */
+.print-cell .sticker{flex-shrink:0;transform-origin:center center;margin:0!important;}
+@media screen{body{background:#e5e7eb;padding:20px 0;}.print-sheet{box-shadow:0 4px 20px rgba(0,0,0,0.15);margin-bottom:20px;}}
+</style></head><body><div class="print-sheet">${cellsHtml}</div>
+<script>
+(function(){
+  // Occupy ~96% of each cell's width/height; leave a small breathing margin
+  // so adjacent stickers never visually touch across the invisible grid lines.
+  var FILL = 0.96;
+  function fit(){
+    var cells = document.querySelectorAll('.print-cell');
+    cells.forEach(function(cell){
+      var s = cell.querySelector('.sticker');
+      if(!s) return;
+      // Reset any prior transform so we measure natural size.
+      s.style.transform = 'none';
+      var cr = cell.getBoundingClientRect();
+      var sr = s.getBoundingClientRect();
+      if(sr.width < 1 || sr.height < 1) return;
+      var k = Math.min((cr.width * FILL) / sr.width, (cr.height * FILL) / sr.height);
+      // Never scale UP past 1:1 — preserve crispness at small counts.
+      if(k > 1) k = 1;
+      s.style.transform = 'scale(' + k + ')';
+    });
+  }
+  function whenImagesReady(cb){
+    var imgs = Array.prototype.slice.call(document.images);
+    var pending = imgs.filter(function(i){ return !i.complete; });
+    if(pending.length === 0){ cb(); return; }
+    var left = pending.length;
+    pending.forEach(function(i){
+      function done(){ left--; if(left === 0) cb(); }
+      i.addEventListener('load', done);
+      i.addEventListener('error', done);
+    });
+    // Safety: fire anyway after 2s so a missing image never blocks print.
+    setTimeout(cb, 2000);
+  }
+  window.addEventListener('load', function(){
+    whenImagesReady(function(){
+      // Let fonts settle a tick, then scale + print.
+      setTimeout(function(){
+        fit();
+        setTimeout(function(){ window.print(); }, 150);
+      }, 80);
+    });
+  });
+  // Re-fit on resize so the on-screen preview also looks right.
+  window.addEventListener('resize', fit);
+})();
+</script>
+</body></html>`)
   printWin.document.close()
   printWin.focus()
-  setTimeout(() => { printWin.print() }, 300)
 }
 
 async function doPrintSticker(code: string, codeType: string, styleName: string, perSheet: number) {
@@ -208,7 +340,16 @@ async function doPrintSticker(code: string, codeType: string, styleName: string,
     const sizing = MASCOT_SIZING[styleName]
     const mascotPath = MASCOT_IMG[styleName] || null
     const mascotUrl = mascotPath ? await loadImageAsDataUrl(mascotPath) : undefined
-    const stickerContent = buildStickerHTML({ cautionUrl, qrDataUrl, code, hdr, mascotUrl, qrSize: sizing.qrSize, mascotW: sizing.mascotW, mascotH: sizing.mascotH, mascotSide: sizing.side })
+    const stickerContent = buildStickerHTML({
+      cautionUrl, qrDataUrl, code, hdr, mascotUrl,
+      qrSize: sizing.qrSize,
+      mascotW: sizing.mascotW,
+      mascotH: sizing.mascotH,
+      mascotSide: sizing.side,
+      overlap: sizing.overlap,
+      onBoard: sizing.onBoard,
+      boardRect: sizing.boardRect,
+    })
     if (perSheet <= 1) {
       const pw = window.open('', '_blank')
       if (pw) { pw.document.write(stickerContent); pw.document.close(); setTimeout(() => pw.print(), 600) }

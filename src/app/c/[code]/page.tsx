@@ -204,7 +204,7 @@ export default function PublicCodePage() {
       </div>
 
       <div className="ba-footer">
-        <a href="/">BuddyAlly</a> &middot; <a href="/signup">Get your own code</a> &middot; Private by default
+        <a href="https://buddyally.com/">Go to buddyally.com</a> &middot; Private by default
       </div>
     </>
   )

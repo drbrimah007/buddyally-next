@@ -41,7 +41,7 @@ export default function HomePage() {
         <div style={{ display: 'flex', gap: 14, fontSize: 13, fontWeight: 500, flexShrink: 1, minWidth: 0 }}>
           <a href="#how-it-works" style={{ color: '#4B5563', textDecoration: 'none' }}>How It Works</a>
           <a href="#trust-safety" style={{ color: '#4B5563', textDecoration: 'none' }}>Trust &amp; Safety</a>
-          <a href="#contact-codes" style={{ color: '#3293CB', fontWeight: 600, textDecoration: 'none' }}>Contact Codes</a>
+          <Link href="/contact" style={{ color: '#3293CB', fontWeight: 600, textDecoration: 'none' }}>Contact Codes</Link>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
           <Link href="/login" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '5px 10px', fontSize: 12, fontWeight: 600, borderRadius: 8, border: '1px solid #E5E7EB', background: '#fff', color: '#111827', textDecoration: 'none' }}>Log In</Link>
@@ -343,6 +343,9 @@ export default function HomePage() {
             <span key={t} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 999, padding: '8px 16px', fontSize: 14, fontWeight: 600 }}>{t}</span>
           ))}
         </div>
+        <div style={{ textAlign: 'center', marginTop: 20 }}>
+          <Link href="/contact" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 24px', borderRadius: 14, fontSize: 15, fontWeight: 600, background: '#3293CB', color: '#fff', textDecoration: 'none', boxShadow: '0 1px 3px rgba(50,147,203,0.3)' }}>Learn more about Contact Codes →</Link>
+        </div>
       </section>
 
       {/* Safety Protocols */}
@@ -374,7 +377,7 @@ export default function HomePage() {
           <p style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 8 }}>BuddyAlly</p>
           <p style={{ fontSize: 14 }}>Find your people. Do more together.</p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20, fontSize: 13 }}>
-            <a href="#contact-codes" style={{ color: '#94A3B8', textDecoration: 'none' }}>Contact Codes</a>
+            <Link href="/contact" style={{ color: '#94A3B8', textDecoration: 'none' }}>Contact Codes</Link>
             <a href="#trust-safety" style={{ color: '#94A3B8', textDecoration: 'none' }}>Safety</a>
             <Link href="/privacy" style={{ color: '#94A3B8', textDecoration: 'none' }}>Privacy</Link>
             <Link href="/terms" style={{ color: '#94A3B8', textDecoration: 'none' }}>Terms</Link>
