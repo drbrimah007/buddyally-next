@@ -84,17 +84,17 @@ function GlobeIcon({ className = "" }: { className?: string }) {
 
 const bubbles = [
   // TOP ROW — above center text
-  { type: "ride", title: "RIDE", icon: RideIcon, iconBg: "bg-[#3293cb]", iconText: "text-[#3293cb]", author: "Naya", text: "Driving Houston \u2192 Austin Friday 6pm. Three seats open, splitting gas.", className: "left-[32px] top-[14px] w-[194px]" },
+  { type: "ride", title: "RIDE", icon: RideIcon, iconBg: "bg-[#2F80ED]", iconText: "text-[#2F80ED]", author: "Naya", text: "Driving Houston \u2192 Austin Friday 6pm. Three seats open, splitting gas.", className: "left-[32px] top-[14px] w-[194px]" },
   { type: "package", title: "PACKAGE", icon: PackageIcon, iconBg: "bg-[#7C3AED]", iconText: "text-[#7C3AED]", author: "Devon", text: "Flying Miami \u2192 Santo Domingo Sunday. Space for a small parcel.", className: "left-[280px] top-[38px] w-[208px]" },
-  { type: "ride", title: "RIDE", icon: RideIcon, iconBg: "bg-[#3293cb]", iconText: "text-[#3293cb]", author: "Chen", text: "NYC \u2192 Philly Friday evening. Two open seats.", className: "right-[260px] top-[18px] w-[172px]" },
+  { type: "ride", title: "RIDE", icon: RideIcon, iconBg: "bg-[#2F80ED]", iconText: "text-[#2F80ED]", author: "Chen", text: "NYC \u2192 Philly Friday evening. Two open seats.", className: "right-[260px] top-[18px] w-[172px]" },
   { type: "package", title: "PACKAGE", icon: PackageIcon, iconBg: "bg-[#7C3AED]", iconText: "text-[#7C3AED]", author: "Aisha", text: "Packages \u2014 someone\u2019s coming or going. Link in.", className: "right-[38px] top-[58px] w-[198px]" },
   // MIDDLE — flanking center text
-  { type: "help", title: "HELP", icon: HelpIcon, iconBg: "bg-[#22c55e]", iconText: "text-[#22c55e]", author: "Rae", text: "Dog sitter available this weekend in Crown Heights.", className: "left-[24px] top-[230px] w-[168px]" },
+  { type: "help", title: "HELP", icon: HelpIcon, iconBg: "bg-[#4CAF50]", iconText: "text-[#4CAF50]", author: "Rae", text: "Dog sitter available this weekend in Crown Heights.", className: "left-[24px] top-[230px] w-[168px]" },
   { type: "event", title: "EVENT", icon: EventIcon, iconBg: "bg-[#EF4444]", iconText: "text-[#EF4444]", author: "Priya", text: "Block party down the street tonight. Pull up.", className: "right-[28px] top-[240px] w-[174px]" },
   // BOTTOM ROW — below center text
   { type: "event", title: "EVENT", icon: EventIcon, iconBg: "bg-[#EF4444]", iconText: "text-[#EF4444]", author: "James", text: "Extra concert ticket tonight in Bushwick. Free to a good ear.", className: "left-[56px] bottom-[52px] w-[178px]" },
-  { type: "help", title: "HELP", icon: HelpIcon, iconBg: "bg-[#22c55e]", iconText: "text-[#22c55e]", author: "Milo", text: "Hey neighbor \u2014 your pipe is leaking this afternoon.", className: "left-[290px] bottom-[24px] w-[182px]" },
-  { type: "ride", title: "RIDE", icon: RideIcon, iconBg: "bg-[#3293cb]", iconText: "text-[#3293cb]", author: "Juliet", text: "Anyone coming from Texas this week? Open room for one bag.", className: "right-[180px] bottom-[46px] w-[184px]" },
+  { type: "help", title: "HELP", icon: HelpIcon, iconBg: "bg-[#4CAF50]", iconText: "text-[#4CAF50]", author: "Milo", text: "Hey neighbor \u2014 your pipe is leaking this afternoon.", className: "left-[290px] bottom-[24px] w-[182px]" },
+  { type: "ride", title: "RIDE", icon: RideIcon, iconBg: "bg-[#2F80ED]", iconText: "text-[#2F80ED]", author: "Juliet", text: "Anyone coming from Texas this week? Open room for one bag.", className: "right-[180px] bottom-[46px] w-[184px]" },
 ];
 
 function BubbleCard({ bubble, index, constraintsRef }: { bubble: (typeof bubbles)[number]; index: number; constraintsRef: React.RefObject<HTMLDivElement | null> }) {
@@ -148,9 +148,9 @@ function FeatureCard({ title, body, icon, tint, iconTint }: { title: string; bod
       </div>
       <h3 className="text-[19px] font-extrabold tracking-[-0.02em] text-[#16181c]">{title}</h3>
       <p className="mt-2 max-w-[260px] text-[15px] leading-8 text-[#4b5563]">{body}</p>
-      <button className={`mt-4 inline-flex items-center gap-2 text-[14px] font-bold ${iconTint}`}>
+      <a href="/homepage" className={`mt-4 inline-flex items-center gap-2 text-[14px] font-bold ${iconTint}`}>
         Learn more <ArrowIcon className="h-4 w-4" />
-      </button>
+      </a>
     </div>
   );
 }
@@ -172,7 +172,7 @@ export default function BuddyallyDesktopLanding() {
                 Link into rides, packages, events, and help<br />already in motion across cities and neighborhoods.
               </p>
             </div>
-            <a href="/dashboard" className="mt-7 inline-flex items-center gap-5 rounded-full bg-[#3293cb] px-9 py-5 text-[16px] font-black uppercase tracking-[-0.02em] text-white shadow-[0_12px_26px_rgba(50,147,203,0.28)]">
+            <a href="/dashboard" className="mt-7 inline-flex items-center gap-5 rounded-full bg-[#3293cb] px-9 py-5 text-[16px] font-black uppercase tracking-[-0.02em] text-white shadow-[0_12px_26px_rgba(34,121,242,0.25)]">
               LINK UP. DO MORE.
               <ArrowIcon className="h-[22px] w-[22px]" />
             </a>
@@ -196,7 +196,7 @@ export default function BuddyallyDesktopLanding() {
               <div className="absolute right-[24px] top-[16px] flex items-center gap-3 text-[14px] text-[#555B63]">
                 <span className="mr-1 font-medium">FILTER:</span>
                 <FilterPill label="All" />
-                <FilterPill label="Ride" dot="bg-[#3293cb]" />
+                <FilterPill label="Ride" dot="bg-[#2F80ED]" />
                 <FilterPill label="Package" dot="bg-[#7C3AED]" />
                 <FilterPill label="Event" dot="bg-[#EF4444]" />
                 <FilterPill label="Help" dot="bg-[#22c55e]" />
@@ -223,9 +223,9 @@ export default function BuddyallyDesktopLanding() {
         </section>
 
         <section className="grid grid-cols-3 gap-3 px-1 py-3">
-          <FeatureCard title="Real people. Real moves." body="Join a network of neighbors and travelers already making things happen." icon={<PeopleIcon />} tint="bg-[#E9EDF6]" iconTint="text-[#3293cb]" />
-          <FeatureCard title="Share what you&apos;ve got." body="Rides, packages, events, skills, or help\u2014post it and connect." icon={<GiftIcon />} tint="bg-[#EEE8F7]" iconTint="text-[#8B5CF6]" />
-          <FeatureCard title="Stronger together." body="Less waste, more connection, better communities." icon={<GlobeIcon />} tint="bg-[#EEF4EA]" iconTint="text-[#22c55e]" />
+          <FeatureCard title="Real people. Real moves." body="Join a network of neighbors and travelers already making things happen." icon={<PeopleIcon />} tint="bg-[#E9EDF6]" iconTint="text-[#3B82F6]" />
+          <FeatureCard title="Share what you&apos;ve got." body="Rides, packages, events, skills, or help—post it and connect." icon={<GiftIcon />} tint="bg-[#EEE8F7]" iconTint="text-[#8B5CF6]" />
+          <FeatureCard title="Stronger together." body="Less waste, more connection, better communities." icon={<GlobeIcon />} tint="bg-[#EEF4EA]" iconTint="text-[#43A047]" />
         </section>
       </div>
 
