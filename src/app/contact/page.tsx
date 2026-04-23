@@ -62,13 +62,13 @@ export default function ContactCodesPage() {
         .container-cc{max-width:1000px;margin:0 auto;padding:0 20px}
         .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
         .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-        .lookup-form{display:flex;gap:10px;max-width:560px;margin:0 auto 6px;align-items:stretch}
+        .lookup-form{display:flex;gap:10px;max-width:360px;margin:0 auto 6px;align-items:stretch}
         .lookup-input{flex:1;padding:14px 18px;border:1.5px solid var(--border);border-radius:14px;font:inherit;font-size:16px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;background:#fff;color:var(--text);transition:border-color .15s}
         .lookup-input:focus{outline:none;border-color:var(--sky);box-shadow:0 0 0 3px rgba(2,132,199,0.12)}
         .lookup-input::placeholder{letter-spacing:0;text-transform:none;font-weight:500;color:var(--text-muted)}
         .lookup-btn{padding:14px 22px;border-radius:14px;border:none;background:var(--sky);color:#fff;font-weight:700;font-size:15px;cursor:pointer;box-shadow:0 4px 12px rgba(2,132,199,0.25);white-space:nowrap;transition:background .15s}
         .lookup-btn:hover{background:var(--sky-hover)}
-        .lookup-err{color:#991b1b;background:#fee2e2;border-radius:10px;padding:8px 12px;font-size:13px;max-width:560px;margin:0 auto}
+        .lookup-err{color:#991b1b;background:#fee2e2;border-radius:10px;padding:8px 12px;font-size:13px;max-width:360px;margin:0 auto}
         @media(max-width:768px){.grid-3{grid-template-columns:1fr}.grid-2{grid-template-columns:1fr}.nav-cc .links{display:none}.lookup-form{flex-direction:column}}
       `}} />
 
@@ -95,7 +95,7 @@ export default function ContactCodesPage() {
         <div className="container-cc">
           <div style={{ textAlign: 'center', marginBottom: 14 }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--sky)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Have a code to contact?</p>
-            <h3 style={{ fontSize: 20, fontWeight: 700 }}>Enter it here — same as scanning the QR.</h3>
+            <h3 style={{ fontSize: 20, fontWeight: 700 }}>Enter it here</h3>
           </div>
           <form className="lookup-form" onSubmit={submitLookup}>
             <input

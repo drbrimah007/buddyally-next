@@ -9,7 +9,10 @@ import ActivityDetailModal from '@/components/ActivityDetailModal'
 import Paginator from '@/components/Paginator'
 import { toast } from '@/components/ToastProvider'
 
-const ACT_PAGE_SIZE = 10
+// 3 cards per row × 10 rows = 30 per page.
+const ACT_PER_ROW = 3
+const ACT_ROWS_PER_PAGE = 10
+const ACT_PAGE_SIZE = ACT_PER_ROW * ACT_ROWS_PER_PAGE
 
 export default function MyActivitiesPage() {
   const { user } = useAuth()
@@ -67,6 +70,12 @@ export default function MyActivitiesPage() {
 
   return (
     <div>
+      {/* 3 per row on desktop, 2 on medium, 1 on phones. Pagination is 10 rows = 30/page. */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .act-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:16px}
+        @media(max-width:900px){.act-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(max-width:620px){.act-grid{grid-template-columns:1fr}}
+      `}} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>My Activities</h2>
         <button onClick={() => setShowCreate(true)} style={{ height: 40, padding: '0 16px', borderRadius: 10, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ New Activity</button>
@@ -104,14 +113,15 @@ export default function MyActivitiesPage() {
           const pageItems = created.slice(page * ACT_PAGE_SIZE, (page + 1) * ACT_PAGE_SIZE)
           return (
           <div>
+            <div className="act-grid">
             {pageItems.map(a => {
               const isCancelled = a.status === 'cancelled'
               return (
-                <div key={a.id} onClick={() => setViewActivityId(a.id)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, cursor: 'pointer', opacity: isCancelled ? 0.75 : 1 }}>
+                <div key={a.id} onClick={() => setViewActivityId(a.id)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, cursor: 'pointer', opacity: isCancelled ? 0.75 : 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4, textDecoration: isCancelled ? 'line-through' : 'none' }}>{a.title}</h3>
-                      <p style={{ fontSize: 13, color: '#6B7280' }}>{a.location_display || a.location_text}{a.date ? ` • ${new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</p>
+                      <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4, textDecoration: isCancelled ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</h3>
+                      <p style={{ fontSize: 13, color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.location_display || a.location_text}{a.date ? ` • ${new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</p>
                     </div>
                     {isCancelled ? (
                       <span style={{ fontSize: 12, fontWeight: 700, color: '#991B1B', background: '#FEE2E2', padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>Cancelled</span>
@@ -136,6 +146,7 @@ export default function MyActivitiesPage() {
                 </div>
               )
             })}
+            </div>
             <Paginator page={page} totalPages={totalPages} onChange={setCreatedPage} />
           </div>
           )
@@ -154,12 +165,13 @@ export default function MyActivitiesPage() {
           const pageItems = joined.slice(page * ACT_PAGE_SIZE, (page + 1) * ACT_PAGE_SIZE)
           return (
           <div>
+            <div className="act-grid">
             {pageItems.map((a: any) => (
-              <div key={a.id} onClick={() => setViewActivityId(a.id)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 14, cursor: 'pointer' }}>
+              <div key={a.id} onClick={() => setViewActivityId(a.id)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, cursor: 'pointer', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                  <div>
-                    <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{a.title}</h3>
-                    <p style={{ fontSize: 13, color: '#6B7280' }}>{a.location_display || a.location_text}{a.date ? ` • ${new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</p>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</h3>
+                    <p style={{ fontSize: 13, color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.location_display || a.location_text}{a.date ? ` • ${new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</p>
                     <p style={{ fontSize: 12, color: '#4B5563', marginTop: 4 }}>Host: {a.host?.first_name} {a.host?.last_name}</p>
                   </div>
                   <span style={{ background: '#3293CB', color: '#fff', fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>{a.category}</span>
@@ -171,6 +183,7 @@ export default function MyActivitiesPage() {
                 </div>
               </div>
             ))}
+            </div>
             <Paginator page={page} totalPages={totalPages} onChange={setJoinedPage} />
           </div>
           )

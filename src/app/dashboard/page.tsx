@@ -10,7 +10,8 @@ import ActivityDetailModal from '@/components/ActivityDetailModal'
 import SafetyBanner from '@/components/SafetyBanner'
 import Paginator from '@/components/Paginator'
 
-const EXPLORE_PAGE_SIZE = 12
+// 3 cards per row × 10 rows = 30 per page.
+const EXPLORE_PAGE_SIZE = 30
 
 function haversineMiles(lat1: number, lng1: number, lat2: number, lng2: number) {
   const toRad = (d: number) => d * Math.PI / 180
@@ -222,6 +223,12 @@ export default function ExplorePage() {
 
   return (
     <div>
+      {/* Explore feed grid: 3 per row on desktop, 2 on medium, 1 on phones. */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .explore-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:16px}
+        @media(max-width:900px){.explore-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(max-width:620px){.explore-grid{grid-template-columns:1fr}}
+      `}} />
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>Explore Activities</h2>
@@ -337,6 +344,7 @@ export default function ExplorePage() {
         const pageItems = withDistance.slice(page * EXPLORE_PAGE_SIZE, (page + 1) * EXPLORE_PAGE_SIZE)
         return (
         <div>
+          <div className="explore-grid">
           {pageItems.map(a => {
             const host = a.host as any
             const spotsLeft = a.max_participants - (a.participants?.length || 0)
@@ -346,7 +354,7 @@ export default function ExplorePage() {
               <div
                 key={a.id}
                 onClick={() => setViewActivityId(a.id)}
-                style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: '20px', marginBottom: 14, boxShadow: '0 1px 2px rgba(0,0,0,0.06)', cursor: 'pointer', transition: 'all 0.15s' }}
+                style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: '20px', boxShadow: '0 1px 2px rgba(0,0,0,0.06)', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', flexDirection: 'column', minWidth: 0 }}
               >
                 {a.cover_image_url && (
                   <div style={{ margin: '-20px -20px 12px', height: 140, overflow: 'hidden', borderRadius: '16px 16px 0 0' }}>
@@ -404,6 +412,7 @@ export default function ExplorePage() {
               </div>
             )
           })}
+          </div>
           <Paginator page={page} totalPages={totalPages} onChange={setExplorePage} />
         </div>
         )
