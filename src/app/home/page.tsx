@@ -86,7 +86,7 @@ const bubbles = [
   // TOP ROW — above center text
   { type: "ride", title: "RIDE", icon: RideIcon, iconBg: "bg-[#2F80ED]", iconText: "text-[#2F80ED]", author: "Naya", text: "Driving Houston \u2192 Austin Friday 6pm. Three seats open, splitting gas.", className: "left-[32px] top-[14px] w-[194px]" },
   { type: "package", title: "PACKAGE", icon: PackageIcon, iconBg: "bg-[#7C3AED]", iconText: "text-[#7C3AED]", author: "Devon", text: "Flying Miami \u2192 Santo Domingo Sunday. Space for a small parcel.", className: "left-[280px] top-[38px] w-[208px]" },
-  { type: "ride", title: "RIDE", icon: RideIcon, iconBg: "bg-[#2F80ED]", iconText: "text-[#2F80ED]", author: "Chen", text: "NYC \u2192 Philly Friday evening. Two open seats.", className: "right-[260px] top-[18px] w-[172px]" },
+  { type: "ride", title: "RIDE", icon: RideIcon, iconBg: "bg-[#2F80ED]", iconText: "text-[#2F80ED]", author: "Chen", text: "NYC \u2192 Philly Friday evening. Two open seats.", response: "I'll get gas.", className: "left-[288px] top-[82px] w-[172px]" },
   { type: "package", title: "PACKAGE", icon: PackageIcon, iconBg: "bg-[#7C3AED]", iconText: "text-[#7C3AED]", author: "Aisha", text: "Packages \u2014 someone\u2019s coming or going. Link in.", className: "right-[38px] top-[58px] w-[198px]" },
   // MIDDLE — flanking center text
   { type: "help", title: "HELP", icon: HelpIcon, iconBg: "bg-[#4CAF50]", iconText: "text-[#4CAF50]", author: "Rae", text: "Dog sitter available this weekend in Crown Heights.", className: "left-[24px] top-[230px] w-[168px]" },
@@ -122,6 +122,9 @@ function BubbleCard({ bubble, index, constraintsRef }: { bubble: (typeof bubbles
           <span className={`text-[11px] font-extrabold tracking-[0.02em] ${bubble.iconText}`}>{bubble.title}</span>
         </div>
         <p className="min-h-[72px] text-[15px] leading-8 text-[#202124]">{bubble.text}</p>
+        {(bubble as any).response && (
+          <div className="mt-2 rounded-xl bg-[#f0f1f3] px-3 py-2 text-[13px] text-[#4B5563] font-medium">{(bubble as any).response}</div>
+        )}
         <div className="mt-3 flex items-center gap-2">
           <div className="h-6 w-6 rounded-full bg-gradient-to-br from-[#f5c9a9] to-[#7a4b2a] ring-1 ring-black/10" />
           <span className="text-[13px] text-[#2f3136]">{bubble.author}</span>
