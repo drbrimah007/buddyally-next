@@ -1,254 +1,88 @@
-'use client'
+import Link from "next/link";
+import { AuthRedirect } from "@/components/AuthRedirect";
 
-import React from 'react'
-import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { ArrowRight } from 'lucide-react'
-import { AuthRedirect } from '@/components/AuthRedirect'
-
-type Bubble = {
-  text: string
-  className: string
-  type: 'ride' | 'package' | 'event' | 'help'
-  author?: string
-}
-
-const bubbles: Bubble[] = [
-  { type: 'ride',    text: 'Driving Houston → Austin Friday 6pm. Three seats open, splitting gas.', className: 'left-[12%] top-[12%] max-w-[18rem] scale-[1.12] z-20' },
-  { type: 'ride',    text: 'NYC → Philly Friday evening. Two open seats.',                         className: 'left-[38%] top-[20%] max-w-[15rem] z-10' },
-  { type: 'package', text: 'Flying Miami → Santo Domingo Sunday. Space for a small parcel.',       className: 'right-[38%] top-[4%] max-w-[16rem] scale-[1.11] z-20' },
-  { type: 'package', text: "Packages — someone's coming or going. Link in.",                       className: 'right-[16%] top-[20%] max-w-[15rem] z-10' },
-  { type: 'event',   text: 'Extra concert ticket tonight in Bushwick. Free to a good ear.',        className: 'left-[12%] bottom-[32%] max-w-[16rem] z-10' },
-  { type: 'help',    text: 'Hey neighbor — your pipe is leaking. I can take a look this afternoon.', className: 'left-[16%] bottom-[12%] max-w-[17rem] scale-[1.04] z-20' },
-  { type: 'ride',    text: 'Anyone coming from Texas this week? Open room for one bag.',           className: 'right-[24%] bottom-[8%] max-w-[16rem] z-10' },
-  { type: 'event',   text: 'Block party down the street tonight. Pull up.',                        className: 'right-[10%] top-[36%] max-w-[14rem] z-10' },
-  { type: 'help',    text: 'Dog sitter available this weekend in Crown Heights.',                  className: 'left-[10%] bottom-[47%] max-w-[14rem] z-10' },
-  { type: 'help',    text: 'Can teach beginner tennis Saturday morning. Kids welcome.',            className: 'right-[4%] top-[52%] max-w-[16rem] z-10' },
-]
-
-const mobileBubbles = [
-  "Why pay for rides when someone's going your way?",
-  'Driving Houston → Austin Friday. Three seats open.',
-  'Flying Miami → Santo Domingo. Space for a small parcel.',
-  "Packages — someone's coming or going. Link in.",
-  'Hey neighbor — your pipe is leaking. I can take a look.',
-  'Block party down the street tonight. Pull up.',
-  'Anyone coming from Texas this week?',
-  'Can teach beginner tennis Saturday morning. Kids welcome.',
-]
-
-export default function BuddyallyPostSplashLanding() {
+export default function Home() {
   return (
     <>
-      {/* Existing-user auto-redirect to /dashboard if they have a session */}
       <AuthRedirect />
+      <style dangerouslySetInnerHTML={{ __html: `
+        :root{--yellow:#ffcf00;--yellow-deep:#ffb800;--pink:#ff0a8a;--blue:#2f8cff;--black:#111111;--white:#ffffff;--tag:#2f8cff}
+        .screen{position:fixed;inset:0;overflow:hidden;color:var(--black);background:radial-gradient(circle at center,rgba(255,255,255,0.78) 0%,rgba(255,233,84,0.92) 16%,rgba(255,207,0,1) 46%,rgba(255,184,0,1) 100%)}
+        .rays,.rays-2{position:absolute;left:50%;top:50%;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
+        .rays{width:150vmax;height:150vmax;opacity:0.42;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,0.5) 0deg 3deg,rgba(255,207,0,0) 3deg 12deg);animation:spin 40s linear infinite}
+        .rays-2{width:118vmax;height:118vmax;opacity:0.18;background:repeating-conic-gradient(from 0deg,rgba(255,102,0,0.55) 0deg 2deg,rgba(255,207,0,0) 2deg 15deg);animation:spinReverse 56s linear infinite}
+        .sun-core{position:absolute;left:50%;top:44%;width:min(28vw,240px);height:min(28vw,240px);min-width:160px;min-height:160px;border-radius:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.78);filter:blur(30px);animation:pulse 4.5s ease-in-out infinite}
+        .splash-content{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:max(5.2rem,env(safe-area-inset-top)) 1.25rem max(2rem,env(safe-area-inset-bottom))}
+        .logo{display:flex;align-items:center;justify-content:center;gap:0.65rem;margin-bottom:1.35rem;animation:dropIn 0.55s cubic-bezier(.22,1,.36,1) both}
+        .logo-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#2f8cff,#1f6fe0);display:grid;place-items:center;color:white;font-weight:900;font-size:2.4rem;line-height:1;box-shadow:0 10px 28px rgba(0,0,0,0.18)}
+        .logo-word{font-size:clamp(2.1rem,4vw,3.4rem);font-weight:900;letter-spacing:-0.05em}
+        .logo-word .buddy{color:#111}
+        .logo-word .ally{color:var(--blue)}
+        .hero{position:relative;width:100%;max-width:980px}
+        .we-on{position:absolute;left:50%;top:0.25rem;transform:translateX(-172%) rotate(-16deg);background:#2f8cff;color:#ffffff;padding:0.18rem 0.38rem;font-family:Inter,Arial,Helvetica,sans-serif;font-size:clamp(1.9rem,3.8vw,2.6rem);font-weight:900;letter-spacing:-0.03em;text-transform:uppercase;border-radius:4px;box-shadow:0 6px 14px rgba(47,140,255,0.22);z-index:6;animation:stickerImpact 0.62s 0.18s cubic-bezier(.175,.885,.32,1.25) both,stickerShake 2.8s 1s ease-in-out infinite}
+        .word{font-family:Impact,Haettenschweiler,"Arial Black",sans-serif;font-size:clamp(4.9rem,20vw,11.8rem);line-height:0.88;letter-spacing:-0.09em;text-transform:uppercase;text-shadow:0 12px 24px rgba(0,0,0,0.16);opacity:0}
+        .buddy-word{color:var(--pink);animation:slamIn 0.72s 0.28s cubic-bezier(.175,.885,.32,1.2) forwards}
+        .ally-word{color:var(--black);animation:slamIn 0.72s 0.42s cubic-bezier(.175,.885,.32,1.2) forwards}
+        .summer{margin-top:0.75rem;display:inline-block;background:#000;color:#ffe34d;padding:0.9rem 1.25rem;border-radius:1.1rem;font-size:clamp(1.25rem,4vw,2.6rem);font-weight:900;text-transform:uppercase;letter-spacing:-0.04em;box-shadow:0 18px 45px rgba(0,0,0,0.22);animation:riseIn 0.5s 0.58s cubic-bezier(.22,1,.36,1) both}
+        .sub{margin-top:1.2rem;max-width:720px;color:rgba(0,0,0,0.68);font-size:clamp(1rem,2.2vw,1.8rem);font-weight:900;line-height:1.2;animation:fadeIn 0.5s 0.78s both}
+        .cta{margin-top:2.8rem;display:inline-flex;align-items:center;justify-content:center;gap:0.8rem;width:min(100%,430px);background:var(--pink);color:white;text-decoration:none;padding:1.2rem 1.4rem;border-radius:1.6rem;font-size:clamp(1.2rem,4vw,2rem);font-weight:900;text-transform:uppercase;letter-spacing:-0.03em;box-shadow:0 22px 60px rgba(255,10,138,0.38);animation:riseIn 0.56s 0.96s cubic-bezier(.22,1,.36,1) both}
+        .arrow{display:inline-block;animation:nudge 1.1s ease-in-out infinite}
+        .pills{margin-top:1rem;width:min(100%,760px);display:flex;justify-content:center;gap:0.6rem;flex-wrap:wrap;animation:fadeIn 0.5s 1.08s both}
+        .pill{background:rgba(255,255,255,0.38);border:1px solid rgba(0,0,0,0.08);border-radius:999px;padding:0.45rem 0.9rem;font-size:0.78rem;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:rgba(0,0,0,0.72);backdrop-filter:blur(8px)}
+        .footer-glow{position:absolute;inset-inline:0;bottom:0;height:180px;background:linear-gradient(to top,rgba(255,166,0,0.42),transparent);z-index:1}
+        @keyframes spin{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+        @keyframes spinReverse{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(-360deg)}}
+        @keyframes pulse{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.72}50%{transform:translate(-50%,-50%) scale(1.08);opacity:1}}
+        @keyframes dropIn{from{opacity:0;transform:translateY(-18px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+        @keyframes stickerImpact{0%{opacity:0;transform:translateX(-120%) translateY(-22px) rotate(-24deg) scale(0.72)}65%{opacity:1;transform:translateX(-110%) translateY(3px) rotate(-13deg) scale(1.1)}100%{opacity:1;transform:translateX(-172%) translateY(0) rotate(-16deg) scale(1)}}
+        @keyframes stickerShake{0%,86%,100%{transform:translateX(-172%) rotate(-16deg)}89%{transform:translateX(-172%) rotate(-13deg)}92%{transform:translateX(-172%) rotate(-19deg)}95%{transform:translateX(-172%) rotate(-15deg)}}
+        @keyframes slamIn{from{opacity:0;transform:translateY(58px) scale(0.8)}to{opacity:1;transform:translateY(0) scale(1)}}
+        @keyframes riseIn{from{opacity:0;transform:translateY(18px) scale(0.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        @keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(6px)}}
+        @media(max-width:700px){.splash-content{justify-content:center;padding-top:max(4.6rem,env(safe-area-inset-top))}.logo{margin-bottom:1rem}.logo-icon{width:48px;height:48px;border-radius:15px;font-size:2.1rem}.word{font-size:clamp(4.8rem,23vw,8rem)}.we-on{top:0.15rem;transform:translateX(-160%) rotate(-16deg);animation:mobileStickerImpact 0.62s 0.18s cubic-bezier(.175,.885,.32,1.25) both,mobileStickerShake 2.8s 1s ease-in-out infinite}}
+        @keyframes mobileStickerImpact{0%{opacity:0;transform:translateX(-110%) translateY(-20px) rotate(-24deg) scale(0.72)}65%{opacity:1;transform:translateX(-100%) translateY(2px) rotate(-13deg) scale(1.08)}100%{opacity:1;transform:translateX(-160%) translateY(0) rotate(-16deg) scale(1)}}
+        @keyframes mobileStickerShake{0%,86%,100%{transform:translateX(-160%) rotate(-16deg)}89%{transform:translateX(-160%) rotate(-13deg)}92%{transform:translateX(-160%) rotate(-19deg)}95%{transform:translateX(-160%) rotate(-15deg)}}
+      `}} />
+      <main className="screen">
+        <div className="rays"></div>
+        <div className="rays-2"></div>
+        <div className="sun-core"></div>
+        <div className="footer-glow"></div>
 
-      <main className="min-h-screen bg-[#f5f6f8] text-slate-900">
-        <section className="relative overflow-hidden border-b border-black/5 bg-white">
-          <div className="mx-auto max-w-7xl px-4 pb-16 pt-6 sm:px-6 lg:px-8 lg:pb-24 lg:pt-8">
-            {/* Top bar with logo + Log in */}
-            <div className="mb-6 flex items-center justify-between gap-4">
-              <Link href="/" className="flex items-center gap-2">
-                <img src="/buddyally-logo-full.png" alt="BuddyAlly" className="h-7 w-auto" />
-              </Link>
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/login"
-                  className="inline-flex items-center rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-50"
-                >
-                  Log in
-                </Link>
-                <Link
-                  href="/signup"
-                  className="hidden sm:inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-black"
-                >
-                  Sign up
-                </Link>
-              </div>
-            </div>
-
-            <div className="mb-8 flex items-start justify-between gap-6">
-              <div className="max-w-3xl">
-                <div className="text-balance text-5xl font-black tracking-[-0.06em] text-slate-950 sm:text-6xl lg:text-7xl">
-                  What&apos;s going on?
-                </div>
-                <div className="mt-2 text-[clamp(3rem,8vw,6rem)] font-black leading-none tracking-[-0.09em]">
-                  <span className="text-black">buddy</span>
-                  <span className="text-[#3293cb]">ally</span>
-                </div>
-                <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-                  Link into rides, packages, events, and help already in motion across cities and neighborhoods.
-                </p>
-              </div>
-              <Link
-                href="/login"
-                className="hidden shrink-0 items-center gap-2 rounded-2xl bg-[#3293cb] px-6 py-4 text-base font-black uppercase tracking-[-0.02em] text-white shadow-[0_18px_40px_rgba(50,147,203,0.28)] md:inline-flex"
-              >
-                Link Up. Do More.
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-            </div>
-
-            <div className="relative mt-10 hidden h-[44rem] overflow-hidden rounded-[2rem] border border-black/5 bg-[#f3efe8] lg:block">
-              <div className="absolute right-6 top-5 flex items-center gap-4 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500 backdrop-blur-sm">
-                <span>Filter:</span>
-                <span className="text-slate-900">All</span>
-                <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-500" />Ride</span>
-                <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-violet-500" />Package</span>
-                <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-rose-500" />Event</span>
-                <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />Help</span>
-              </div>
-
-              <div className="absolute left-1/2 top-1/2 z-30 w-[34rem] -translate-x-1/2 -translate-y-[34%] text-center">
-                <div className="text-[10px] font-black uppercase tracking-[0.38em] text-slate-400">What&apos;s going on?</div>
-                <div className="mt-3 text-[4.7rem] font-black leading-[0.9] tracking-[-0.08em] text-black">Someone&apos;s</div>
-                <div className="-mt-2 text-[4.35rem] font-black leading-[0.86] tracking-[-0.08em] text-[#3293cb]">going your</div>
-                <div className="-mt-2 text-[4.35rem] font-black leading-[0.86] tracking-[-0.08em] text-[#3293cb]">way.</div>
-                <div className="mt-2 text-[1.1rem] font-bold uppercase tracking-[0.22em] text-slate-500">Don&apos;t pay for it.</div>
-              </div>
-
-              {bubbles.map((bubble, index) => {
-                const colorMap = {
-                  ride: 'bg-[#3293cb]',
-                  package: 'bg-[#8b5cf6]',
-                  event: 'bg-[#ef4444]',
-                  help: 'bg-[#22c55e]',
-                } as const
-                const textColorMap = {
-                  ride: 'text-[#3293cb]',
-                  package: 'text-[#8b5cf6]',
-                  event: 'text-[#ef4444]',
-                  help: 'text-[#22c55e]',
-                } as const
-                const authorMap = ['Naya', 'Chen', 'Devon', 'Aisha', 'Priya', 'James', 'Rae', 'Milo', 'Jules', 'Jordan']
-                return (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, delay: index * 0.06 }}
-                    className={`absolute ${bubble.className}`}
-                    style={{ willChange: 'transform' }}
-                  >
-                    <motion.div
-                      animate={{ y: [0, -6, 0], rotate: index % 2 === 0 ? [0, -0.6, 0] : [0, 0.6, 0] }}
-                      transition={{ duration: 4.6 + index * 0.22, repeat: Infinity, ease: 'easeInOut' }}
-                      className="rounded-[1.15rem] border border-black/5 bg-white px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.06)]"
-                    >
-                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.26em] text-slate-400">
-                        <span className={`h-2 w-2 rounded-full ${colorMap[bubble.type]}`} />
-                        <span className={textColorMap[bubble.type]}>{bubble.type}</span>
-                        <span>·</span>
-                        <span>{authorMap[index % authorMap.length]}</span>
-                      </div>
-                      <div className="mt-2 text-[1.02rem] leading-7 text-slate-900">{bubble.text}</div>
-                    </motion.div>
-                  </motion.div>
-                )
-              })}
-
-              <div className="absolute bottom-2 left-1/2 z-10 w-[28rem] -translate-x-1/2 rounded-full border border-black/10 bg-white/85 px-5 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="truncate text-lg text-slate-400">I&apos;m driving to Philly Friday...</div>
-                  <Link href="/login" className="rounded-full bg-[#d9d3c8] px-5 py-2 text-sm font-bold text-white hover:bg-[#c9c3b8]">Post</Link>
-                </div>
-              </div>
-            </div>
-
-            <div className="mx-auto mt-6 hidden max-w-3xl text-center lg:block">
-              <p className="text-base font-medium leading-7 text-slate-600">
-                Rides, packages, events, help — already in motion.
-              </p>
-            </div>
-
-            <div className="mt-6 hidden lg:flex justify-center">
-              <Link
-                href="/login"
-                className="w-full max-w-3xl inline-flex items-center justify-center gap-3 rounded-2xl bg-[#3293cb] px-8 py-5 text-xl font-black uppercase tracking-[-0.02em] text-white shadow-[0_18px_40px_rgba(50,147,203,0.28)] hover:bg-[#2678a8]"
-              >
-                Link Up. Do More.
-                <ArrowRight className="h-6 w-6" />
-              </Link>
-            </div>
-
-            {/* Mobile */}
-            <div className="mt-8 space-y-3 lg:hidden">
-              <div className="rounded-[1.6rem] border border-black/5 bg-white p-5 shadow-sm">
-                <div className="text-base font-black uppercase tracking-[0.14em] text-slate-500">What&apos;s going on?</div>
-                <div className="mt-2 text-[clamp(2.3rem,10vw,3.6rem)] font-black leading-none tracking-[-0.08em]">
-                  <span className="text-black">buddy</span>
-                  <span className="text-[#3293cb]">ally</span>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-slate-600">
-                  Rides, packages, events, neighbor help, and connections already happening.
-                </p>
-              </div>
-              <div className="grid gap-3">
-                {mobileBubbles.map((text, index) => (
-                  <motion.div
-                    key={text}
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.06 * index }}
-                    className="relative rounded-[1.6rem] border-2 border-black bg-white px-4 py-4 shadow-[0_6px_0px_rgba(0,0,0,0.15)] before:content-['B'] before:absolute before:bottom-[-8px] before:left-5 before:w-5 before:h-5 before:rounded-[0.8rem] before:bg-black before:text-white before:flex before:items-center before:justify-center before:text-[12px] before:font-black after:content-[''] after:absolute after:bottom-[-5px] after:left-7 after:w-2 after:h-2 after:rounded-full after:bg-[#3293cb]"
-                  >
-                    <div className="text-sm font-bold leading-6 text-slate-800">{text}</div>
-                  </motion.div>
-                ))}
-              </div>
-              <Link
-                href="/login"
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#3293cb] px-6 py-4 text-base font-black uppercase tracking-[-0.02em] text-white shadow-[0_18px_40px_rgba(50,147,203,0.28)]"
-              >
-                Link Up. Do More.
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-              <div className="pt-2 text-center text-sm text-slate-500">
-                Already have an account?{' '}
-                <Link href="/login" className="font-bold text-[#3293cb] underline">Log in</Link>
-              </div>
-            </div>
+        <section className="splash-content">
+          <div className="logo">
+            <img src="/buddyally-logo-full.png" alt="BuddyAlly" style={{height:'48px',width:'auto'}} />
           </div>
+
+          <div className="hero">
+            <div className="we-on"><b>WE ON</b></div>
+            <div className="word buddy-word">BUDDY</div>
+            <div className="word ally-word">ALLY</div>
+          </div>
+
+          <div className="summer">This Summer</div>
+          <div className="sub">Real people. Real help. Real motion.</div>
+
+          <Link className="cta" href="/home">
+            LINK UP. DO MORE
+            <span className="arrow">&rarr;</span>
+          </Link>
+
+          <div className="pills">
+            <div className="pill">CONNECT</div>
+            <div className="pill">COLLAB</div>
+            <div className="pill">COME UP</div>
+          </div>
+          <div className="pills" style={{gridTemplateColumns:'1fr',maxWidth:'260px'}}>
+            <div className="pill">MOVE TOGETHER</div>
+          </div>
+
+          <Link href="/home" style={{marginTop:'1.2rem',color:'rgba(0,0,0,0.5)',fontSize:'0.85rem',fontWeight:700,textDecoration:'none',animation:'fadeIn 0.5s 1.2s both'}}>
+            Skip intro &rarr;
+          </Link>
         </section>
-
-        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-          <div className="grid gap-4 md:grid-cols-3">
-            <InfoCard title="Beat the cost starts with"     text="Why pay for rides when someone's going your way? Cut out the middle man." />
-            <InfoCard title="Costs nothing"                  text="Free or occasional tips. Ride together, package together, and plug into movement that already exists." />
-            <InfoCard title="Build the community"            text="Neighborhood fun, events, favors, learning, staying in touch, and helping kids train together. Buddyally." />
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-7xl px-4 pb-10 text-center sm:px-6 lg:px-8">
-          <p className="text-lg font-semibold text-slate-700">
-            Link up into the movement that exists and stop paying for it.
-          </p>
-        </section>
-
-        <footer className="border-t border-black/5 bg-[#fbfbfc]">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 py-8 text-sm font-semibold text-slate-500 sm:px-6 lg:px-8">
-            <Link href="/home"     className="hover:text-slate-900">How It Works</Link>
-            <Link href="/home"     className="hover:text-slate-900">Contact Codes</Link>
-            <Link href="/privacy"  className="hover:text-slate-900">Privacy</Link>
-            <Link href="/terms"    className="hover:text-slate-900">Terms</Link>
-            <Link href="/contact"  className="hover:text-slate-900">Contact</Link>
-            <Link href="/login"    className="hover:text-slate-900">Log in</Link>
-          </div>
-          <div className="mx-auto max-w-7xl px-4 pb-6 text-center text-xs text-slate-400 sm:px-6 lg:px-8">
-            © {new Date().getFullYear()} BuddyAlly
-          </div>
-        </footer>
       </main>
     </>
-  )
-}
-
-function InfoCard({ title, text }: { title: string; text: string }) {
-  return (
-    <div className="rounded-[1.6rem] border border-black/5 bg-white p-6 shadow-sm">
-      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#3293cb]">buddyally connect</div>
-      <div className="mt-3 text-2xl font-black tracking-[-0.04em] text-slate-900">{title}</div>
-      <p className="mt-3 text-sm leading-6 text-slate-600">{text}</p>
-    </div>
-  )
+  );
 }
