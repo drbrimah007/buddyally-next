@@ -131,46 +131,80 @@ export default function BuddyallyPostSplashLanding() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <div className="grid gap-4 md:grid-cols-3">
-          <InfoCard
-            title="Beat the cost starts with"
-            text="Why pay for rides when someone's going your way? Cut out the middle man."/>
-          <InfoCard
-            title="Costs nothing"
-            text="Free or occasional tips. Ride together, package together, and plug into movement that already exists."/>
-          <InfoCard
-            title="Build the community"
-            text="Neighborhood fun, events, favors, learning, staying in touch, and helping kids train together. Buddyally."/>
+      {/* 4 Feature Cards */}
+      <section className="border-t border-black/5 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <FeatureCard icon="👥" title="Real people. Real moves." text="Verified profiles. Star ratings. People you can trust, already making things happen." color="#3293cb" />
+            <FeatureCard icon="🔗" title="Share what you&apos;ve got." text="Rides, packages, events, skills, connections. Post what you have. Link in to what others offer." color="#8b5cf6" />
+            <FeatureCard icon="💡" title="Costs nothing." text="Free or occasional tips. No middleman fees. Plug into movement that already exists." color="#22c55e" />
+            <FeatureCard icon="🤝" title="Stronger together." text="Neighborhoods, cities, communities — linked up and looking out for each other." color="#ef4444" />
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 pb-10 text-center sm:px-6 lg:px-8">
-        <p className="text-lg font-semibold text-slate-700">
-          Link up into the movement that exists and stop paying for it.
-        </p>
-      </section>
-
-      <footer className="border-t border-black/5 bg-[#fbfbfc]">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 py-8 text-sm font-semibold text-slate-500 sm:px-6 lg:px-8">
-          <a href="#" className="hover:text-slate-900">How It Works</a>
-          <a href="#" className="hover:text-slate-900">Trust &amp; Safety</a>
-          <a href="/contact" className="hover:text-slate-900">Contact Codes</a>
-          <a href="#" className="hover:text-slate-900">Safety</a>
-          <a href="#" className="hover:text-slate-900">Site Rules</a>
-          <a href="/contact" className="hover:text-slate-900">Contact</a>
+      {/* Footer */}
+      <footer className="border-t border-black/5 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Brand */}
+            <div>
+              <div className="text-2xl font-black tracking-[-0.06em]">
+                <span className="text-black">buddy</span><span className="text-[#3293cb]">ally</span>
+              </div>
+              <p className="mt-2 text-sm text-slate-500">Real connections.<br />Someone&apos;s going your way.</p>
+            </div>
+            {/* Company */}
+            <div>
+              <div className="text-xs font-bold uppercase tracking-[0.15em] text-slate-400 mb-3">Company</div>
+              <div className="flex flex-col gap-2 text-sm text-slate-600">
+                <a href="/home" className="hover:text-slate-900">About</a>
+                <a href="/contact" className="hover:text-slate-900">Contact Codes</a>
+                <a href="#" className="hover:text-slate-900">How It Works</a>
+              </div>
+            </div>
+            {/* Community */}
+            <div>
+              <div className="text-xs font-bold uppercase tracking-[0.15em] text-slate-400 mb-3">Community</div>
+              <div className="flex flex-col gap-2 text-sm text-slate-600">
+                <a href="#" className="hover:text-slate-900">Trust &amp; Safety</a>
+                <a href="#" className="hover:text-slate-900">Site Rules</a>
+                <a href="/privacy" className="hover:text-slate-900">Privacy</a>
+                <a href="/terms" className="hover:text-slate-900">Terms</a>
+              </div>
+            </div>
+            {/* Follow */}
+            <div>
+              <div className="text-xs font-bold uppercase tracking-[0.15em] text-slate-400 mb-3">Follow us</div>
+              <div className="flex gap-3">
+                <a href="#" className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-[#3293cb] hover:text-white transition">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M22.46 6c-.77.35-1.6.58-2.46.69a4.3 4.3 0 001.88-2.38 8.59 8.59 0 01-2.72 1.04 4.28 4.28 0 00-7.3 3.9A12.14 12.14 0 013.15 4.85a4.28 4.28 0 001.32 5.71 4.24 4.24 0 01-1.94-.54v.05a4.28 4.28 0 003.43 4.19 4.27 4.27 0 01-1.93.07 4.29 4.29 0 004 2.97A8.59 8.59 0 012 19.54a12.1 12.1 0 006.56 1.92c7.88 0 12.2-6.53 12.2-12.2l-.01-.56A8.72 8.72 0 0024 5.06a8.5 8.5 0 01-2.54.7z"/></svg>
+                </a>
+                <a href="#" className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-[#3293cb] hover:text-white transition">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.04c-5.5 0-10 4.49-10 10.02 0 5 3.66 9.15 8.44 9.9v-7H7.9v-2.9h2.54V9.85c0-2.51 1.49-3.89 3.78-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.88h2.78l-.45 2.9h-2.33v7A10 10 0 0022 12.06c0-5.53-4.5-10.02-10-10.02z"/></svg>
+                </a>
+                <a href="#" className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-[#3293cb] hover:text-white transition">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c2.72 0 3.06.01 4.12.06 1.07.05 1.8.22 2.43.47a4.9 4.9 0 011.77 1.15 4.9 4.9 0 011.15 1.77c.25.64.42 1.36.47 2.43.05 1.06.06 1.4.06 4.12s-.01 3.06-.06 4.12c-.05 1.07-.22 1.8-.47 2.43a4.9 4.9 0 01-1.15 1.77 4.9 4.9 0 01-1.77 1.15c-.64.25-1.36.42-2.43.47-1.06.05-1.4.06-4.12.06s-3.06-.01-4.12-.06c-1.07-.05-1.8-.22-2.43-.47a4.9 4.9 0 01-1.77-1.15 4.9 4.9 0 01-1.15-1.77c-.25-.64-.42-1.36-.47-2.43C2.01 15.06 2 14.72 2 12s.01-3.06.06-4.12c.05-1.07.22-1.8.47-2.43a4.9 4.9 0 011.15-1.77A4.9 4.9 0 015.45 2.53c.64-.25 1.36-.42 2.43-.47C8.94 2.01 9.28 2 12 2zm0 1.8c-2.67 0-2.99.01-4.04.06-.97.04-1.5.2-1.85.34-.46.18-.8.4-1.15.74-.35.35-.56.69-.74 1.15-.14.35-.3.88-.34 1.85-.05 1.05-.06 1.37-.06 4.04s.01 2.99.06 4.04c.04.97.2 1.5.34 1.85.18.46.4.8.74 1.15.35.35.69.56 1.15.74.35.14.88.3 1.85.34 1.05.05 1.37.06 4.04.06s2.99-.01 4.04-.06c.97-.04 1.5-.2 1.85-.34.46-.18.8-.4 1.15-.74.35-.35.56-.69.74-1.15.14-.35.3-.88.34-1.85.05-1.05.06-1.37.06-4.04s-.01-2.99-.06-4.04c-.04-.97-.2-1.5-.34-1.85a3.1 3.1 0 00-.74-1.15 3.1 3.1 0 00-1.15-.74c-.35-.14-.88-.3-1.85-.34-1.05-.05-1.37-.06-4.04-.06zm0 3.06a5.14 5.14 0 110 10.28 5.14 5.14 0 010-10.28zm0 8.48a3.34 3.34 0 100-6.68 3.34 3.34 0 000 6.68zm5.34-8.68a1.2 1.2 0 110-2.4 1.2 1.2 0 010 2.4z"/></svg>
+                </a>
+              </div>
+            </div>
+          </div>
+          <div className="mt-10 pt-6 border-t border-black/5 text-center text-xs text-slate-400">
+            &copy; 2026 BuddyAlly. All rights reserved.
+          </div>
         </div>
       </footer>
     </main>
   );
 }
 
-function InfoCard({ title, text }: { title: string; text: string }) {
+function FeatureCard({ icon, title, text, color }: { icon: string; title: string; text: string; color: string }) {
   return (
-    <div className="rounded-[1.6rem] border border-black/5 bg-white p-6 shadow-sm">
-      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#3293cb]">buddyally connect</div>
-      <div className="mt-3 text-2xl font-black tracking-[-0.04em] text-slate-900">{title}</div>
-      <p className="mt-3 text-sm leading-6 text-slate-600">{text}</p>
+    <div className="rounded-[1.6rem] border border-black/5 bg-[#f5f6f8] p-6">
+      <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg mb-4" style={{ background: color + '15', color }}>{icon}</div>
+      <div className="text-lg font-black tracking-[-0.03em] text-slate-900">{title}</div>
+      <p className="mt-2 text-sm leading-6 text-slate-500">{text}</p>
+      <a href="/signup" className="mt-3 inline-flex items-center gap-1 text-sm font-bold" style={{ color }}>Learn more <ArrowRight className="h-3.5 w-3.5" /></a>
     </div>
   );
 }
