@@ -346,6 +346,14 @@ export default function CodesPage() {
   const [emailEnabled, setEmailEnabled] = useState(true)
   const imageRef = useRef<HTMLInputElement>(null)
 
+  // Message detail + inbox/archived tabs + pagination
+  const [viewingMessage, setViewingMessage] = useState<any>(null)
+  const [msgTab, setMsgTab] = useState<'inbox' | 'archived'>('inbox')
+  const [msgPage, setMsgPage] = useState(0)
+  const MSG_PAGE_SIZE = 20
+  // Reset pagination whenever tab changes or you switch to a different code
+  useEffect(() => { setMsgPage(0) }, [msgTab, viewingCode?.id])
+
   // Auto mark-as-read when viewing a code (must be top-level, not inside conditional).
   // IMPORTANT: Supabase PostgREST queries are lazy — they only execute when awaited
   // (or `.then()`-chained). Before this fix the update was created but never sent,
@@ -536,6 +544,17 @@ export default function CodesPage() {
     const { error } = await supabase.from('connect_messages').delete().eq('id', msgId)
     if (error) { toast(error.message || 'Could not delete message.', 'error'); return }
     setMessages(prev => prev.filter(m => m.id !== msgId))
+    setViewingMessage((v: any) => v?.id === msgId ? null : v)
+    toast('Message deleted', 'success')
+  }
+
+  async function archiveMessage(msgId: string, archive: boolean) {
+    const archived_at = archive ? new Date().toISOString() : null
+    const { error } = await supabase.from('connect_messages').update({ archived_at }).eq('id', msgId)
+    if (error) { toast(error.message || 'Could not update message.', 'error'); return }
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, archived_at } : m))
+    setViewingMessage((v: any) => v?.id === msgId ? { ...v, archived_at } : v)
+    toast(archive ? 'Message archived' : 'Message unarchived', 'success')
   }
 
   function copyLink(code: string) {
@@ -671,28 +690,176 @@ export default function CodesPage() {
           <p style={{ fontSize: 12, color: '#9CA3AF' }}>Created {new Date(c.created_at).toLocaleDateString()}</p>
         </div>
 
-        {/* Messages */}
-        <h3 id="code-messages" style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, scrollMarginTop: 80 }}>Messages ({cMsgs.length})</h3>
-        {cMsgs.length === 0 ? (
-          <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 32, textAlign: 'center' }}>
-            <p style={{ color: '#6B7280', fontSize: 14 }}>No messages yet. Share your code to start receiving messages.</p>
-          </div>
-        ) : cMsgs.map(m => (
-          <div key={m.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 16, marginBottom: 10, ...(!m.read ? { borderLeft: '3px solid #3293CB' } : {}) }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #3293CB, #5d92f6)', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700 }}>{(m.sender_name || 'A')[0].toUpperCase()}</div>
-                <span style={{ fontWeight: 600, fontSize: 14 }}>{m.sender_name || 'Anonymous'}</span>
-                {m.message?.startsWith('[URGENT]') && <span style={{ background: '#DC2626', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>URGENT</span>}
+        {/* ── Messages: Inbox / Archived tabs, paginated, clickable cards ── */}
+        {(() => {
+          const inboxMsgs = cMsgs.filter(m => !m.archived_at)
+          const archivedMsgs = cMsgs.filter(m => m.archived_at)
+          const active = msgTab === 'inbox' ? inboxMsgs : archivedMsgs
+          const totalPages = Math.max(1, Math.ceil(active.length / MSG_PAGE_SIZE))
+          const page = Math.min(msgPage, totalPages - 1)
+          const pageMsgs = active.slice(page * MSG_PAGE_SIZE, (page + 1) * MSG_PAGE_SIZE)
+          return (
+            <>
+              <div id="code-messages" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, scrollMarginTop: 80 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Messages</h3>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    onClick={() => setMsgTab('inbox')}
+                    style={{ padding: '6px 14px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, ...(msgTab === 'inbox' ? { background: '#3293CB', color: '#fff' } : { background: '#F3F4F6', color: '#4B5563' }) }}
+                  >
+                    Inbox ({inboxMsgs.length})
+                  </button>
+                  <button
+                    onClick={() => setMsgTab('archived')}
+                    style={{ padding: '6px 14px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, ...(msgTab === 'archived' ? { background: '#3293CB', color: '#fff' } : { background: '#F3F4F6', color: '#4B5563' }) }}
+                  >
+                    Archived ({archivedMsgs.length})
+                  </button>
+                </div>
               </div>
-              <span style={{ fontSize: 12, color: '#6B7280' }}>{new Date(m.created_at).toLocaleString()}</span>
+
+              {active.length === 0 ? (
+                <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 32, textAlign: 'center' }}>
+                  <p style={{ color: '#6B7280', fontSize: 14 }}>
+                    {msgTab === 'inbox'
+                      ? 'No messages yet. Share your code to start receiving messages.'
+                      : 'No archived messages.'}
+                  </p>
+                </div>
+              ) : pageMsgs.map(m => {
+                const urgent = m.message?.startsWith('[URGENT]')
+                const body = (m.message || m.content || '').replace('[URGENT] ', '')
+                const preview = body.length > 140 ? body.slice(0, 137) + '...' : body
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setViewingMessage(m)}
+                    style={{
+                      display: 'block', textAlign: 'left', width: '100%',
+                      background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16,
+                      padding: 16, marginBottom: 10, cursor: 'pointer',
+                      ...(!m.read && !m.archived_at ? { borderLeft: '3px solid #3293CB' } : {}),
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #3293CB, #5d92f6)', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{(m.sender_name || 'A')[0].toUpperCase()}</div>
+                        <span style={{ fontWeight: 600, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.sender_name || 'Anonymous'}</span>
+                        {urgent && <span style={{ background: '#DC2626', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, flexShrink: 0 }}>URGENT</span>}
+                        {!m.read && !m.archived_at && <span style={{ background: '#3293CB', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, flexShrink: 0 }}>NEW</span>}
+                      </div>
+                      <span style={{ fontSize: 12, color: '#6B7280', flexShrink: 0, marginLeft: 8 }}>{new Date(m.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <p style={{ fontSize: 14, color: '#111827', lineHeight: 1.5, margin: 0 }}>{preview}</p>
+                    {(m.sender_email || m.sender_phone) && (
+                      <p style={{ fontSize: 12, color: '#6B7280', marginTop: 6 }}>
+                        {m.sender_email && <span>{m.sender_email}</span>}
+                        {m.sender_email && m.sender_phone && <span> · </span>}
+                        {m.sender_phone && <span>{m.sender_phone}</span>}
+                      </p>
+                    )}
+                  </button>
+                )
+              })}
+
+              {/* Pagination */}
+              {active.length > MSG_PAGE_SIZE && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 12 }}>
+                  <button
+                    onClick={() => setMsgPage(p => Math.max(0, p - 1))}
+                    disabled={page === 0}
+                    style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: page === 0 ? 'not-allowed' : 'pointer', opacity: page === 0 ? 0.5 : 1 }}
+                  >
+                    ← Previous
+                  </button>
+                  <span style={{ fontSize: 13, color: '#6B7280', fontWeight: 600 }}>Page {page + 1} of {totalPages}</span>
+                  <button
+                    onClick={() => setMsgPage(p => Math.min(totalPages - 1, p + 1))}
+                    disabled={page >= totalPages - 1}
+                    style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer', opacity: page >= totalPages - 1 ? 0.5 : 1 }}
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
+            </>
+          )
+        })()}
+
+        {/* Message detail modal */}
+        {viewingMessage && (() => {
+          const m = viewingMessage
+          const urgent = m.message?.startsWith('[URGENT]')
+          const body = (m.message || m.content || '').replace('[URGENT] ', '')
+          const isArchived = !!m.archived_at
+          return (
+            <div
+              onClick={() => setViewingMessage(null)}
+              style={{ position: 'fixed', inset: 0, zIndex: 250, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, overflowY: 'auto' }}
+            >
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.18)' }}
+              >
+                <div style={{ padding: '20px 24px', borderBottom: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #3293CB, #5d92f6)', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 15, fontWeight: 700, flexShrink: 0 }}>{(m.sender_name || 'A')[0].toUpperCase()}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontWeight: 700, fontSize: 15, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.sender_name || 'Anonymous'}</p>
+                      <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>{new Date(m.created_at).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setViewingMessage(null)} aria-label="Close" style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#6B7280', lineHeight: 1 }}>&times;</button>
+                </div>
+                <div style={{ padding: 24 }}>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+                    {urgent && <span style={{ background: '#DC2626', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999 }}>🚨 URGENT</span>}
+                    {isArchived && <span style={{ background: '#F3F4F6', color: '#4B5563', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999 }}>ARCHIVED</span>}
+                    {!m.read && !isArchived && <span style={{ background: '#3293CB', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999 }}>NEW</span>}
+                  </div>
+                  <p style={{ fontSize: 15, color: '#111827', lineHeight: 1.6, whiteSpace: 'pre-wrap', background: '#F9FAFB', padding: 16, borderRadius: 12, marginBottom: 16 }}>{body}</p>
+                  {(m.sender_email || m.sender_phone) && (
+                    <div style={{ marginBottom: 16 }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Reply to</p>
+                      {m.sender_email && <p style={{ fontSize: 14, marginBottom: 4 }}>✉️ <a href={`mailto:${m.sender_email}?subject=Re:%20your%20message%20on%20${encodeURIComponent(c.title)}`} style={{ color: '#3293CB', fontWeight: 600 }}>{m.sender_email}</a></p>}
+                      {m.sender_phone && <p style={{ fontSize: 14 }}>📞 <a href={`tel:${m.sender_phone}`} style={{ color: '#3293CB', fontWeight: 600 }}>{m.sender_phone}</a></p>}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {m.sender_email && (
+                      <a
+                        href={`mailto:${m.sender_email}?subject=Re:%20your%20message%20on%20${encodeURIComponent(c.title)}`}
+                        style={{ padding: '10px 18px', borderRadius: 10, border: 'none', background: '#3293CB', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}
+                      >
+                        Reply by email
+                      </a>
+                    )}
+                    {m.sender_phone && (
+                      <a
+                        href={`tel:${m.sender_phone}`}
+                        style={{ padding: '10px 18px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', color: '#111827', fontSize: 13, fontWeight: 600, cursor: 'pointer', textDecoration: 'none' }}
+                      >
+                        Call
+                      </a>
+                    )}
+                    <button
+                      onClick={() => archiveMessage(m.id, !isArchived)}
+                      style={{ padding: '10px 18px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', color: '#111827', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      {isArchived ? 'Unarchive' : 'Archive'}
+                    </button>
+                    <button
+                      onClick={() => deleteMessage(m.id)}
+                      style={{ padding: '10px 18px', borderRadius: 10, border: 'none', background: '#FEE2E2', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginLeft: 'auto' }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-            <p style={{ fontSize: 14, color: '#111827', lineHeight: 1.6 }}>{m.message?.replace('[URGENT] ', '') || m.content}</p>
-            {m.sender_email && <p style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>Email: <a href={`mailto:${m.sender_email}`} style={{ color: '#3293CB' }}>{m.sender_email}</a></p>}
-            {m.sender_phone && <p style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>Phone: <a href={`tel:${m.sender_phone}`} style={{ color: '#3293CB' }}>{m.sender_phone}</a></p>}
-            <button onClick={() => deleteMessage(m.id)} style={{ marginTop: 8, fontSize: 12, fontWeight: 600, color: '#DC2626', background: 'none', border: 'none', cursor: 'pointer' }}>Delete message</button>
-          </div>
-        ))}
+          )
+        })()}
       </div>
     )
   }

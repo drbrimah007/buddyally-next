@@ -51,6 +51,10 @@ export default function ProfilePage() {
   const [selfieChallenge, setSelfieChallenge] = useState('')
   const [selfieCountdown, setSelfieCountdown] = useState<number | null>(null)
   const [selfieReady, setSelfieReady] = useState(false)
+  const [emailVerifying, setEmailVerifying] = useState(false)
+  const [emailCode, setEmailCode] = useState('')
+  const [emailStep, setEmailStep] = useState<'send' | 'enter'>('send')
+  const [emailSending, setEmailSending] = useState(false)
 
   useEffect(() => { if (user) loadStats() }, [user])
 
@@ -267,10 +271,51 @@ export default function ProfilePage() {
     setSelfieCountdown(null)
   }
 
-  async function resendVerificationEmail() {
-    const { error } = await supabase.auth.resend({ type: 'signup', email: profile!.email })
-    if (error) toastError(error.message)
-    else success('Verification email sent. Check your inbox.')
+  async function sendEmailVerifyCode() {
+    setEmailSending(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { toastError('Please log in first'); setEmailSending(false); return }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/verify-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        },
+        body: JSON.stringify({ action: 'send' })
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) { toastError(data.error || 'Failed to send'); setEmailSending(false); return }
+      setEmailStep('enter')
+      success('Verification code sent to your email!')
+    } catch { toastError('Failed to send verification email') }
+    setEmailSending(false)
+  }
+
+  async function verifyEmailCode() {
+    if (!emailCode.trim() || emailCode.length < 6) { toastError('Enter the 6-digit code'); return }
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { toastError('Please log in first'); return }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/verify-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        },
+        body: JSON.stringify({ action: 'verify', token: emailCode.trim() })
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) { toastError(data.error || 'Invalid code'); return }
+      await updateProfile({ verified_email: true } as any)
+      refreshProfile()
+      setEmailVerifying(false)
+      setEmailStep('send')
+      setEmailCode('')
+      success('Email verified!')
+    } catch { toastError('Verification failed') }
   }
 
   function shareProfile() {
@@ -389,7 +434,7 @@ export default function ProfilePage() {
       <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 16 }}>
         <h3 style={{ fontWeight: 600, marginBottom: 12 }}>Verification</h3>
         {[
-          { key: 'email', label: 'Email', done: verified.email, action: () => resendVerificationEmail() },
+          { key: 'email', label: 'Email', done: verified.email, action: () => setEmailVerifying(true) },
           { key: 'phone', label: 'Phone', done: verified.phone, action: () => setPhoneVerifying(true) },
           { key: 'selfie', label: 'Selfie', done: verified.selfie, action: () => startSelfie() },
         ].map(v => (
@@ -530,6 +575,26 @@ export default function ProfilePage() {
           <div style={{ display: 'flex', gap: 12 }}>
             <button onClick={beginSelfieCountdown} disabled={!selfieReady || selfieCountdown !== null} style={{ padding: '14px 32px', borderRadius: 14, border: 'none', background: selfieReady && selfieCountdown === null ? '#3293CB' : '#4B5563', color: '#fff', fontWeight: 700, fontSize: 16, cursor: selfieReady && selfieCountdown === null ? 'pointer' : 'not-allowed', opacity: selfieReady && selfieCountdown === null ? 1 : 0.6 }}>Capture in 3s</button>
             <button onClick={cancelSelfie} style={{ padding: '14px 24px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.3)', background: 'none', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* Email verify modal */}
+      {emailVerifying && (
+        <div onClick={() => setEmailVerifying(false)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 20, padding: 32, maxWidth: 400, width: '100%' }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>Verify Email</h2>
+            <p style={{ fontSize: 14, color: '#4B5563', marginBottom: 16 }}>We&apos;ll send a 6-digit code to <strong>{profile.email}</strong></p>
+            {emailStep === 'send' ? (
+              <button onClick={sendEmailVerifyCode} disabled={emailSending} style={{ width: '100%', padding: 14, borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer', opacity: emailSending ? 0.6 : 1 }}>{emailSending ? 'Sending...' : 'Send Verification Code'}</button>
+            ) : (
+              <div style={{ display: 'grid', gap: 14 }}>
+                <p style={{ fontSize: 14, color: '#059669', fontWeight: 600 }}>Code sent! Check your inbox.</p>
+                <input value={emailCode} onChange={e => setEmailCode(e.target.value)} type="text" maxLength={6} style={{ width: '100%', padding: '12px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 24, color: '#111827', textAlign: 'center', letterSpacing: '0.25em', fontWeight: 700 }} placeholder="000000" />
+                <button onClick={verifyEmailCode} style={{ width: '100%', padding: 14, borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Verify Code</button>
+                <button onClick={() => { setEmailStep('send'); sendEmailVerifyCode() }} style={{ width: '100%', padding: 10, borderRadius: 14, border: '1px solid #E5E7EB', background: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Resend Code</button>
+              </div>
+            )}
           </div>
         </div>
       )}
