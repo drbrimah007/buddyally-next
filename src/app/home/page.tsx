@@ -181,8 +181,8 @@ export default function BuddyallyDesktopLanding() {
             </a>
           </div>
 
-          <div className="mt-6 rounded-[32px] border border-black/[0.05] bg-[#ECE8E0] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] hidden lg:block">
-            <div ref={boardRef} className="relative h-[530px] overflow-hidden rounded-[28px] bg-[#F3EFE8]">
+          <div className="mt-6 rounded-[32px] border border-black/[0.05] bg-[#ECE8E0] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] overflow-x-auto">
+            <div ref={boardRef} className="relative h-[530px] overflow-hidden rounded-[28px] bg-[#F3EFE8]" style={{minWidth:1100}}>
               <div className="absolute inset-0 opacity-60" style={{
                 backgroundImage: "radial-gradient(circle at 20% 18%, rgba(0,0,0,0.04) 0 2px, transparent 3px), radial-gradient(circle at 78% 12%, rgba(124,58,237,0.65) 0 4px, transparent 5px), radial-gradient(circle at 64% 46%, rgba(239,68,68,0.55) 0 4px, transparent 5px), radial-gradient(circle at 47% 14%, rgba(47,128,237,0.5) 0 4px, transparent 5px), radial-gradient(circle at 30% 54%, rgba(76,175,80,0.55) 0 4px, transparent 5px), radial-gradient(circle at 89% 41%, rgba(239,68,68,0.5) 0 4px, transparent 5px), radial-gradient(circle at 92% 80%, rgba(47,128,237,0.45) 0 4px, transparent 5px), radial-gradient(circle at 8% 78%, rgba(47,128,237,0.45) 0 4px, transparent 5px)",
                 backgroundSize: "100% 100%",
@@ -223,11 +223,11 @@ export default function BuddyallyDesktopLanding() {
               </div>
             </div>
           </div>
-          <div className="mx-auto mt-6 max-w-3xl text-center hidden lg:block">
+          <div className="mx-auto mt-6 max-w-3xl text-center">
             <p className="text-base font-medium leading-7 text-[#4B5563]">Rides, packages, events, help — already in motion.</p>
           </div>
 
-          <div className="mt-4 flex justify-center px-5 hidden lg:flex">
+          <div className="mt-4 flex justify-center px-2 sm:px-5">
             <a href="/signup" className="w-full max-w-3xl inline-flex items-center justify-center gap-3 rounded-full px-8 py-5 text-xl font-black uppercase tracking-[-0.02em]" style={{background:'#3293cb',color:'#fff',boxShadow:'0 12px 26px rgba(50,147,203,0.28)'}}>
               LINK UP. DO MORE.
               <ArrowIcon className="h-6 w-6" />
