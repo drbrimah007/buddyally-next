@@ -97,18 +97,14 @@ const bubbles = [
   { type: "ride", title: "RIDE", icon: RideIcon, iconBg: "bg-[#2F80ED]", iconText: "text-[#2F80ED]", author: "Juliet", text: "Anyone coming from Texas this week? Open room for one bag.", className: "right-[180px] bottom-[46px] w-[184px]" },
 ];
 
-function BubbleCard({ bubble, index, constraintsRef }: { bubble: (typeof bubbles)[number]; index: number; constraintsRef: React.RefObject<HTMLDivElement | null> }) {
+function BubbleCard({ bubble, index }: { bubble: (typeof bubbles)[number]; index: number }) {
   const Icon = bubble.icon;
   return (
     <motion.div
-      drag
-      dragElastic={0.2}
-      dragMomentum={false}
-      dragConstraints={constraintsRef}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.05 }}
-      className={`absolute ${bubble.className} cursor-grab active:cursor-grabbing`}
+      className={`absolute ${bubble.className}`}
     >
       <motion.div
         animate={{ y: [0, -4, 0] }}
@@ -156,7 +152,6 @@ function FeatureCard({ title, body, icon, tint, iconTint }: { title: string; bod
 }
 
 export default function BuddyallyDesktopLanding() {
-  const boardRef = React.useRef<HTMLDivElement>(null);
   return (
     <main className="min-h-screen bg-[#f3f3f3] text-[#111827]">
       <div className="mx-auto max-w-[1365px] px-10 pb-0 pt-6">
@@ -166,20 +161,20 @@ export default function BuddyallyDesktopLanding() {
               <h1 className="text-[64px] font-black leading-[0.95] tracking-[-0.055em] text-black">What&apos;s going on?</h1>
               <div className="mt-2 text-[78px] font-black leading-[0.88] tracking-[-0.08em]">
                 <span className="text-black">buddy</span>
-                <span className="text-[#3B82F6]">ally</span>
+                <span className="text-[#3293cb]">ally</span>
               </div>
               <p className="mt-4 max-w-[520px] text-[18px] leading-8 text-[#4B5563]">
                 Link into rides, packages, events, and help<br />already in motion across cities and neighborhoods.
               </p>
             </div>
-            <a href="/dashboard" className="mt-7 inline-flex items-center gap-5 rounded-full bg-[#2279F2] px-9 py-5 text-[16px] font-black uppercase tracking-[-0.02em] text-white shadow-[0_12px_26px_rgba(34,121,242,0.25)]">
+            <a href="/dashboard" className="mt-7 inline-flex items-center gap-5 rounded-full bg-[#3293cb] px-9 py-5 text-[16px] font-black uppercase tracking-[-0.02em] text-white shadow-[0_12px_26px_rgba(50,147,203,0.28)]">
               LINK UP. DO MORE.
               <ArrowIcon className="h-[22px] w-[22px]" />
             </a>
           </div>
 
           <div className="mt-6 rounded-[32px] border border-black/[0.05] bg-[#ECE8E0] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
-            <div ref={boardRef} className="relative h-[530px] overflow-hidden rounded-[28px] bg-[#F3EFE8]">
+            <div className="relative h-[530px] overflow-hidden rounded-[28px] bg-[#F3EFE8]">
               <div className="absolute inset-0 opacity-60" style={{
                 backgroundImage: "radial-gradient(circle at 20% 18%, rgba(0,0,0,0.04) 0 2px, transparent 3px), radial-gradient(circle at 78% 12%, rgba(124,58,237,0.65) 0 4px, transparent 5px), radial-gradient(circle at 64% 46%, rgba(239,68,68,0.55) 0 4px, transparent 5px), radial-gradient(circle at 47% 14%, rgba(47,128,237,0.5) 0 4px, transparent 5px), radial-gradient(circle at 30% 54%, rgba(76,175,80,0.55) 0 4px, transparent 5px), radial-gradient(circle at 89% 41%, rgba(239,68,68,0.5) 0 4px, transparent 5px), radial-gradient(circle at 92% 80%, rgba(47,128,237,0.45) 0 4px, transparent 5px), radial-gradient(circle at 8% 78%, rgba(47,128,237,0.45) 0 4px, transparent 5px)",
                 backgroundSize: "100% 100%",
@@ -205,25 +200,25 @@ export default function BuddyallyDesktopLanding() {
               <div className="absolute left-1/2 top-1/2 z-10 w-[430px] -translate-x-1/2 -translate-y-[56%] text-center">
                 <div className="text-[14px] font-extrabold uppercase tracking-[0.28em] text-[#80848a]">WHAT&apos;S GOING ON?</div>
                 <div className="mt-3 text-[82px] font-black leading-[0.9] tracking-[-0.07em] text-black">Someone&apos;s</div>
-                <div className="-mt-2 text-[84px] font-black leading-[0.86] tracking-[-0.075em] text-[#3179EA]">going your</div>
-                <div className="-mt-4 text-[84px] font-black leading-[0.86] tracking-[-0.075em] text-[#3179EA]">way.</div>
+                <div className="-mt-2 text-[84px] font-black leading-[0.86] tracking-[-0.075em] text-[#3293cb]">going your</div>
+                <div className="-mt-4 text-[84px] font-black leading-[0.86] tracking-[-0.075em] text-[#3293cb]">way.</div>
                 <div className="mt-4 text-[18px] font-extrabold uppercase tracking-[0.22em] text-[#8A8C92]">DON&apos;T PAY FOR IT.</div>
               </div>
 
               {bubbles.map((bubble, index) => (
-                <BubbleCard key={`${bubble.title}-${index}`} bubble={bubble} index={index} constraintsRef={boardRef} />
+                <BubbleCard key={`${bubble.title}-${index}`} bubble={bubble} index={index} />
               ))}
 
               <div className="absolute bottom-[18px] left-1/2 z-20 flex h-[60px] w-[456px] -translate-x-1/2 items-center rounded-full bg-white/95 pl-8 pr-4 shadow-[0_8px_22px_rgba(15,23,42,0.1)] ring-1 ring-black/[0.04]">
                 <div className="flex-1 text-[16px] text-[#A0A4AA]">I&apos;m driving to Philly Friday...</div>
-                <button className="rounded-full bg-[#DDD7CD] px-8 py-3 text-[16px] font-black text-[#2A2A2A]">Post</button>
+                <button className="rounded-full bg-[#DDD7CD] px-8 py-3 text-[16px] font-black text-white">Post</button>
               </div>
             </div>
           </div>
         </section>
 
         <section className="grid grid-cols-3 gap-3 px-1 py-3">
-          <FeatureCard title="Real people. Real moves." body="Join a network of neighbors and travelers already making things happen." icon={<PeopleIcon />} tint="bg-[#E9EDF6]" iconTint="text-[#3B82F6]" />
+          <FeatureCard title="Real people. Real moves." body="Join a network of neighbors and travelers already making things happen." icon={<PeopleIcon />} tint="bg-[#E9EDF6]" iconTint="text-[#3293cb]" />
           <FeatureCard title="Share what you&apos;ve got." body="Rides, packages, events, skills, or help\u2014post it and connect." icon={<GiftIcon />} tint="bg-[#EEE8F7]" iconTint="text-[#8B5CF6]" />
           <FeatureCard title="Stronger together." body="Less waste, more connection, better communities." icon={<GlobeIcon />} tint="bg-[#EEF4EA]" iconTint="text-[#43A047]" />
         </section>
@@ -233,7 +228,7 @@ export default function BuddyallyDesktopLanding() {
         <div className="mx-auto grid max-w-[1365px] grid-cols-[1.55fr_0.85fr_0.85fr_0.8fr_0.95fr] gap-8 px-14 py-7">
           <div>
             <div className="text-[58px] font-black leading-[0.88] tracking-[-0.08em]">
-              <span className="text-black">buddy</span><span className="text-[#3B82F6]">ally</span>
+              <span className="text-black">buddy</span><span className="text-[#3293cb]">ally</span>
             </div>
             <div className="mt-2 text-[16px] font-black text-[#1B1E23]">What&apos;s going on?</div>
             <div className="mt-1 text-[16px] text-[#2E3136]">Someone&apos;s going your way.</div>
