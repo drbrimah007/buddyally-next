@@ -216,7 +216,7 @@ export default function BuddyallyDesktopLanding() {
 
               <div className="absolute bottom-[18px] left-1/2 z-20 flex h-[60px] w-[456px] -translate-x-1/2 items-center rounded-full bg-white/95 pl-8 pr-4 shadow-[0_8px_22px_rgba(15,23,42,0.1)] ring-1 ring-black/[0.04]">
                 <div className="flex-1 text-[16px] text-[#A0A4AA]">I&apos;m driving to Philly Friday...</div>
-                <button className="rounded-full bg-[#DDD7CD] px-8 py-3 text-[16px] font-black text-white">Post</button>
+                <button className="rounded-full bg-[#3293cb] px-8 py-3 text-[16px] font-black text-white">Post</button>
               </div>
             </div>
           </div>
