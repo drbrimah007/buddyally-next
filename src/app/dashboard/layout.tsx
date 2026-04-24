@@ -108,8 +108,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
-      {/* Content */}
-      <main style={{ maxWidth: 680, margin: '0 auto', padding: '68px 16px 100px' }}>
+      {/* Content. Most dashboard pages (Feed, Messages, Groups, Contacts,
+          Codes, Saved Searches) read best at a comfortable 680px column.
+          Explore (`/dashboard`) is a two-panel layout and needs the full
+          viewport — it self-constrains inside `page.tsx`. So we switch the
+          max-width based on the path. */}
+      <main
+        style={{
+          maxWidth: pathname === '/dashboard' ? 'none' : 680,
+          margin: '0 auto',
+          padding: '68px 16px 100px',
+        }}
+      >
         {children}
       </main>
 
