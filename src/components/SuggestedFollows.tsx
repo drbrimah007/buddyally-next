@@ -26,7 +26,7 @@ export default function SuggestedFollows({ onFollowed }: { onFollowed?: () => vo
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
 
-  useEffect(() => { if (user) void load() }, [user, profile?.home_country_code])
+  useEffect(() => { if (user) void load() }, [user, (profile as any)?.home_country_code])
 
   async function load() {
     if (!user) return

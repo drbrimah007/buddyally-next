@@ -1,10 +1,54 @@
 import Link from "next/link";
 import { AuthRedirect } from "@/components/AuthRedirect";
 
+// Structured data — JSON-LD. Helps Google understand "BuddyAlly" as a real
+// brand entity (Organization), enables sitelinks search box on the SERP,
+// and surfaces the social handles in the knowledge panel.
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://buddyally.com/#org",
+      name: "BuddyAlly",
+      alternateName: ["Buddy Ally", "buddyally", "Buddy"],
+      url: "https://buddyally.com",
+      logo: "https://buddyally.com/buddyally-logo.png",
+      description:
+        "BuddyAlly connects real people for travel, rides, packages, events, learning, local meetups, and everyday help.",
+      sameAs: [
+        // Add real social URLs once they exist:
+        // "https://twitter.com/buddyally",
+        // "https://www.instagram.com/buddyally",
+        // "https://www.linkedin.com/company/buddyally",
+      ],
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://buddyally.com/#website",
+      url: "https://buddyally.com",
+      name: "BuddyAlly",
+      publisher: { "@id": "https://buddyally.com/#org" },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: "https://buddyally.com/dashboard?q={search_term_string}",
+        },
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ],
+}
+
 export default function Home() {
   return (
     <>
       <AuthRedirect />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
       <style dangerouslySetInnerHTML={{ __html: `
         :root{--yellow:#ffcf00;--yellow-deep:#ffb800;--pink:#ff0a8a;--blue:#2f8cff;--black:#111111;--white:#ffffff;--tag:#2f8cff}
         .screen{position:fixed;inset:0;overflow:hidden;color:var(--black);background:radial-gradient(circle at center,rgba(255,255,255,0.78) 0%,rgba(255,233,84,0.92) 16%,rgba(255,207,0,1) 46%,rgba(255,184,0,1) 100%)}

@@ -395,7 +395,6 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
                     }}
                   >
                     {m.label}
-                    {m.hint && <span style={{ display: 'block', fontSize: 10, fontWeight: 600, color: selected ? '#3293CB' : '#9CA3AF', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>{m.hint}</span>}
                   </button>
                 )
               })}
