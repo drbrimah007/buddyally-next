@@ -83,6 +83,10 @@ export default function SavedSearchesPage() {
     if (s.filter_json.city) q.set('city', s.filter_json.city)
     if (s.filter_json.radius_mi) q.set('radius', String(s.filter_json.radius_mi))
     if (s.filter_json.free_only) q.set('free', '1')
+    if (Array.isArray(s.filter_json.tags) && s.filter_json.tags.length > 0) {
+      // Multi-value param: ?tags=a&tags=b
+      for (const t of s.filter_json.tags) q.append('tags', t)
+    }
     router.push(`/dashboard?${q.toString()}`)
   }
 

@@ -25,6 +25,7 @@ import SaveSearchButton from '@/components/SaveSearchButton'
 import ExploreMap, { type ExploreMapItem } from '@/components/ExploreMap'
 import { contributionBadge } from '@/lib/contribution'
 import ShareButton from '@/components/ShareButton'
+import { CATEGORIES, tagsForCategory } from '@/lib/categories'
 import {
   haversineMiles,
   formatDistance,
@@ -150,6 +151,10 @@ export default function ExplorePage() {
   const [radius, setRadius] = useState(5)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
+  // Secondary tag filter — populated from the selected category's palette
+  // (see /src/lib/categories.ts → TAGS_BY_CATEGORY). Cleared when the
+  // category changes so old tags don't leak across filters.
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [showAll, setShowAll] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [cityInput, setCityInput] = useState('')
@@ -165,8 +170,11 @@ export default function ExplorePage() {
   const [explorePage, setExplorePage] = useState(0)
   const [activeNoticeIndex, setActiveNoticeIndex] = useState(0)
   const [noticePaused, setNoticePaused] = useState(false)
-  // Noticeboard auto-advance speed in ms. 6000 is the sweet spot; 3500 feels
-  // hyperactive and 9000 feels sleepy. User can pick via the label selector.
+  // Noticeboard auto-advance speed in ms.
+  //   Normal = 6s  (the calibrated sweet spot — long enough to read a notice
+  //                 without losing flow, short enough to stay alive)
+  //   Paced  = 10s (slower for browsing)
+  //   Fast   = 3s  (rapid-fire scan)
   const [noticeSpeed, setNoticeSpeed] = useState(6000)
 
   const searchTimeout = useRef<any>(null)
@@ -237,6 +245,12 @@ export default function ExplorePage() {
     }
     if (rad) { const n = Number(rad); if (!Number.isNaN(n)) { setRadius(n); touched = true } }
     if (free === '1') { /* is_free is not a base filter here; saved in filter_json — leave as marker */ touched = true }
+    // Hydrate tag filter from URL multi-value param `?tags=a&tags=b`.
+    const urlTags = searchParams.getAll('tags').filter(Boolean)
+    if (urlTags.length > 0) { setSelectedTags(urlTags); touched = true }
+    // Plus-action sheet routes here with ?create=1 to immediately open the
+    // Create Activity modal — saves a click for users coming from + → Activity.
+    if (searchParams.get('create') === '1') { setShowCreate(true); touched = true }
     if (touched) hydratedFromParams.current = true
   }, [searchParams])
 
@@ -322,26 +336,10 @@ export default function ExplorePage() {
   }, [profile])
 
   const userInterests = profile?.interests || []
-  const categories =
-    showAll || userInterests.length === 0
-      ? [
-          'Travel',
-          'Local Activities',
-          'Sports / Play',
-          'Learning',
-          'Help / Support',
-          'Events',
-          'Outdoor',
-          'Gaming',
-          'Wellness',
-          'Ride Share',
-          'Dog Walk',
-          'Babysit',
-          'Party',
-          'Pray',
-          'Others',
-        ]
-      : userInterests
+  // Always show the 8 canonical umbrella categories. "For You" / "All"
+  // are handled by separate buttons; interest filtering happens via
+  // tag intersection now, not via shrinking the category list.
+  const categories: string[] = [...CATEGORIES]
 
   function searchPlaces(val: string) {
     setCityInput(val)
@@ -477,8 +475,20 @@ export default function ExplorePage() {
   const filtered = activities.filter((a: any) => {
     if (category !== 'all' && a.category !== category) return false
 
-    if (category === 'all' && !showAll && userInterests.length > 0 && !userInterests.includes(a.category)) {
-      return false
+    // For You — match if the activity's tags intersect the user's
+    // interest tags. If user has no interests yet, fall back to "All"
+    // behaviour so the feed isn't empty.
+    if (category === 'all' && !showAll && userInterests.length > 0) {
+      const aTags: string[] = a.tags || []
+      const matches = aTags.some((t: string) => userInterests.includes(t))
+      if (!matches) return false
+    }
+
+    // Tag filter — when the user has picked one or more tag chips on the
+    // secondary row, an activity must carry at least one of them.
+    if (selectedTags.length > 0) {
+      const aTags: string[] = a.tags || []
+      if (!aTags.some((t: string) => selectedTags.includes(t))) return false
     }
 
     if (search) {
@@ -728,6 +738,7 @@ export default function ExplorePage() {
                   category: category !== 'all' ? category : undefined,
                   city: cityInput || undefined,
                   radius_mi: radius,
+                  tags: selectedTags.length > 0 ? selectedTags : undefined,
                 }}
               />
             </div>
@@ -754,8 +765,10 @@ export default function ExplorePage() {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  {/* Speed adjuster — defaults to 6000ms. 3500 feels rushed,
-                      9000 feels sleepy. 6000 is the Goldilocks pick. */}
+                  {/* Speed adjuster.
+                      Paced  = 9s
+                      Normal = 6s   (default)
+                      Fast   = 3.5s */}
                   <select
                     value={noticeSpeed}
                     onChange={(e) => setNoticeSpeed(Number(e.target.value))}
@@ -915,28 +928,34 @@ export default function ExplorePage() {
                 </AnimatePresence>
               </div>
 
-              <div className="mt-4 space-y-2">
-                {noticeItems.slice(0, 4).map((a: any, index: number) => (
-                  <button
-                    key={a.id}
-                    onClick={() => {
-                      setActiveNoticeIndex(index)
-                      setNoticePaused(true)
-                      // Scroll the noticeboard card into view so the user
-                      // sees the preview they just selected (works desktop + mobile).
-                      noticeboardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                    }}
-                    className={`w-full rounded-2xl px-4 py-3 text-left transition ${
-                      activeNotice?.id === a.id ? 'bg-[#3293CB] text-white' : 'bg-white/70 text-slate-700 hover:bg-white'
-                    }`}
-                  >
-                    <div className="text-[11px] font-black uppercase opacity-60">
-                      {a.category} · {formatTiming(a)}
-                    </div>
-                    <div className="mt-1 truncate text-sm font-bold">{a.title}</div>
-                  </button>
-                ))}
-              </div>
+              {/* Story-style progress dots — Stories pattern. Each dot is the
+                  carousel position; current is filled, others muted. Tapping
+                  jumps to that notice. Replaces the old 4-mini-list which
+                  duplicated the active notice. */}
+              {noticeItems.length > 1 && (
+                <div className="mt-3 flex items-center justify-center gap-1.5">
+                  {noticeItems.map((a: any, index: number) => {
+                    const active = activeNotice?.id === a.id
+                    return (
+                      <button
+                        key={a.id}
+                        onClick={() => {
+                          setActiveNoticeIndex(index)
+                          setNoticePaused(true)
+                          noticeboardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                        }}
+                        aria-label={`Notice ${index + 1} of ${noticeItems.length}: ${a.title}`}
+                        title={a.title}
+                        className={`transition-all ${
+                          active
+                            ? 'h-2 w-8 bg-[#3293CB] rounded-full'
+                            : 'h-2 w-2 bg-slate-400/40 rounded-full hover:bg-slate-500/60'
+                        }`}
+                      />
+                    )
+                  })}
+                </div>
+              )}
             </section>
           </aside>
 
@@ -1020,10 +1039,7 @@ export default function ExplorePage() {
 
                 <div className="filter-scroll flex flex-wrap gap-2">
                   <button
-                    onClick={() => {
-                      setCategory('all')
-                      setShowAll(false)
-                    }}
+                    onClick={() => { setCategory('all'); setShowAll(false); setSelectedTags([]) }}
                     className={`rounded-full px-4 py-2 text-xs font-black ${
                       category === 'all' && !showAll ? 'bg-[#3293CB] text-white' : 'bg-slate-100 text-slate-600'
                     }`}
@@ -1032,10 +1048,7 @@ export default function ExplorePage() {
                   </button>
 
                   <button
-                    onClick={() => {
-                      setCategory('all')
-                      setShowAll(true)
-                    }}
+                    onClick={() => { setCategory('all'); setShowAll(true); setSelectedTags([]) }}
                     className={`rounded-full px-4 py-2 text-xs font-black ${
                       category === 'all' && showAll ? 'bg-[#3293CB] text-white' : 'bg-slate-100 text-slate-600'
                     }`}
@@ -1046,10 +1059,9 @@ export default function ExplorePage() {
                   {categories.map((cat: string) => (
                     <button
                       key={cat}
-                      onClick={() => {
-                        setCategory(cat)
-                        setShowAll(false)
-                      }}
+                      // Switching category clears the secondary tag picks —
+                      // tags belong to one category at a time.
+                      onClick={() => { setCategory(cat); setShowAll(false); setSelectedTags([]) }}
                       className={`rounded-full px-4 py-2 text-xs font-black ${
                         category === cat ? 'bg-[#3293CB] text-white' : 'bg-slate-100 text-slate-600'
                       }`}
@@ -1059,6 +1071,35 @@ export default function ExplorePage() {
                   ))}
                 </div>
               </div>
+
+              {/* Secondary tag row — appears only when a real category is
+                  selected (not For You / All). Clicking a tag toggles it. */}
+              {category !== 'all' && tagsForCategory(category).length > 0 && (
+                <div className="filter-scroll mb-4 flex flex-wrap gap-2 -mt-2">
+                  {tagsForCategory(category).map((tag: string) => {
+                    const on = selectedTags.includes(tag)
+                    return (
+                      <button
+                        key={tag}
+                        onClick={() => setSelectedTags(prev => on ? prev.filter(t => t !== tag) : [...prev, tag])}
+                        className={`rounded-full px-3 py-1 text-[11px] font-bold transition ${
+                          on ? 'bg-[#3293CB] text-white' : 'bg-[#EAF6FC] text-[#197BB8] hover:bg-[#D8EFFA]'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    )
+                  })}
+                  {selectedTags.length > 0 && (
+                    <button
+                      onClick={() => setSelectedTags([])}
+                      className="rounded-full px-3 py-1 text-[11px] font-bold text-slate-500 underline"
+                    >
+                      Clear tags
+                    </button>
+                  )}
+                </div>
+              )}
 
               {loading ? (
                 <div className="activity-grid">

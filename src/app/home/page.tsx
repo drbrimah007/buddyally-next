@@ -163,6 +163,14 @@ export default function BuddyallyDesktopLanding() {
   return (
     <main className="min-h-screen bg-[#f3f3f3] text-[#111827]">
       <div className="mx-auto max-w-[1365px] px-4 sm:px-10 pb-0 pt-6 overflow-x-hidden">
+        {/* Tiny top-right log-in for returning users. Not buried — sits above
+            the hero so members never have to hunt for it. */}
+        <div className="flex justify-end mb-2 px-2 sm:px-5">
+          <a href="/login" className="text-sm font-bold text-[#3293cb] hover:underline">
+            Already have an account? Log in &rarr;
+          </a>
+        </div>
+
         <section>
           <div className="flex flex-col sm:flex-row items-start justify-between gap-4 sm:gap-10 px-2 sm:px-5">
             <div>
@@ -176,7 +184,7 @@ export default function BuddyallyDesktopLanding() {
               </p>
             </div>
             <a href="/signup" className="mt-7 inline-flex items-center gap-5 rounded-full px-9 py-5 text-[16px] font-black uppercase tracking-[-0.02em]" style={{background:'#3293cb',color:'#fff',boxShadow:'0 12px 26px rgba(50,147,203,0.28)'}}>
-              LINK UP. DO MORE.
+              JOIN BUDDYALLY
               <ArrowIcon className="h-[22px] w-[22px]" />
             </a>
           </div>
@@ -232,7 +240,7 @@ export default function BuddyallyDesktopLanding() {
 
           <div className="mt-4 flex justify-center px-2 sm:px-5">
             <a href="/signup" className="w-full max-w-3xl inline-flex items-center justify-center gap-3 rounded-full px-8 py-5 text-xl font-black uppercase tracking-[-0.02em]" style={{background:'#3293cb',color:'#fff',boxShadow:'0 12px 26px rgba(50,147,203,0.28)'}}>
-              LINK UP. DO MORE.
+              JOIN BUDDYALLY
               <ArrowIcon className="h-6 w-6" />
             </a>
           </div>

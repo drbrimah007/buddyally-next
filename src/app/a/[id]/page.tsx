@@ -141,35 +141,94 @@ export default function ActivityPage() {
           <h1 style={{ fontSize: 24, fontWeight: 700, marginTop: 8 }}>{activity.title}</h1>
         </div>
 
-        {/* Logged-out preview gate. Public sees the headline + brief teaser
-            and a strong sign-up/in CTA. Joining, chat, host details, full
-            description and contribution info live behind auth. */}
-        {!user && (
-          <div style={{ background: 'linear-gradient(180deg, #EFF6FF 0%, #fff 100%)', border: '1px solid #DBEAFE', borderRadius: 16, padding: 20, marginBottom: 16 }}>
-            {activity.description && (
-              <p style={{ color: '#4B5563', lineHeight: 1.6, fontSize: 15, marginBottom: 12 }}>
-                {activity.description.length > 180 ? activity.description.slice(0, 177) + '…' : activity.description}
-              </p>
-            )}
-            <p style={{ color: '#0652B7', fontWeight: 700, marginBottom: 12 }}>
-              Sign up or log in to see the host, full details, join, and chat.
-            </p>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <Link
-                href={`/signup?next=/a/${activity.id}`}
-                style={{ padding: '12px 20px', borderRadius: 12, background: '#3293CB', color: '#fff', fontSize: 14, fontWeight: 700, textDecoration: 'none', boxShadow: '0 6px 14px -2px rgba(50,147,203,0.45)' }}
-              >
-                Sign up free
-              </Link>
-              <Link
-                href={`/login?next=/a/${activity.id}`}
-                style={{ padding: '12px 20px', borderRadius: 12, background: '#fff', color: '#0652B7', fontSize: 14, fontWeight: 700, textDecoration: 'none', border: '1.5px solid #DBEAFE' }}
-              >
-                Log in
-              </Link>
+        {/* Logged-out poster — built to be SHAREABLE. Social proof front
+            and center: host face, headcount, location, time. Then the gate.
+            People share what looks alive, not what looks like a paywall. */}
+        {!user && (() => {
+          const goingCount = activity.participants?.length || 0
+          const spotsLeft = (activity.max_participants ?? 0) - goingCount
+          const when = activity.date ? new Date(activity.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : (activity.availability_label || 'Flexible')
+          const hostName = host ? `${host.first_name || ''} ${host.last_name?.[0] || ''}`.trim() : 'Someone'
+          const hostInitial = (host?.first_name?.[0] || '?').toUpperCase()
+          return (
+            <div style={{
+              background: 'linear-gradient(180deg, #EFF6FF 0%, #fff 100%)',
+              border: '1px solid #DBEAFE', borderRadius: 20,
+              padding: 24, marginBottom: 16,
+              boxShadow: '0 8px 24px -8px rgba(50,147,203,0.18)',
+            }}>
+              {/* Host strip — face + name = humans show up for humans, not for cards. */}
+              {host && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                  {host.avatar_url ? (
+                    <img src={host.avatar_url} alt={`${hostName}'s avatar`} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '2px solid #fff', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }} />
+                  ) : (
+                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#3293CB', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, border: '2px solid #fff', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
+                      {hostInitial}
+                    </div>
+                  )}
+                  <div>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Hosted by</p>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginTop: 2 }}>{hostName}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Quick facts row — when, where, how many */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                <span style={{ background: '#fff', color: '#111827', padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, border: '1px solid #DBEAFE' }}>
+                  📅 {when}
+                </span>
+                {(activity.location_display || activity.location_text) && activity.location_mode !== 'remote' && (
+                  <span style={{ background: '#fff', color: '#111827', padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, border: '1px solid #DBEAFE' }}>
+                    📍 {activity.location_display || activity.location_text}
+                  </span>
+                )}
+                {activity.location_mode === 'remote' && (
+                  <span style={{ background: '#fff', color: '#111827', padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, border: '1px solid #DBEAFE' }}>
+                    🌐 Remote
+                  </span>
+                )}
+                {/* Live social proof — "X going" reads as momentum, not "Y spots left" framing as scarcity. */}
+                {goingCount > 0 ? (
+                  <span style={{ background: '#059669', color: '#fff', padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700 }}>
+                    ✓ {goingCount} {goingCount === 1 ? 'person' : 'people'} going
+                  </span>
+                ) : spotsLeft > 0 ? (
+                  <span style={{ background: '#3293CB', color: '#fff', padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700 }}>
+                    Be the first to join
+                  </span>
+                ) : null}
+              </div>
+
+              {/* Description teaser */}
+              {activity.description && (
+                <p style={{ color: '#374151', lineHeight: 1.7, fontSize: 15, marginBottom: 16 }}>
+                  {activity.description.length > 200 ? activity.description.slice(0, 197) + '…' : activity.description}
+                </p>
+              )}
+
+              {/* CTA */}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <Link
+                  href={`/signup?next=/a/${activity.id}`}
+                  style={{ padding: '14px 24px', borderRadius: 14, background: '#3293CB', color: '#fff', fontSize: 15, fontWeight: 800, textDecoration: 'none', boxShadow: '0 8px 18px -4px rgba(50,147,203,0.55)' }}
+                >
+                  Join free →
+                </Link>
+                <Link
+                  href={`/login?next=/a/${activity.id}`}
+                  style={{ padding: '14px 24px', borderRadius: 14, background: '#fff', color: '#0652B7', fontSize: 15, fontWeight: 700, textDecoration: 'none', border: '1.5px solid #DBEAFE' }}
+                >
+                  Log in
+                </Link>
+                <p style={{ fontSize: 12, color: '#6B7280', marginLeft: 'auto' }}>
+                  Free · 30 sec
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* Details / Chat tabs */}
         {user && (isJoined || isOwner) && (

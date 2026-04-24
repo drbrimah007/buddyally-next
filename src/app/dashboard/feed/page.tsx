@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import Paginator from '@/components/Paginator'
 import PostComposer from '@/components/PostComposer'
+import SuggestedFollows from '@/components/SuggestedFollows'
 
 type FeedItem =
   | { kind: 'activity'; ts: string; data: any }
@@ -223,20 +224,31 @@ export default function FeedPage() {
       )}
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: '#6B7280' }}>Loading…</div>
-      ) : items.length === 0 ? (
-        <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 40, textAlign: 'center' }}>
-          <p style={{ fontSize: 32, marginBottom: 12 }}>📡</p>
-          <p style={{ fontWeight: 600, marginBottom: 8 }}>Your Feed is empty</p>
-          <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
-            {followingIds.length === 0
-              ? 'Follow people to see their activities and posts here. You can also save an activity search to catch new matches.'
-              : 'Nothing new from the people you follow yet — and no saved-search matches.'}
-          </p>
-          <Link href="/dashboard" style={{ display: 'inline-block', padding: '10px 16px', borderRadius: 12, background: '#3293CB', color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
-            Find people to follow
-          </Link>
+        // Skeleton placeholders feel alive vs a "Loading…" string
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {[1, 2, 3].map(i => (
+            <div key={i} style={{ height: 140, borderRadius: 16, background: 'linear-gradient(90deg,#F3F4F6,#E5E7EB,#F3F4F6)', backgroundSize: '200% 100%', animation: 'pulse 1.4s ease-in-out infinite' }} />
+          ))}
         </div>
+      ) : items.length === 0 ? (
+        // Empty Feed = activation moment. Show a starter pack of suggested
+        // people to follow rather than a dead-end "no items" card.
+        <>
+          {followingIds.length === 0 ? (
+            <SuggestedFollows onFollowed={() => loadFeed()} />
+          ) : (
+            <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 40, textAlign: 'center' }}>
+              <p style={{ fontSize: 32, marginBottom: 12 }}>📡</p>
+              <p style={{ fontWeight: 600, marginBottom: 8 }}>Nothing new yet</p>
+              <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
+                The people you follow haven&apos;t posted recently — and no saved-search matches.
+              </p>
+              <Link href="/dashboard" style={{ display: 'inline-block', padding: '10px 16px', borderRadius: 12, background: '#3293CB', color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+                Browse activities
+              </Link>
+            </div>
+          )}
+        </>
       ) : (
         <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

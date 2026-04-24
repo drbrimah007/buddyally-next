@@ -102,6 +102,12 @@ function activityMatchesFilter(activity: any, filter: Record<string, any>): bool
     const hay = String(activity.title || '').toLowerCase()
     if (!hay.includes(needle)) return false
   }
+  // Tag intersection — saved search with `tags: ['Basketball']` only fires
+  // for activities tagged Basketball.
+  if (Array.isArray(filter?.tags) && filter.tags.length > 0) {
+    const aTags: string[] = Array.isArray(activity.tags) ? activity.tags : []
+    if (!aTags.some((t: string) => filter.tags.includes(t))) return false
+  }
   return true
 }
 

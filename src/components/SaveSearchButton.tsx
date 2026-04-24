@@ -18,6 +18,7 @@ type Filter = {
   free_only?: boolean
   date_from?: string
   date_to?: string
+  tags?: string[]   // canonical tags (see /src/lib/categories.ts)
 }
 
 function suggestName(f: Filter): string {

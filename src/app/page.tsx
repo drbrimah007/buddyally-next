@@ -81,6 +81,15 @@ export default function Home() {
           <Link href="/home" style={{marginTop:'1.2rem',color:'rgba(0,0,0,0.5)',fontSize:'0.85rem',fontWeight:700,textDecoration:'none',animation:'fadeIn 0.5s 1.2s both'}}>
             Skip intro &rarr;
           </Link>
+
+          {/* Quiet log-in link for returning users — small, low-key,
+              doesn't compete with the primary CTA above. */}
+          <p style={{marginTop:'0.65rem',color:'rgba(0,0,0,0.55)',fontSize:'0.85rem',fontWeight:600,animation:'fadeIn 0.5s 1.4s both'}}>
+            Already a member?{' '}
+            <Link href="/login" style={{color:'var(--blue)',fontWeight:800,textDecoration:'underline',textUnderlineOffset:'3px'}}>
+              Log in
+            </Link>
+          </p>
         </section>
       </main>
     </>

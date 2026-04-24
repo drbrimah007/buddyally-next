@@ -10,8 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ToastProvider'
 import { searchPlaces as searchPlacesApi, pickPlace, renderPlaceLabel } from '@/lib/geo'
 import MapPicker from '@/components/MapPicker'
-
-const CATEGORIES = ['Travel','Local Activities','Sports / Play','Learning','Help / Support','Events','Outdoor','Gaming','Wellness','Ride Share','Dog Walk','Babysit','Party','Pray','Others']
+import { CATEGORIES, tagsForCategory, MAX_TAGS, normalizeLegacyCategory } from '@/lib/categories'
 const TIMING_OPTIONS = ['TBA','Anytime','This week','Weekends','Evenings','Daytime','This month','Not Set']
 const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
 
@@ -45,6 +44,7 @@ type InitialActivity = {
   availability_label?: string | null
   recurrence_freq?: string | null
   max_participants?: number | null
+  tags?: string[] | null
   tip_enabled?: boolean | null
   contribution_type?: string | null
   contribution_note?: string | null
@@ -81,7 +81,7 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
     }
     return {
       title: a.title || '',
-      category: a.category || CATEGORIES[0],
+      category: normalizeLegacyCategory(a.category) || CATEGORIES[0],
       description: a.description || '',
       location: a.location_display || a.location_text || '',
       locationMode: a.location_mode || 'area',
@@ -100,18 +100,20 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
       maxParticipants: String(a.max_participants ?? 6),
       contributionType: (a.contribution_type as ContributionType) || (a.tip_enabled ? 'tips' : 'free'),
       contributionNote: a.contribution_note || '',
+      tags: (a.tags || []) as string[],
       venueNote: '',
     }
   }
 
   const blankForm = {
-    title: '', category: CATEGORIES[0], description: '', location: '', locationMode: 'area',
+    title: '', category: CATEGORIES[0] as string, description: '', location: '', locationMode: 'area',
     timingMode: 'one_time', date: '', time: '', startDate: '', endDate: '', startTime: '', endTime: '',
     availLabel: 'TBA', availNote: '',
     recurFreq: 'weekly', recurTime: '', recurDays: [] as string[],
     maxParticipants: '6',
     contributionType: 'free' as ContributionType,
     contributionNote: '',
+    tags: [] as string[],
     venueNote: '',
   }
 
@@ -235,6 +237,7 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
       tip_enabled: form.contributionType === 'tips',
       contribution_type: form.contributionType,
       contribution_note: form.contributionNote?.trim() || null,
+      tags: (form.tags || []).slice(0, MAX_TAGS),
       location_lat: lat, location_lng: lng, state_code: stateCode,
       cover_image_url: coverUrl,
     }
@@ -291,9 +294,57 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
 
           <div>
             <label style={labelStyle}>Category *</label>
-            <select value={form.category} onChange={e => update('category', e.target.value)} style={selectStyle}>
+            <select value={form.category} onChange={e => {
+              update('category', e.target.value)
+              // Clear tags when category changes — old tags don't belong
+              // to the new category's palette.
+              update('tags', [])
+            }} style={selectStyle}>
               {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
+          </div>
+
+          {/* Tags — pick up to 3 from the category's palette. Powers
+              For You matching (interests ∩ activity tags) and the
+              secondary tag-filter row on Explore. */}
+          <div>
+            <label style={labelStyle}>
+              Tags <span style={{ fontWeight: 500, color: '#9CA3AF', textTransform: 'none', letterSpacing: 0 }}>pick up to {MAX_TAGS}</span>
+            </label>
+            <p style={{ fontSize: 12, color: '#6B7280', margin: '0 0 8px', lineHeight: 1.5 }}>
+              Help the right people find this. Tags are how someone searching for "{tagsForCategory(form.category)[0] || form.category}" lands on your activity.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {tagsForCategory(form.category).map(tag => {
+                const selected = (form.tags || []).includes(tag)
+                const atLimit = (form.tags || []).length >= MAX_TAGS
+                const disabled = !selected && atLimit
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => {
+                      const cur = form.tags || []
+                      const next = selected ? cur.filter(t => t !== tag) : [...cur, tag]
+                      update('tags', next)
+                    }}
+                    style={{
+                      padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700,
+                      cursor: disabled ? 'not-allowed' : 'pointer',
+                      ...(selected
+                        ? { background: '#3293CB', color: '#fff', border: '1px solid #3293CB' }
+                        : { background: '#F3F4F6', color: disabled ? '#9CA3AF' : '#374151', border: '1px solid #E5E7EB', opacity: disabled ? 0.6 : 1 }),
+                    }}
+                  >
+                    {tag}
+                  </button>
+                )
+              })}
+            </div>
+            {(form.tags || []).length >= MAX_TAGS && (
+              <p style={{ fontSize: 11, color: '#9CA3AF', marginTop: 6 }}>Max {MAX_TAGS} tags reached. Tap a selected one to swap.</p>
+            )}
           </div>
 
           <div>
@@ -311,23 +362,51 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
             </label>
           </div>
 
-          {/* Location with autocomplete */}
+          {/* ── 📍 Where does this happen? ────────────────────────────
+              Mode buttons are radio-style pills (Local/Statewide/Nationwide
+              /Remote) — clearer than a dropdown. Map only shows for Local;
+              other modes don't need a pin. */}
           <div style={sectionCard}>
-            <label style={labelStyle}>Where does this happen? *</label>
-            <select value={form.locationMode} onChange={e => update('locationMode', e.target.value)} style={{ ...selectStyle, marginBottom: 8 }}>
-              <option value="area">City or area</option>
-              <option value="precise_place">Specific place</option>
-              <option value="statewide">Statewide</option>
-              <option value="nationwide">Nationwide</option>
-              <option value="remote">Remote / online</option>
-            </select>
-            {form.locationMode !== 'remote' && form.locationMode !== 'nationwide' && (
+            <label style={{ ...labelStyle, fontSize: 14, marginBottom: 4 }}>📍 Where does this happen? *</label>
+            <p style={{ fontSize: 12, color: '#6B7280', margin: '0 0 12px', lineHeight: 1.5 }}>
+              Pick a scope. For local activities, drop a pin so people nearby can find this.
+            </p>
+
+            {/* Mode pills */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+              {[
+                { value: 'area',       label: 'Local / Nearby' },
+                { value: 'statewide',  label: 'Statewide' },
+                { value: 'nationwide', label: 'Nationwide' },
+                { value: 'remote',     label: 'Remote / Online' },
+              ].map(m => {
+                const selected = form.locationMode === m.value
+                return (
+                  <button
+                    key={m.value}
+                    type="button"
+                    onClick={() => update('locationMode', m.value)}
+                    style={{
+                      padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
+                      fontSize: 13, fontWeight: 700, lineHeight: 1.2,
+                      ...(selected
+                        ? { background: '#EFF6FF', border: '2px solid #3293CB', color: '#0652B7' }
+                        : { background: '#fff', border: '1px solid #E5E7EB', color: '#111827' }),
+                    }}
+                  >
+                    {m.label}
+                    {m.hint && <span style={{ display: 'block', fontSize: 10, fontWeight: 600, color: selected ? '#3293CB' : '#9CA3AF', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>{m.hint}</span>}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Local / Nearby — full search + map picker */}
+            {form.locationMode === 'area' && (
               <>
-                {/* Wrap the search input + dropdown in a relative container so
-                    the autocomplete menu positions correctly regardless of
-                    whether the venue details block is below it. */}
-                <div style={{ position: 'relative' }}>
-                  <input value={form.location} onChange={e => searchLocation(e.target.value)} style={inputStyle} placeholder="Search for a city or place..." />
+                <label style={labelStyle}>Search a place</label>
+                <div style={{ position: 'relative', marginBottom: 12 }}>
+                  <input value={form.location} onChange={e => searchLocation(e.target.value)} style={inputStyle} placeholder="City, neighborhood, or venue…" />
                   {showPlaces && placeResults.length > 0 && (
                     <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 999, maxHeight: 200, overflowY: 'auto' }}>
                       {placeResults.map((p: any, i: number) => {
@@ -344,16 +423,17 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
                     </div>
                   )}
                 </div>
-                {placeSelected && <p style={{ fontSize: 12, color: '#059669', marginTop: 6, fontWeight: 600 }}>✓ Used for search and distance</p>}
 
-                {/* Real map tag — drop/drag a pin to persist exact coordinates.
-                    City search above is a shortcut; the pin is the source of truth
-                    for everything geo-filtered (radius search, map-pin rendering,
-                    distance from viewer). */}
-                <div style={{ marginTop: 14 }}>
-                  <label style={labelStyle}>Tag this activity on the map</label>
-                  <p style={{ fontSize: 12, color: '#6B7280', margin: '0 0 8px', lineHeight: 1.5 }}>
-                    Drop a pin so people nearby can find this activity.
+                {/* Map is OPTIONAL — collapsed by default. The city search
+                    above already gives us coords. The map is for users who
+                    want to fine-tune to a specific spot (a park entrance, a
+                    venue side door). Most users skip it. */}
+                <details style={{ marginTop: 4 }}>
+                  <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#3293CB', padding: '8px 0', listStyle: 'none' }}>
+                    📍 Refine on map <span style={{ fontWeight: 500, color: '#9CA3AF' }}>· optional</span>
+                  </summary>
+                  <p style={{ fontSize: 12, color: '#6B7280', margin: '4px 0 8px', lineHeight: 1.5 }}>
+                    Tap or drag the pin if you want a more exact spot than the search picked. Skip this if the city/area is enough.
                   </p>
                   <MapPicker
                     lat={selectedCoords?.lat ?? null}
@@ -362,18 +442,82 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
                     onPick={(place) => {
                       setSelectedCoords({ lat: place.lat, lon: place.lng, state: place.stateCode || undefined })
                       setPlaceSelected(true)
-                      // Only auto-fill the display when the user hasn't already
-                      // typed/picked one — don't stomp their existing label.
                       if (!form.location) update('location', place.display)
                     }}
                   />
-                </div>
+                </details>
 
-                <div style={{ marginTop: 10 }}>
+                <div style={{ marginTop: 12 }}>
                   <label style={labelStyle}>Venue details <span style={{ fontWeight: 500, color: '#9CA3AF', textTransform: 'none', letterSpacing: 0 }}>optional</span></label>
                   <input value={form.venueNote} onChange={e => update('venueNote', e.target.value)} style={inputStyle} placeholder="Meeting point, room number, etc." />
                 </div>
               </>
+            )}
+
+            {/* Statewide — pick which state, no pin needed */}
+            {form.locationMode === 'statewide' && (
+              <>
+                <label style={labelStyle}>Which state?</label>
+                <div style={{ position: 'relative' }}>
+                  <input value={form.location} onChange={e => searchLocation(e.target.value)} style={inputStyle} placeholder="Search a state or major city in it…" />
+                  {showPlaces && placeResults.length > 0 && (
+                    <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 999, maxHeight: 200, overflowY: 'auto' }}>
+                      {placeResults.map((p: any, i: number) => {
+                        const lbl = renderPlaceLabel(p)
+                        return (
+                          <div key={i} onClick={() => selectPlace(p)} style={{ padding: '10px 14px', fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #f3f4f6', color: '#111827' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
+                            onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
+                            <div style={{ fontWeight: 600 }}>{lbl.primary}</div>
+                            {lbl.secondary && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{lbl.secondary}</div>}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+                <p style={{ fontSize: 12, color: '#6B7280', marginTop: 8, lineHeight: 1.5 }}>
+                  This activity covers the whole state. People in that state will see it without distance.
+                </p>
+              </>
+            )}
+
+            {/* Nationwide — pick which country, no pin needed */}
+            {form.locationMode === 'nationwide' && (
+              <>
+                <label style={labelStyle}>Which country?</label>
+                <div style={{ position: 'relative' }}>
+                  <input value={form.location} onChange={e => searchLocation(e.target.value)} style={inputStyle} placeholder="Search a country…" />
+                  {showPlaces && placeResults.length > 0 && (
+                    <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 999, maxHeight: 200, overflowY: 'auto' }}>
+                      {placeResults.map((p: any, i: number) => {
+                        const lbl = renderPlaceLabel(p)
+                        return (
+                          <div key={i} onClick={() => selectPlace(p)} style={{ padding: '10px 14px', fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #f3f4f6', color: '#111827' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
+                            onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
+                            <div style={{ fontWeight: 600 }}>{lbl.primary}</div>
+                            {lbl.secondary && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{lbl.secondary}</div>}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+                <p style={{ fontSize: 12, color: '#6B7280', marginTop: 8, lineHeight: 1.5 }}>
+                  This activity is open to anyone in that country. No pin needed.
+                </p>
+              </>
+            )}
+
+            {/* Remote — no map, no place needed */}
+            {form.locationMode === 'remote' && (
+              <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 10, padding: 14 }}>
+                <p style={{ fontSize: 13, color: '#374151', fontWeight: 600, marginBottom: 4 }}>🌐 Remote / Online</p>
+                <p style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.5 }}>
+                  This activity happens online — no physical location needed. People anywhere can join.
+                </p>
+              </div>
             )}
           </div>
 

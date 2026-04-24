@@ -86,7 +86,14 @@ export default function SignupPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', padding: '16px', fontFamily: "'Inter', -apple-system, sans-serif" }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB', padding: '16px', fontFamily: "'Inter', -apple-system, sans-serif" }}>
+      {/* Sits ABOVE the signup card so returning members see it first. */}
+      <p style={{ width: '100%', maxWidth: 520, textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#4B5563', marginBottom: 12 }}>
+        Have an account?{' '}
+        <Link href="/login" style={{ color: '#3293CB', fontWeight: 800, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+          Log in
+        </Link>
+      </p>
       <div style={{ background: '#fff', borderRadius: 20, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: 32, width: '100%', maxWidth: 520 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>Join BuddyAlly</h1>
 
