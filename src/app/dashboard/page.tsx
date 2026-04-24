@@ -172,6 +172,32 @@ export default function ExplorePage() {
   // Points at the noticeboard card so clicking a pick in the list below
   // scrolls the card into view (desktop + mobile).
   const noticeboardRef = useRef<HTMLDivElement | null>(null)
+  // Wraps the city input + autocomplete dropdown so we can detect clicks
+  // outside it and dismiss the dropdown.
+  const citySearchRef = useRef<HTMLDivElement | null>(null)
+
+  // Outside-click + Escape closes the city autocomplete dropdown so it
+  // doesn't sit open after the user moves on.
+  useEffect(() => {
+    if (!showPlaces) return
+    function onPointer(e: MouseEvent | TouchEvent) {
+      const t = e.target as Node | null
+      if (citySearchRef.current && t && !citySearchRef.current.contains(t)) {
+        setShowPlaces(false)
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setShowPlaces(false)
+    }
+    document.addEventListener('mousedown', onPointer)
+    document.addEventListener('touchstart', onPointer)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onPointer)
+      document.removeEventListener('touchstart', onPointer)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [showPlaces])
 
   // URL-param hydration — runs once so we don't stomp on user edits.
   // Powers the "Run now" button from /dashboard/saved-searches.
@@ -579,7 +605,7 @@ export default function ExplorePage() {
           <div className="flex flex-wrap items-center gap-3">
             {/* City/area — flex-grow so it takes the most room on desktop.
                 h-14 matches siblings' effective height so nothing looks thinner. */}
-            <div className="relative flex-1 min-w-[240px]">
+            <div ref={citySearchRef} className="relative flex-1 min-w-[240px]">
               <div className="flex h-14 items-center gap-3 rounded-2xl border border-black/10 bg-[#F8FAFC] px-4 text-slate-500 focus-within:border-[#3293CB] focus-within:ring-2 focus-within:ring-[#3293CB]/20">
                 <span className="text-slate-400 shrink-0"><IconLocation /></span>
                 {/* h-full + border-0 so the input fills the container's

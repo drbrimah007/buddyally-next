@@ -62,20 +62,25 @@ body {
   }
 }
 
-input[type="text"], input[type="email"], input[type="password"],
-input[type="number"], input[type="tel"], input[type="date"],
-input[type="time"], textarea, select {
-  color: var(--text);
-  background: #fff;
-  font-family: inherit;
-}
+/* Layered so Tailwind utilities (`bg-transparent`, `border-0`, `shadow-none`,
+   `focus:ring-0`) consistently win — opt-in inputs that want this default
+   styling can; opt-out inputs (Explore search bar) just get utility-only. */
+@layer base {
+  input[type="text"], input[type="email"], input[type="password"],
+  input[type="number"], input[type="tel"], input[type="date"],
+  input[type="time"], textarea, select {
+    color: var(--text);
+    background: #fff;
+    font-family: inherit;
+  }
 
-input:focus, textarea:focus, select:focus {
-  border-color: var(--sky);
-  box-shadow: 0 0 0 3px rgba(50,147,203,0.1);
-  outline: none;
-}
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--sky);
+    box-shadow: 0 0 0 3px rgba(50,147,203,0.1);
+    outline: none;
+  }
 
-input::placeholder, textarea::placeholder {
-  color: #9CA3AF;
+  input::placeholder, textarea::placeholder {
+    color: #9CA3AF;
+  }
 }
