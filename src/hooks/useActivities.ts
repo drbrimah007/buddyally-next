@@ -10,12 +10,15 @@ export function useActivities() {
 
   const fetchActivities = useCallback(async () => {
     setLoading(true)
+    // Bumped from 50 → 500. The 50 cap was silently truncating the feed
+    // once the DB grew past ~50 open activities. Filtering happens client-side
+    // (city, radius, country, category) so we need the full dataset on hand.
     const { data, error } = await supabase
       .from('activities')
       .select('*, host:profiles!created_by(id, first_name, last_name, rating_avg, rating_count, verified_selfie, avatar_url, city, home_display_name), participants:activity_participants(user_id)')
       .eq('status', 'open')
       .order('date', { ascending: true })
-      .limit(50)
+      .limit(500)
 
     if (!error && data) setActivities(data)
     setLoading(false)

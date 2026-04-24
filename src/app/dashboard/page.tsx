@@ -175,6 +175,8 @@ export default function ExplorePage() {
 
   // URL-param hydration — runs once so we don't stomp on user edits.
   // Powers the "Run now" button from /dashboard/saved-searches.
+  // Also async-geocodes the city string so cityCoords populates (required
+  // for Statewide / Nationwide filters).
   const hydratedFromParams = useRef(false)
   useEffect(() => {
     if (hydratedFromParams.current || !searchParams) return
@@ -186,7 +188,26 @@ export default function ExplorePage() {
     let touched = false
     if (q) { setSearch(q); touched = true }
     if (cat && cat !== 'all') { setCategory(cat); setShowAll(false); touched = true }
-    if (city) { setCityInput(city); touched = true }
+    if (city) {
+      setCityInput(city)
+      touched = true
+      // Saved searches only store the city NAME, not coords. Geocode async
+      // so Statewide/Nationwide scope filters have a state + country to
+      // compare against.
+      ;(async () => {
+        try {
+          const results = await searchPlacesApi(city, 1)
+          if (results && results[0]) {
+            const pick = pickPlace(results[0])
+            setCityCoords({
+              lat: pick.lat, lon: pick.lng,
+              state: pick.stateCode || undefined,
+              country: pick.countryCode || undefined,
+            })
+          }
+        } catch {}
+      })()
+    }
     if (rad) { const n = Number(rad); if (!Number.isNaN(n)) { setRadius(n); touched = true } }
     if (free === '1') { /* is_free is not a base filter here; saved in filter_json — leave as marker */ touched = true }
     if (touched) hydratedFromParams.current = true
@@ -198,6 +219,11 @@ export default function ExplorePage() {
   }, [search, category, radius, cityCoords?.lat, cityCoords?.lon, showAll])
 
   useEffect(() => {
+    // If the page was opened via a Saved Search "Run now" URL (which
+    // already set city/radius/q/category in the hydration effect above),
+    // DON'T stomp it with cached or profile values. URL wins.
+    if (hydratedFromParams.current) return
+
     let didSet = false
     const cached = sessionStorage.getItem('ba_city')
     const cachedCoords = sessionStorage.getItem('ba_coords')
@@ -268,14 +294,17 @@ export default function ExplorePage() {
       return
     }
 
+    // Bump limit to 10 and debounce fast so short partial queries
+    // ("Brit", "Virgin", "Abu") surface a proper suggestion list rather
+    // than requiring an exact match.
     searchTimeout.current = setTimeout(async () => {
-      const data = await searchPlacesApi(val, 5)
+      const data = await searchPlacesApi(val, 10)
       setPlaceResults(data)
       setShowPlaces(data.length > 0)
-    }, 300)
+    }, 200)
   }
 
-  function saveExploreState(display: string, lat: number | null, lon: number | null, rad: number) {
+  function saveExploreState(display: string, lat: number | null, lon: number | null, rad: number, state?: string, country?: string) {
     if (!user) return
 
     const updates: any = { explore_display_name: display, explore_radius_miles: rad }
@@ -296,7 +325,9 @@ export default function ExplorePage() {
     sessionStorage.setItem('ba_city', display)
 
     if (lat != null && lon != null) {
-      sessionStorage.setItem('ba_coords', JSON.stringify({ lat, lon }))
+      // Cache state + country too so Statewide / Nationwide filters survive
+      // page reloads (rehydrated in the init effect).
+      sessionStorage.setItem('ba_coords', JSON.stringify({ lat, lon, state: state || null, country: country || null }))
     } else {
       sessionStorage.removeItem('ba_coords')
     }
@@ -309,7 +340,22 @@ export default function ExplorePage() {
     setUserStateCode(pick.stateCode || '')
     setPlaceResults([])
     setShowPlaces(false)
-    saveExploreState(pick.display, pick.lat, pick.lng, radius)
+
+    // If the selected place is COUNTRY-level (Nominatim returned a country
+    // boundary, no state), auto-bump radius to Nationwide so the user
+    // doesn't sit inside a 5mi ring around a country centroid and see
+    // nothing. Detection: country code present, no state code, AND
+    // Nominatim's place type indicates a country.
+    const isCountry =
+      !!pick.countryCode &&
+      !pick.stateCode &&
+      ((place.type === 'administrative' && place.class === 'boundary') ||
+       place.addresstype === 'country' ||
+       place.type === 'country')
+    const effectiveRadius = isCountry ? 0 : radius
+    if (isCountry && radius !== 0) setRadius(0)
+
+    saveExploreState(pick.display, pick.lat, pick.lng, effectiveRadius, pick.stateCode, pick.countryCode)
   }
 
   function clearCity() {
@@ -342,7 +388,7 @@ export default function ExplorePage() {
           setCityCoords({ lat: latitude, lon: longitude, state: pick.stateCode || undefined, country: pick.countryCode || undefined })
           setUserStateCode(pick.stateCode || '')
           setCityInput(pick.display)
-          saveExploreState(pick.display, latitude, longitude, radius)
+          saveExploreState(pick.display, latitude, longitude, radius, pick.stateCode, pick.countryCode)
         } else {
           setCityCoords({ lat: latitude, lon: longitude })
           setCityInput('Current Location')
@@ -602,13 +648,13 @@ export default function ExplorePage() {
               {gpsLoading ? 'Locating…' : 'Use GPS'}
             </button>
 
-            <div className="flex h-14 flex-1 min-w-[220px] items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 text-slate-500">
-              <IconSearch />
+            <div className="flex h-14 flex-1 min-w-[220px] items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 text-slate-500 focus-within:border-[#3293CB] focus-within:ring-2 focus-within:ring-[#3293CB]/20">
+              <span className="shrink-0"><IconSearch /></span>
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search activities…"
-                className="w-full bg-transparent text-sm text-slate-900 outline-none"
+                className="h-full w-full flex-1 bg-transparent text-base font-medium text-slate-900 border-0 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 placeholder:font-normal"
               />
             </div>
 
