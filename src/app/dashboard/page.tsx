@@ -526,12 +526,15 @@ export default function ExplorePage() {
                 h-14 matches siblings' effective height so nothing looks thinner. */}
             <div className="relative flex-1 min-w-[240px]">
               <div className="flex h-14 items-center gap-3 rounded-2xl border border-black/10 bg-[#F8FAFC] px-4 text-slate-500 focus-within:border-[#3293CB] focus-within:ring-2 focus-within:ring-[#3293CB]/20">
-                <span className="text-slate-400"><IconLocation /></span>
+                <span className="text-slate-400 shrink-0"><IconLocation /></span>
+                {/* h-full + border-0 so the input fills the container's
+                    entire height edge-to-edge — no tiny inset field. The
+                    parent owns the focus ring via focus-within. */}
                 <input
                   value={cityInput}
                   onChange={(e) => searchPlaces(e.target.value)}
                   placeholder="City, area, or country"
-                  className="w-full bg-transparent text-base font-medium text-slate-900 outline-none placeholder:text-slate-400 placeholder:font-normal"
+                  className="h-full w-full flex-1 bg-transparent text-base font-medium text-slate-900 border-0 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-400 placeholder:font-normal"
                 />
                 {cityInput && (
                   <button
@@ -539,7 +542,7 @@ export default function ExplorePage() {
                     onClick={clearCity}
                     aria-label="Clear city"
                     title="Clear"
-                    className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-600 text-xl font-bold leading-none hover:bg-slate-200 hover:text-slate-900 transition"
+                    className="shrink-0 grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-600 text-xl font-bold leading-none hover:bg-slate-200 hover:text-slate-900 transition"
                   >
                     ×
                   </button>
