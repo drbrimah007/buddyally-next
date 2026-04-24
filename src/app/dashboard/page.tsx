@@ -441,15 +441,18 @@ export default function ExplorePage() {
       <style
         dangerouslySetInnerHTML={{
           __html: `
-            .ba-grid{display:grid;grid-template-columns:390px minmax(0,1fr);gap:18px;align-items:start}
+            /* Two-column layout only on wide desktops — below 1350px we stack
+               so the map card doesn't get crushed. Main column has a 760px
+               floor so cards + pins keep breathing room. */
+            .ba-grid{display:grid;grid-template-columns:430px minmax(760px,1fr);gap:24px;align-items:start}
             .activity-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-            @media(max-width:1180px){.ba-grid{grid-template-columns:1fr}.activity-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+            @media(max-width:1350px){.ba-grid{grid-template-columns:1fr}.activity-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
             @media(max-width:720px){.activity-grid{grid-template-columns:1fr}.filter-scroll{overflow-x:auto;flex-wrap:nowrap!important;padding-bottom:4px}.filter-scroll>*{white-space:nowrap}}
           `,
         }}
       />
 
-      <div className="mx-auto max-w-[1440px]">
+      <div className="mx-auto max-w-[1600px]">
         <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="text-[13px] font-black uppercase tracking-[0.2em] text-[#3293CB]">buddyally activities</div>
@@ -860,15 +863,17 @@ export default function ExplorePage() {
                           )}
 
                           <div className="flex flex-1 flex-col p-4">
-                            <div className="mb-3 flex items-start justify-between gap-2">
-                              <h3 className="text-[17px] font-black leading-snug tracking-[-0.03em]">{a.title}</h3>
-                              <span
-                                className="shrink-0 rounded-full px-3 py-1 text-[11px] font-black"
-                                style={{ background: color.bg, color: color.text }}
-                              >
-                                {a.category}
-                              </span>
-                            </div>
+                            {/* Category pill sits on its own line above the
+                                title so the title can use the full card width
+                                and doesn't get squeezed by the pill. */}
+                            <span
+                              className="mb-2 self-start rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.04em]"
+                              style={{ background: color.bg, color: color.text }}
+                            >
+                              {a.category}
+                            </span>
+
+                            <h3 className="mb-2 text-[17px] font-black leading-snug tracking-[-0.03em]">{a.title}</h3>
 
                             <p className="text-[13px] leading-6 text-slate-500">
                               {a.location_mode === 'remote' ? 'Remote / Online' : a.location_display || a.location_text}

@@ -52,8 +52,14 @@ body {
   overflow-x: hidden;
 }
 
-h1, h2, h3, h4, h5, h6, p, span, div, label, a, button {
-  color: inherit;
+/* Keep this in @layer base so Tailwind utilities like `text-white`
+   still win. Without the layer, an un-layered element rule here would
+   outrank every layered utility in v4's cascade, quietly forcing dark
+   text on blue buttons and on the dark noticeboard card. */
+@layer base {
+  h1, h2, h3, h4, h5, h6, p, span, div, label, a, button {
+    color: inherit;
+  }
 }
 
 input[type="text"], input[type="email"], input[type="password"],
