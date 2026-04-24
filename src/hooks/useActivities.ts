@@ -29,7 +29,19 @@ export function useActivities() {
       .insert({ ...activity, created_by: userId })
       .select()
       .single()
-    if (!error) await fetchActivities() // Refresh immediately
+    if (!error) {
+      await fetchActivities() // Refresh immediately
+      // Fire-and-forget: notify users whose saved searches match this new
+      // activity (push + email + in-app). Never blocks create UX — if the
+      // endpoint errors we just swallow it.
+      if (data?.id) {
+        fetch('/api/saved-search-notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ activity_id: data.id }),
+        }).catch(() => {})
+      }
+    }
     return { data, error: error?.message }
   }
 

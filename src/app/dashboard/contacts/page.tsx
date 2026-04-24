@@ -67,13 +67,13 @@ export default function ContactsPage() {
     const { error } = await supabase.from('user_contacts')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', c.id)
-    if (error) { toastError(error.message || 'Could not update contact.'); return }
+    if (error) { toastError(error.message || 'Could not update ally.'); return }
     success(status === 'active' ? 'Restored' : status === 'archived' ? 'Archived' : 'Blocked')
     loadAll()
   }
 
   async function deleteContact(c: Contact) {
-    if (!confirm('Delete this contact?')) return
+    if (!confirm('Delete this ally?')) return
     const { error } = await supabase.from('user_contacts').delete().eq('id', c.id)
     if (error) { toastError(error.message || 'Could not delete.'); return }
     success('Deleted')
@@ -85,7 +85,7 @@ export default function ContactsPage() {
       .update({ status })
       .eq('id', r.id)
     if (error) { toastError(error.message || 'Could not respond.'); return }
-    success(status === 'accepted' ? 'Accepted — added to contacts' : status === 'denied' ? 'Declined' : 'Blocked')
+    success(status === 'accepted' ? 'Accepted — added to allies' : status === 'denied' ? 'Declined' : 'Blocked')
     loadAll()
   }
 
@@ -130,13 +130,13 @@ export default function ContactsPage() {
       `}} />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>My Contacts</h2>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>My Allies</h2>
       </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, background: '#F3F4F6', padding: 4, borderRadius: 12, width: 'fit-content' }}>
         {([
-          { id: 'contacts' as Tab, label: `Contacts (${contacts.filter(c => c.status === 'active').length})` },
+          { id: 'contacts' as Tab, label: `Allies (${contacts.filter(c => c.status === 'active').length})` },
           { id: 'requests' as Tab, label: `Requests${pendingIn.length > 0 ? ` · ${pendingIn.length}` : ''}` },
           { id: 'sent' as Tab, label: `Sent${pendingOut.length > 0 ? ` · ${pendingOut.length}` : ''}` },
         ]).map(t => (
@@ -169,10 +169,10 @@ export default function ContactsPage() {
           ) : pageItems.length === 0 ? (
             <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 40, textAlign: 'center' }}>
               <p style={{ fontSize: 32, marginBottom: 12 }}>👥</p>
-              <p style={{ fontWeight: 600, marginBottom: 8 }}>No {filter} contacts</p>
+              <p style={{ fontWeight: 600, marginBottom: 8 }}>No {filter} allies</p>
               <p style={{ fontSize: 14, color: '#6B7280' }}>
                 {filter === 'active' ? 'Start a message with someone, or send a link-up request from their profile.' :
-                 filter === 'archived' ? 'Archived contacts stay out of your main list but aren\'t blocked.' :
+                 filter === 'archived' ? 'Archived allies stay out of your main list but aren\'t blocked.' :
                  'Blocked users can\'t send you new requests.'}
               </p>
             </div>

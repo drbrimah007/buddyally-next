@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ToastProvider'
 import Reviews, { Stars } from '@/components/Reviews'
+import FollowButton from '@/components/FollowButton'
 
 export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>()
@@ -161,6 +162,8 @@ export default function UserProfilePage() {
           {!isSelf && (
             <>
               <button onClick={sendMessage} style={{ padding: '10px 16px', borderRadius: 12, border: 'none', background: '#3293CB', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Message</button>
+              {/* One-way follow — puts this user's posts/activities in your Feed. */}
+              <FollowButton targetUserId={id} />
               {/* Link-up — only when we're not already connected and no request in flight */}
               {relation === 'none' && (
                 <button onClick={linkUp} disabled={linkingUp} style={{ padding: '10px 16px', borderRadius: 12, border: '1px solid #3293CB', background: '#fff', color: '#3293CB', fontSize: 13, fontWeight: 600, cursor: linkingUp ? 'wait' : 'pointer', opacity: linkingUp ? 0.6 : 1 }}>
@@ -174,7 +177,7 @@ export default function UserProfilePage() {
                 <Link href="/dashboard/contacts" style={{ padding: '10px 16px', borderRadius: 12, border: '1px solid #3293CB', background: '#EFF6FF', color: '#3293CB', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Respond to request</Link>
               )}
               {relation === 'contact' && (
-                <span style={{ padding: '10px 16px', borderRadius: 12, border: '1px solid #BBF7D0', background: '#F0FDF4', color: '#166534', fontSize: 13, fontWeight: 600 }}>✓ Contact</span>
+                <span style={{ padding: '10px 16px', borderRadius: 12, border: '1px solid #BBF7D0', background: '#F0FDF4', color: '#166534', fontSize: 13, fontWeight: 600 }}>✓ Ally</span>
               )}
               <button onClick={share} style={{ padding: '10px 16px', borderRadius: 12, border: '1px solid #E5E7EB', background: '#fff', color: '#111827', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Share</button>
               <button onClick={reportUser} style={{ padding: '10px 16px', borderRadius: 12, border: '1px solid #FECACA', background: '#fff', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Report</button>
