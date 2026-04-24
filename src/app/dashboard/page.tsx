@@ -488,117 +488,119 @@ export default function ExplorePage() {
           </div>
         </header>
 
-        <div className="ba-grid">
-          <aside className="space-y-4">
-            <section className="rounded-[30px] bg-white p-5 shadow-sm ring-1 ring-black/5">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Area search</div>
-                  <div className="mt-1 text-xl font-black tracking-[-0.04em]">Filter the board</div>
-                </div>
-
-                <div className="rounded-full bg-[#EEF8FE] px-3 py-1 text-xs font-bold text-[#197BB8]">
-                  {withDistance.length} found
-                </div>
-              </div>
-
-              <div className="relative">
-                <div className="flex h-12 items-center gap-3 rounded-2xl border border-black/10 bg-[#F8FAFC] px-4 text-slate-500">
-                  <IconLocation />
-
-                  <input
-                    value={cityInput}
-                    onChange={(e) => searchPlaces(e.target.value)}
-                    placeholder="City or area"
-                    className="w-full bg-transparent text-sm text-slate-900 outline-none"
-                  />
-
-                  {cityInput && (
-                    <button className="text-lg text-slate-400" onClick={clearCity}>
-                      ×
-                    </button>
-                  )}
-                </div>
-
-                {showPlaces && placeResults.length > 0 && (
-                  <div className="absolute left-0 right-0 top-[54px] z-40 max-h-64 overflow-y-auto rounded-2xl border border-black/10 bg-white shadow-xl">
-                    {placeResults.map((p: any, i: number) => {
-                      const lbl = renderPlaceLabel(p)
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => selectPlace(p)}
-                          className="block w-full border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50"
-                        >
-                          <div className="text-sm font-bold text-slate-900">{lbl.primary}</div>
-                          {lbl.secondary && <div className="mt-1 text-xs text-slate-500">{lbl.secondary}</div>}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
-                <select
-                  value={radius}
-                  onChange={(e) => setRadius(parseFloat(e.target.value))}
-                  className="h-11 rounded-2xl border border-black/10 bg-white px-3 text-sm font-semibold outline-none"
-                >
-                  <option value={0.3}>2 blocks</option>
-                  <option value={0.5}>5 min walk</option>
-                  <option value={1}>1 mi</option>
-                  <option value={3}>3 mi</option>
-                  <option value={5}>5 mi</option>
-                  <option value={10}>10 mi</option>
-                  <option value={25}>25 mi</option>
-                  <option value={50}>50 mi</option>
-                  <option value={100}>Statewide</option>
-                  <option value={0}>Nationwide</option>
-                </select>
-
-                <button
-                  onClick={useGPS}
-                  disabled={gpsLoading}
-                  className="h-11 rounded-2xl bg-[#EFF8FE] px-4 text-sm font-black text-[#197BB8] ring-1 ring-[#CFE8F8]"
-                >
-                  {gpsLoading ? 'Locating...' : 'Use GPS'}
-                </button>
-              </div>
-
-              <div className="mt-3 flex h-12 items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 text-slate-500">
-                <IconSearch />
-
+        {/* ── Area Search — full-width control bar ─────────────────────
+            Moved out of the left column so it reads as a GLOBAL control
+            (which it is: changing city/radius/search drives both the
+            Buddy Pulse carousel AND the map + activity feed).
+            On narrow screens the controls wrap naturally. */}
+        <section className="mb-5 rounded-[24px] bg-white p-4 sm:p-5 shadow-sm ring-1 ring-black/5">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* City / area input with autocomplete — takes the most room. */}
+            <div className="relative flex-1 min-w-[220px]">
+              <div className="flex h-12 items-center gap-3 rounded-2xl border border-black/10 bg-[#F8FAFC] px-4 text-slate-500">
+                <IconLocation />
                 <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search activities..."
+                  value={cityInput}
+                  onChange={(e) => searchPlaces(e.target.value)}
+                  placeholder="City or area"
                   className="w-full bg-transparent text-sm text-slate-900 outline-none"
                 />
+                {cityInput && (
+                  <button className="text-lg text-slate-400" onClick={clearCity} aria-label="Clear city">×</button>
+                )}
               </div>
+              {showPlaces && placeResults.length > 0 && (
+                <div className="absolute left-0 right-0 top-[54px] z-40 max-h-64 overflow-y-auto rounded-2xl border border-black/10 bg-white shadow-xl">
+                  {placeResults.map((p: any, i: number) => {
+                    const lbl = renderPlaceLabel(p)
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => selectPlace(p)}
+                        className="block w-full border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50"
+                      >
+                        <div className="text-sm font-bold text-slate-900">{lbl.primary}</div>
+                        {lbl.secondary && <div className="mt-1 text-xs text-slate-500">{lbl.secondary}</div>}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
 
-              {/* Save-this-search — persists the current filter as a named
-                  saved search (see /dashboard/saved-searches). */}
-              <div className="mt-3">
-                <SaveSearchButton
-                  filter={{
-                    q: search || undefined,
-                    category: category !== 'all' ? category : undefined,
-                    city: cityInput || undefined,
-                    radius_mi: radius,
-                  }}
-                />
+            {/* Radius dropdown */}
+            <select
+              value={radius}
+              onChange={(e) => setRadius(parseFloat(e.target.value))}
+              className="h-12 rounded-2xl border border-black/10 bg-white px-3 text-sm font-semibold outline-none"
+              aria-label="Radius"
+            >
+              <option value={0.3}>2 blocks</option>
+              <option value={0.5}>5 min walk</option>
+              <option value={1}>1 mi</option>
+              <option value={3}>3 mi</option>
+              <option value={5}>5 mi</option>
+              <option value={10}>10 mi</option>
+              <option value={25}>25 mi</option>
+              <option value={50}>50 mi</option>
+              <option value={100}>Statewide</option>
+              <option value={0}>Nationwide</option>
+            </select>
+
+            {/* GPS */}
+            <button
+              onClick={useGPS}
+              disabled={gpsLoading}
+              className="h-12 rounded-2xl bg-[#EFF8FE] px-4 text-sm font-black text-[#197BB8] ring-1 ring-[#CFE8F8] whitespace-nowrap"
+            >
+              {gpsLoading ? 'Locating…' : 'Use GPS'}
+            </button>
+
+            {/* Free-text search */}
+            <div className="flex h-12 flex-1 min-w-[220px] items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 text-slate-500">
+              <IconSearch />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search activities…"
+                className="w-full bg-transparent text-sm text-slate-900 outline-none"
+              />
+            </div>
+
+            {/* Save this search */}
+            <div className="flex items-center gap-3 ml-auto">
+              <div className="rounded-full bg-[#EEF8FE] px-3 py-1 text-xs font-bold text-[#197BB8] whitespace-nowrap">
+                {withDistance.length} found
               </div>
-            </section>
+              <SaveSearchButton
+                filter={{
+                  q: search || undefined,
+                  category: category !== 'all' ? category : undefined,
+                  city: cityInput || undefined,
+                  radius_mi: radius,
+                }}
+              />
+            </div>
+          </div>
+        </section>
 
+        <div className="ba-grid">
+          <aside className="space-y-4">
             <section className="rounded-[30px] bg-[#EEE9DF] p-5 shadow-sm ring-1 ring-black/5">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-[10px] sm:text-xs font-black uppercase tracking-[0.18em] text-slate-500">Buddy Pulse</div>
-                  {/* Let the city wrap on narrow screens so the full label
-                      survives; smaller type on mobile to keep the header
-                      compact and leave room for the speed/pause chips. */}
-                  <div className="mt-1 text-base sm:text-2xl font-black tracking-[-0.05em] break-words leading-tight">{cityInput || 'Nearby'}</div>
+                  {/* Clamp to 2 lines + ellipsis. Never mid-word break — the
+                      old `break-words` was forcing "Federal" to wrap to
+                      "Fede\nral" on narrow columns when the header was
+                      otherwise fine. Font scales responsively. */}
+                  <div
+                    className="mt-1 text-base sm:text-lg lg:text-2xl font-black tracking-[-0.05em] leading-tight"
+                    style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'normal', overflowWrap: 'normal' }}
+                    title={cityInput || 'Nearby'}
+                  >
+                    {cityInput || 'Nearby'}
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
@@ -784,10 +786,13 @@ export default function ExplorePage() {
             </section>
           </aside>
 
-          <section className="space-y-4">
-            <div className="relative min-h-[300px] overflow-hidden rounded-[30px] bg-[#EEE9DF] p-5 shadow-sm ring-1 ring-black/5">
+          {/* Right panel — map + activities live in ONE card so the whole
+              right column matches the Buddy Pulse card's height and feel. */}
+          <section className="rounded-[30px] bg-white shadow-sm ring-1 ring-black/5 overflow-hidden">
+            {/* Map strip (top half of the panel) */}
+            <div className="relative p-5 bg-[#EEE9DF]">
               <div
-                className="absolute inset-0 opacity-50"
+                className="absolute inset-0 opacity-50 pointer-events-none"
                 style={{
                   backgroundImage:
                     'radial-gradient(circle at 20% 20%, rgba(50,147,203,0.28), transparent 24%), radial-gradient(circle at 76% 30%, rgba(139,92,246,0.22), transparent 22%), radial-gradient(circle at 54% 76%, rgba(34,197,94,0.2), transparent 24%)',
@@ -848,8 +853,11 @@ export default function ExplorePage() {
                 })()}
               </div>
             </div>
+            {/* End of map strip */}
 
-            <section className="rounded-[30px] bg-white p-5 shadow-sm ring-1 ring-black/5">
+            {/* Activities — bottom half of the right panel, no separate card
+                wrapper. Shares the outer white panel with the map above. */}
+            <div className="p-5">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Explore feed</div>
@@ -1060,7 +1068,8 @@ export default function ExplorePage() {
                   </div>
                 </>
               )}
-            </section>
+            </div>
+            {/* End of activities bottom half (inside the same right panel) */}
           </section>
         </div>
       </div>
