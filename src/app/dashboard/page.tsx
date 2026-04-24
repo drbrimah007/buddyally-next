@@ -517,57 +517,57 @@ export default function ExplorePage() {
             (which it is: changing city/radius/search drives both the
             Buddy Pulse carousel AND the map + activity feed).
             On narrow screens the controls wrap naturally. */}
-        <section className="mb-5 rounded-[24px] bg-white p-4 sm:p-5 shadow-sm ring-1 ring-black/5 space-y-3">
-          {/* Row 1 — City/area input gets the ENTIRE width. Taller, bolder
-              input with a real tappable clear button so it reads as the
-              primary control on the page. */}
-          <div className="relative">
-            <div className="flex h-14 items-center gap-3 rounded-2xl border border-black/10 bg-[#F8FAFC] px-4 text-slate-500 focus-within:border-[#3293CB] focus-within:ring-2 focus-within:ring-[#3293CB]/20">
-              <span className="text-slate-400"><IconLocation /></span>
-              <input
-                value={cityInput}
-                onChange={(e) => searchPlaces(e.target.value)}
-                placeholder="City or area — e.g. Lagos, Abuja, Brooklyn, Atlanta"
-                className="w-full bg-transparent text-base font-medium text-slate-900 outline-none placeholder:text-slate-400 placeholder:font-normal"
-              />
-              {cityInput && (
-                <button
-                  type="button"
-                  onClick={clearCity}
-                  aria-label="Clear city"
-                  title="Clear"
-                  className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-600 text-xl font-bold leading-none hover:bg-slate-200 hover:text-slate-900 transition"
-                >
-                  ×
-                </button>
+        {/* All controls on ONE ROW on desktop; wraps to multiple lines on
+            mobile. The city field is the tallest, full-height input —
+            holds the entire "City, State, Country" label naturally. */}
+        <section className="mb-5 rounded-[24px] bg-white p-4 sm:p-5 shadow-sm ring-1 ring-black/5">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* City/area — flex-grow so it takes the most room on desktop.
+                h-14 matches siblings' effective height so nothing looks thinner. */}
+            <div className="relative flex-1 min-w-[240px]">
+              <div className="flex h-14 items-center gap-3 rounded-2xl border border-black/10 bg-[#F8FAFC] px-4 text-slate-500 focus-within:border-[#3293CB] focus-within:ring-2 focus-within:ring-[#3293CB]/20">
+                <span className="text-slate-400"><IconLocation /></span>
+                <input
+                  value={cityInput}
+                  onChange={(e) => searchPlaces(e.target.value)}
+                  placeholder="City, area, or country"
+                  className="w-full bg-transparent text-base font-medium text-slate-900 outline-none placeholder:text-slate-400 placeholder:font-normal"
+                />
+                {cityInput && (
+                  <button
+                    type="button"
+                    onClick={clearCity}
+                    aria-label="Clear city"
+                    title="Clear"
+                    className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-600 text-xl font-bold leading-none hover:bg-slate-200 hover:text-slate-900 transition"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              {showPlaces && placeResults.length > 0 && (
+                <div className="absolute left-0 right-0 top-[62px] z-40 max-h-64 overflow-y-auto rounded-2xl border border-black/10 bg-white shadow-xl">
+                  {placeResults.map((p: any, i: number) => {
+                    const lbl = renderPlaceLabel(p)
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => selectPlace(p)}
+                        className="block w-full border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50"
+                      >
+                        <div className="text-sm font-bold text-slate-900">{lbl.primary}</div>
+                        {lbl.secondary && <div className="mt-1 text-xs text-slate-500">{lbl.secondary}</div>}
+                      </button>
+                    )
+                  })}
+                </div>
               )}
             </div>
-            {showPlaces && placeResults.length > 0 && (
-              <div className="absolute left-0 right-0 top-[54px] z-40 max-h-64 overflow-y-auto rounded-2xl border border-black/10 bg-white shadow-xl">
-                {placeResults.map((p: any, i: number) => {
-                  const lbl = renderPlaceLabel(p)
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => selectPlace(p)}
-                      className="block w-full border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50"
-                    >
-                      <div className="text-sm font-bold text-slate-900">{lbl.primary}</div>
-                      {lbl.secondary && <div className="mt-1 text-xs text-slate-500">{lbl.secondary}</div>}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
 
-          {/* Row 2 — Radius + GPS + free-text search + found-count + Save.
-              Wraps naturally on narrow viewports. */}
-          <div className="flex flex-wrap items-center gap-3">
             <select
               value={radius}
               onChange={(e) => setRadius(parseFloat(e.target.value))}
-              className="h-12 rounded-2xl border border-black/10 bg-white px-3 text-sm font-semibold outline-none"
+              className="h-14 rounded-2xl border border-black/10 bg-white px-3 text-sm font-semibold outline-none"
               aria-label="Radius"
             >
               <option value={0.3}>2 blocks</option>
@@ -585,12 +585,12 @@ export default function ExplorePage() {
             <button
               onClick={useGPS}
               disabled={gpsLoading}
-              className="h-12 rounded-2xl bg-[#EFF8FE] px-4 text-sm font-black text-[#197BB8] ring-1 ring-[#CFE8F8] whitespace-nowrap"
+              className="h-14 rounded-2xl bg-[#EFF8FE] px-4 text-sm font-black text-[#197BB8] ring-1 ring-[#CFE8F8] whitespace-nowrap"
             >
               {gpsLoading ? 'Locating…' : 'Use GPS'}
             </button>
 
-            <div className="flex h-12 flex-1 min-w-[220px] items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 text-slate-500">
+            <div className="flex h-14 flex-1 min-w-[220px] items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 text-slate-500">
               <IconSearch />
               <input
                 value={search}
@@ -662,7 +662,7 @@ export default function ExplorePage() {
                     title={noticePaused ? 'Click to resume' : 'Click to pause'}
                     aria-pressed={noticePaused}
                   >
-                    {noticePaused ? 'Paused · tap to resume' : 'Blending'}
+                    {noticePaused ? 'Paused' : 'Blending'}
                   </button>
                 </div>
               </div>
