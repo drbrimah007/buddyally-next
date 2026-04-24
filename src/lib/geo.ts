@@ -37,6 +37,7 @@ export type PlacePick = {
   name: string           // "Queens"
   state: string          // "New York"
   stateCode: string      // "NY"
+  countryCode: string    // "US", "NG", "VG" — uppercase ISO-3166-1 alpha-2
   display: string        // "Queens, New York"
   lat: number
   lng: number
@@ -96,10 +97,12 @@ export function formatPlaceDisplay(place: NominatimPlace): string {
 }
 
 export function pickPlace(place: NominatimPlace): PlacePick {
+  const cc = (place.address?.country_code || '').toUpperCase()
   return {
     name: extractPlaceName(place),
     state: extractStateName(place),
     stateCode: extractStateCode(place),
+    countryCode: cc,
     display: formatPlaceDisplay(place),
     lat: typeof place.lat === 'string' ? parseFloat(place.lat) : place.lat,
     lng: typeof place.lon === 'string' ? parseFloat(place.lon) : place.lon,

@@ -143,6 +143,7 @@ export default function MapPicker({ lat, lng, defaultCenter, height = 320, onPic
           name: 'Dropped pin',
           state: '',
           stateCode: '',
+          countryCode: '',
           display: `${la.toFixed(4)}, ${ln.toFixed(4)}`,
           lat: la, lng: ln,
         })

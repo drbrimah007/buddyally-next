@@ -145,7 +145,10 @@ export default function ExplorePage() {
   const [showAll, setShowAll] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [cityInput, setCityInput] = useState('')
-  const [cityCoords, setCityCoords] = useState<{ lat: number; lon: number; state?: string } | null>(null)
+  // Selected location — lat/lon + state/country of THAT place, not the
+  // viewer's device. "Nationwide" scope reads off `country` so selecting
+  // London + Nationwide shows UK activities, not US ones.
+  const [cityCoords, setCityCoords] = useState<{ lat: number; lon: number; state?: string; country?: string } | null>(null)
   const [placeResults, setPlaceResults] = useState<any[]>([])
   const [showPlaces, setShowPlaces] = useState(false)
   const [gpsLoading, setGpsLoading] = useState(false)
@@ -217,7 +220,7 @@ export default function ExplorePage() {
       const ip = await getIpLocation()
       if (!ip) return
       setCityInput(ip.display)
-      setCityCoords({ lat: ip.lat, lon: ip.lng, state: ip.stateCode || undefined })
+      setCityCoords({ lat: ip.lat, lon: ip.lng, state: ip.stateCode || undefined, country: (ip as any).countryCode || undefined })
       setUserStateCode(ip.stateCode || '')
     })()
   }, [profile])
@@ -292,7 +295,7 @@ export default function ExplorePage() {
   function selectPlace(place: any) {
     const pick = pickPlace(place)
     setCityInput(pick.display)
-    setCityCoords({ lat: pick.lat, lon: pick.lng, state: pick.stateCode || undefined })
+    setCityCoords({ lat: pick.lat, lon: pick.lng, state: pick.stateCode || undefined, country: pick.countryCode || undefined })
     setUserStateCode(pick.stateCode || '')
     setPlaceResults([])
     setShowPlaces(false)
@@ -326,7 +329,7 @@ export default function ExplorePage() {
 
         if (place) {
           const pick = pickPlace(place)
-          setCityCoords({ lat: latitude, lon: longitude, state: pick.stateCode || undefined })
+          setCityCoords({ lat: latitude, lon: longitude, state: pick.stateCode || undefined, country: pick.countryCode || undefined })
           setUserStateCode(pick.stateCode || '')
           setCityInput(pick.display)
           saveExploreState(pick.display, latitude, longitude, radius)
@@ -379,6 +382,7 @@ export default function ExplorePage() {
 
   const coords = cityCoords
   const userState = cityCoords?.state
+  const userCountry = cityCoords?.country  // uppercase ISO-3166-1 alpha-2
   const scope: 'nationwide' | 'statewide' | 'local' = radius === 0 ? 'nationwide' : radius >= 100 ? 'statewide' : 'local'
 
   const withDistance = filtered
@@ -393,8 +397,17 @@ export default function ExplorePage() {
     })
     .filter((a: any) => {
       if (!coords) return true
-      if (scope === 'nationwide') return true
       if (a.location_mode === 'remote' || a.location_mode === 'nationwide') return true
+
+      if (scope === 'nationwide') {
+        // "Nationwide" is tied to the SELECTED city's country, not the
+        // user's device country. Pick BVI → only BVI activities. Pick NY
+        // → only US. If we don't know the activity's country yet, fall
+        // back to a 300mi radius so we don't over-include.
+        if (userCountry && a.location_country) return a.location_country === userCountry
+        if (a._dist == null) return false
+        return a._dist <= 300
+      }
 
       if (scope === 'statewide') {
         if (userState && a.state_code) return a.state_code === userState
@@ -412,7 +425,17 @@ export default function ExplorePage() {
       return 0
     })
 
-  const noticeItems = useMemo(() => withDistance.slice(0, 8), [withDistance])
+  // Buddy Pulse is explicitly a "near me" surface. Even when the user sets
+  // Nationwide (which makes the main feed show everything regardless of
+  // distance), the pulse carousel should still only feature activities
+  // within ~100mi of the selected city. Otherwise searching a place with
+  // no local data surfaces a 1,600mi-away activity as the headline, which
+  // reads absurd.
+  const noticeItems = useMemo(() => {
+    if (!coords) return withDistance.slice(0, 8)
+    const nearby = withDistance.filter((a: any) => a._dist != null && a._dist <= 100)
+    return nearby.slice(0, 8)
+  }, [withDistance, coords])
   const safeNoticeIndex = noticeItems.length ? activeNoticeIndex % noticeItems.length : 0
   const activeNotice = noticeItems[safeNoticeIndex]
 
@@ -493,42 +516,44 @@ export default function ExplorePage() {
             (which it is: changing city/radius/search drives both the
             Buddy Pulse carousel AND the map + activity feed).
             On narrow screens the controls wrap naturally. */}
-        <section className="mb-5 rounded-[24px] bg-white p-4 sm:p-5 shadow-sm ring-1 ring-black/5">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* City / area input with autocomplete — takes the most room. */}
-            <div className="relative flex-1 min-w-[220px]">
-              <div className="flex h-12 items-center gap-3 rounded-2xl border border-black/10 bg-[#F8FAFC] px-4 text-slate-500">
-                <IconLocation />
-                <input
-                  value={cityInput}
-                  onChange={(e) => searchPlaces(e.target.value)}
-                  placeholder="City or area"
-                  className="w-full bg-transparent text-sm text-slate-900 outline-none"
-                />
-                {cityInput && (
-                  <button className="text-lg text-slate-400" onClick={clearCity} aria-label="Clear city">×</button>
-                )}
-              </div>
-              {showPlaces && placeResults.length > 0 && (
-                <div className="absolute left-0 right-0 top-[54px] z-40 max-h-64 overflow-y-auto rounded-2xl border border-black/10 bg-white shadow-xl">
-                  {placeResults.map((p: any, i: number) => {
-                    const lbl = renderPlaceLabel(p)
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => selectPlace(p)}
-                        className="block w-full border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50"
-                      >
-                        <div className="text-sm font-bold text-slate-900">{lbl.primary}</div>
-                        {lbl.secondary && <div className="mt-1 text-xs text-slate-500">{lbl.secondary}</div>}
-                      </button>
-                    )
-                  })}
-                </div>
+        <section className="mb-5 rounded-[24px] bg-white p-4 sm:p-5 shadow-sm ring-1 ring-black/5 space-y-3">
+          {/* Row 1 — City/area input gets the ENTIRE width. It's the most
+              important control on this bar; nothing else shares its row. */}
+          <div className="relative">
+            <div className="flex h-12 items-center gap-3 rounded-2xl border border-black/10 bg-[#F8FAFC] px-4 text-slate-500">
+              <IconLocation />
+              <input
+                value={cityInput}
+                onChange={(e) => searchPlaces(e.target.value)}
+                placeholder="City or area"
+                className="w-full bg-transparent text-sm text-slate-900 outline-none"
+              />
+              {cityInput && (
+                <button className="text-lg text-slate-400" onClick={clearCity} aria-label="Clear city">×</button>
               )}
             </div>
+            {showPlaces && placeResults.length > 0 && (
+              <div className="absolute left-0 right-0 top-[54px] z-40 max-h-64 overflow-y-auto rounded-2xl border border-black/10 bg-white shadow-xl">
+                {placeResults.map((p: any, i: number) => {
+                  const lbl = renderPlaceLabel(p)
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => selectPlace(p)}
+                      className="block w-full border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50"
+                    >
+                      <div className="text-sm font-bold text-slate-900">{lbl.primary}</div>
+                      {lbl.secondary && <div className="mt-1 text-xs text-slate-500">{lbl.secondary}</div>}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
 
-            {/* Radius dropdown */}
+          {/* Row 2 — Radius + GPS + free-text search + found-count + Save.
+              Wraps naturally on narrow viewports. */}
+          <div className="flex flex-wrap items-center gap-3">
             <select
               value={radius}
               onChange={(e) => setRadius(parseFloat(e.target.value))}
@@ -547,7 +572,6 @@ export default function ExplorePage() {
               <option value={0}>Nationwide</option>
             </select>
 
-            {/* GPS */}
             <button
               onClick={useGPS}
               disabled={gpsLoading}
@@ -556,7 +580,6 @@ export default function ExplorePage() {
               {gpsLoading ? 'Locating…' : 'Use GPS'}
             </button>
 
-            {/* Free-text search */}
             <div className="flex h-12 flex-1 min-w-[220px] items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 text-slate-500">
               <IconSearch />
               <input
@@ -567,7 +590,6 @@ export default function ExplorePage() {
               />
             </div>
 
-            {/* Save this search */}
             <div className="flex items-center gap-3 ml-auto">
               <div className="rounded-full bg-[#EEF8FE] px-3 py-1 text-xs font-bold text-[#197BB8] whitespace-nowrap">
                 {withDistance.length} found
