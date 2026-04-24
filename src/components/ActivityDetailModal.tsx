@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/components/ToastProvider'
 import CreateActivityModal from '@/components/CreateActivityModal'
+import { contributionBadge } from '@/lib/contribution'
 
 export default function ActivityDetailModal({ activityId, onClose }: { activityId: string; onClose: () => void }) {
   const { user } = useAuth()
@@ -203,9 +204,18 @@ export default function ActivityDetailModal({ activityId, onClose }: { activityI
                   <p style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', marginBottom: 4 }}>Spots</p>
                   <p style={{ fontWeight: 600, fontSize: 13 }}>{spotsLeft > 0 ? `${spotsLeft} of ${activity.max_participants} left` : 'Full'}</p>
                 </div>
-                <div style={{ background: '#F9FAFB', borderRadius: 12, padding: 14 }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', marginBottom: 4 }}>Cost</p>
-                  <p style={{ fontWeight: 600, fontSize: 13 }}>{activity.tip_enabled ? 'Free. Tips optional.' : 'Free'}</p>
+                <div style={{ background: '#F9FAFB', borderRadius: 12, padding: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {(() => {
+                    const b = contributionBadge(activity.contribution_type, activity.tip_enabled)
+                    return (
+                      <span style={{ background: b.bg, color: b.fg, padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                        {b.label}
+                      </span>
+                    )
+                  })()}
+                  {activity.contribution_note && (
+                    <p style={{ fontSize: 11, color: '#6B7280', marginLeft: 8 }}>{activity.contribution_note}</p>
+                  )}
                 </div>
               </div>
 

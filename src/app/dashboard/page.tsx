@@ -23,6 +23,7 @@ import SafetyBanner from '@/components/SafetyBanner'
 import Paginator from '@/components/Paginator'
 import SaveSearchButton from '@/components/SaveSearchButton'
 import ExploreMap, { type ExploreMapItem } from '@/components/ExploreMap'
+import { contributionBadge } from '@/lib/contribution'
 import {
   haversineMiles,
   formatDistance,
@@ -517,19 +518,28 @@ export default function ExplorePage() {
             Buddy Pulse carousel AND the map + activity feed).
             On narrow screens the controls wrap naturally. */}
         <section className="mb-5 rounded-[24px] bg-white p-4 sm:p-5 shadow-sm ring-1 ring-black/5 space-y-3">
-          {/* Row 1 — City/area input gets the ENTIRE width. It's the most
-              important control on this bar; nothing else shares its row. */}
+          {/* Row 1 — City/area input gets the ENTIRE width. Taller, bolder
+              input with a real tappable clear button so it reads as the
+              primary control on the page. */}
           <div className="relative">
-            <div className="flex h-12 items-center gap-3 rounded-2xl border border-black/10 bg-[#F8FAFC] px-4 text-slate-500">
-              <IconLocation />
+            <div className="flex h-14 items-center gap-3 rounded-2xl border border-black/10 bg-[#F8FAFC] px-4 text-slate-500 focus-within:border-[#3293CB] focus-within:ring-2 focus-within:ring-[#3293CB]/20">
+              <span className="text-slate-400"><IconLocation /></span>
               <input
                 value={cityInput}
                 onChange={(e) => searchPlaces(e.target.value)}
-                placeholder="City or area"
-                className="w-full bg-transparent text-sm text-slate-900 outline-none"
+                placeholder="City or area — e.g. Lagos, Abuja, Brooklyn, Atlanta"
+                className="w-full bg-transparent text-base font-medium text-slate-900 outline-none placeholder:text-slate-400 placeholder:font-normal"
               />
               {cityInput && (
-                <button className="text-lg text-slate-400" onClick={clearCity} aria-label="Clear city">×</button>
+                <button
+                  type="button"
+                  onClick={clearCity}
+                  aria-label="Clear city"
+                  title="Clear"
+                  className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-600 text-xl font-bold leading-none hover:bg-slate-200 hover:text-slate-900 transition"
+                >
+                  ×
+                </button>
               )}
             </div>
             {showPlaces && placeResults.length > 0 && (
@@ -1014,13 +1024,17 @@ export default function ExplorePage() {
                                 {spotsLeft > 0 ? `${spotsLeft} spot${spotsLeft !== 1 ? 's' : ''} left` : 'Full'}
                               </span>
 
-                              <span
-                                className={`rounded-full px-3 py-1 text-xs font-bold text-white ${
-                                  a.tip_enabled ? 'bg-amber-600' : 'bg-emerald-600'
-                                }`}
-                              >
-                                {a.tip_enabled ? 'Tips optional' : 'Free'}
-                              </span>
+                              {(() => {
+                                const b = contributionBadge(a.contribution_type, a.tip_enabled)
+                                return (
+                                  <span
+                                    className="rounded-full px-3 py-1 text-xs font-bold"
+                                    style={{ background: b.bg, color: b.fg }}
+                                  >
+                                    {b.label}
+                                  </span>
+                                )
+                              })()}
 
                               {a.location_mode === 'remote' && (
                                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">Remote</span>

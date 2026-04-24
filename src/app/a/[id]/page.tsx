@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from '@/components/ToastProvider'
 import CreateActivityModal from '@/components/CreateActivityModal'
+import { contributionBadge } from '@/lib/contribution'
 
 export default function ActivityPage() {
   const { id } = useParams<{ id: string }>()
@@ -190,19 +191,33 @@ export default function ActivityPage() {
           <p style={{ color: '#4B5563', lineHeight: 1.6, marginBottom: 24, fontSize: 15 }}>{activity.description}</p>
         )}
 
-        {/* Details grid */}
+        {/* Details grid — Location / Date & Time / Spots use label+value.
+            Contribution is intentionally JUST the badge (no "Cost" label)
+            so it reads as a coordination signal, not a priced field. */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
           {[
             { label: 'Location', value: activity.location_mode === 'remote' ? 'Remote / Online' : activity.location_display || activity.location_text },
             { label: 'Date & Time', value: timing },
             { label: 'Spots', value: spotsLeft > 0 ? `${spotsLeft} of ${activity.max_participants} left` : 'Full' },
-            { label: 'Cost', value: activity.tip_enabled ? 'Free. Tips optional.' : 'Free' },
           ].map(d => (
             <div key={d.label} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, padding: 16 }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{d.label}</p>
               <p style={{ fontWeight: 600, fontSize: 14 }}>{d.value}</p>
             </div>
           ))}
+          {(() => {
+            const b = contributionBadge(activity.contribution_type, activity.tip_enabled)
+            return (
+              <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, padding: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ background: b.bg, color: b.fg, padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  {b.label}
+                </span>
+                {activity.contribution_note && (
+                  <p style={{ fontSize: 12, color: '#6B7280' }}>{activity.contribution_note}</p>
+                )}
+              </div>
+            )
+          })()}
         </div>
 
         {/* Participants */}
