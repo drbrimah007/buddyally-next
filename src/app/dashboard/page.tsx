@@ -24,6 +24,7 @@ import Paginator from '@/components/Paginator'
 import SaveSearchButton from '@/components/SaveSearchButton'
 import ExploreMap, { type ExploreMapItem } from '@/components/ExploreMap'
 import { contributionBadge } from '@/lib/contribution'
+import ShareButton from '@/components/ShareButton'
 import {
   haversineMiles,
   formatDistance,
@@ -1124,12 +1125,24 @@ export default function ExplorePage() {
                             {/* Category pill sits on its own line above the
                                 title so the title can use the full card width
                                 and doesn't get squeezed by the pill. */}
-                            <span
-                              className="mb-2 self-start rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.04em] shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
-                              style={{ background: color.bg, color: color.text }}
-                            >
-                              {a.category}
-                            </span>
+                            {/* Category pill + tiny share icon on the same row.
+                                Share stops card-click propagation so it doesn't
+                                open the detail modal accidentally. */}
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <span
+                                className="rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.04em] shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
+                                style={{ background: color.bg, color: color.text }}
+                              >
+                                {a.category}
+                              </span>
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <ShareButton
+                                  url={`${typeof window !== 'undefined' ? window.location.origin : 'https://buddyally.com'}/a/${a.id}`}
+                                  title={`${a.title} — BuddyAlly`}
+                                  text={a.description ? String(a.description).slice(0, 140) : 'Join me on BuddyAlly'}
+                                />
+                              </div>
+                            </div>
 
                             <h3 className="mb-2 text-[17px] font-black leading-snug tracking-[-0.03em]">{a.title}</h3>
 

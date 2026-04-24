@@ -8,6 +8,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { toast } from '@/components/ToastProvider'
 import CreateActivityModal from '@/components/CreateActivityModal'
 import { contributionBadge } from '@/lib/contribution'
+import ShareButton from '@/components/ShareButton'
 
 export default function ActivityPage() {
   const { id } = useParams<{ id: string }>()
@@ -127,11 +128,48 @@ export default function ActivityPage() {
           <img src={activity.cover_image_url} alt="" style={{ width: '100%', borderRadius: 16, marginBottom: 24, objectFit: 'contain', background: '#f3f4f6' }} />
         )}
 
-        {/* Title + Category */}
+        {/* Title + Category + Share (always visible — public preview can be shared) */}
         <div style={{ marginBottom: 16 }}>
-          <span style={{ display: 'inline-block', background: '#3293CB', color: '#fff', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, marginBottom: 8 }}>{activity.category}</span>
-          <h1 style={{ fontSize: 24, fontWeight: 700 }}>{activity.title}</h1>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ display: 'inline-block', background: '#3293CB', color: '#fff', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20 }}>{activity.category}</span>
+            <ShareButton
+              url={typeof window !== 'undefined' ? window.location.href : `https://buddyally.com/a/${activity.id}`}
+              title={`${activity.title} — BuddyAlly`}
+              text={activity.description ? activity.description.slice(0, 140) : 'Join me on BuddyAlly'}
+            />
+          </div>
+          <h1 style={{ fontSize: 24, fontWeight: 700, marginTop: 8 }}>{activity.title}</h1>
         </div>
+
+        {/* Logged-out preview gate. Public sees the headline + brief teaser
+            and a strong sign-up/in CTA. Joining, chat, host details, full
+            description and contribution info live behind auth. */}
+        {!user && (
+          <div style={{ background: 'linear-gradient(180deg, #EFF6FF 0%, #fff 100%)', border: '1px solid #DBEAFE', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+            {activity.description && (
+              <p style={{ color: '#4B5563', lineHeight: 1.6, fontSize: 15, marginBottom: 12 }}>
+                {activity.description.length > 180 ? activity.description.slice(0, 177) + '…' : activity.description}
+              </p>
+            )}
+            <p style={{ color: '#0652B7', fontWeight: 700, marginBottom: 12 }}>
+              Sign up or log in to see the host, full details, join, and chat.
+            </p>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <Link
+                href={`/signup?next=/a/${activity.id}`}
+                style={{ padding: '12px 20px', borderRadius: 12, background: '#3293CB', color: '#fff', fontSize: 14, fontWeight: 700, textDecoration: 'none', boxShadow: '0 6px 14px -2px rgba(50,147,203,0.45)' }}
+              >
+                Sign up free
+              </Link>
+              <Link
+                href={`/login?next=/a/${activity.id}`}
+                style={{ padding: '12px 20px', borderRadius: 12, background: '#fff', color: '#0652B7', fontSize: 14, fontWeight: 700, textDecoration: 'none', border: '1.5px solid #DBEAFE' }}
+              >
+                Log in
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Details / Chat tabs */}
         {user && (isJoined || isOwner) && (
@@ -170,8 +208,8 @@ export default function ActivityPage() {
           </div>
         )}
 
-        {/* Details tab content */}
-        {tab === 'details' && <>
+        {/* Details tab content — gated to logged-in users only. */}
+        {tab === 'details' && user && <>
         {/* Host card */}
         {host && (
           <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 16, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
