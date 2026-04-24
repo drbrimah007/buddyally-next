@@ -14,6 +14,20 @@ const CATEGORIES = ['Travel','Local Activities','Sports / Play','Learning','Help
 const TIMING_OPTIONS = ['TBA','Anytime','This week','Weekends','Evenings','Daytime','This month','Not Set']
 const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
 
+// Contribution model — intent-first, not price-first. This is what keeps the
+// product from reading as a marketplace. Each option carries a user-facing
+// label + short helper copy; 'split' and 'gas' optionally invite a freeform
+// note (e.g. "$20ish per person"), but we never render a currency input.
+type ContributionType = 'free' | 'split' | 'gas' | 'tips' | 'bring' | 'covered'
+const CONTRIBUTION_OPTIONS: { value: ContributionType; label: string; helper: string; placeholder?: string }[] = [
+  { value: 'free',    label: 'Free',              helper: 'No cost — just show up.' },
+  { value: 'split',   label: 'Split cost',        helper: 'Shared expense, figured out together.', placeholder: 'Estimate per person (optional) — e.g. "$15ish"' },
+  { value: 'gas',     label: 'Gas help',          helper: 'A little something for the driver. Usually $5–$20 depending on distance.', placeholder: 'Ballpark (optional)' },
+  { value: 'tips',    label: 'Tips welcome',      helper: 'Optional appreciation — never required.' },
+  { value: 'bring',   label: 'Bring something',   helper: 'Potluck-style — everyone brings a small thing.', placeholder: 'e.g. "snacks, a drink, or a chair"' },
+  { value: 'covered', label: 'Covered already',   helper: 'Host is taking care of it.' },
+]
+
 type InitialActivity = {
   id: string
   title?: string
@@ -31,6 +45,8 @@ type InitialActivity = {
   recurrence_freq?: string | null
   max_participants?: number | null
   tip_enabled?: boolean | null
+  contribution_type?: string | null
+  contribution_note?: string | null
   cover_image_url?: string | null
   location_lat?: number | null
   location_lng?: number | null
@@ -81,7 +97,8 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
       recurTime: '',
       recurDays,
       maxParticipants: String(a.max_participants ?? 6),
-      tipEnabled: !!a.tip_enabled,
+      contributionType: (a.contribution_type as ContributionType) || (a.tip_enabled ? 'tips' : 'free'),
+      contributionNote: a.contribution_note || '',
       venueNote: '',
     }
   }
@@ -91,7 +108,10 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
     timingMode: 'one_time', date: '', time: '', startDate: '', endDate: '', startTime: '', endTime: '',
     availLabel: 'TBA', availNote: '',
     recurFreq: 'weekly', recurTime: '', recurDays: [] as string[],
-    maxParticipants: '6', tipEnabled: false, venueNote: '',
+    maxParticipants: '6',
+    contributionType: 'free' as ContributionType,
+    contributionNote: '',
+    venueNote: '',
   }
 
   const [form, setForm] = useState(isEdit ? parseInitial() : blankForm)
@@ -208,7 +228,12 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
       start_date: form.timingMode === 'date_range' ? form.startDate : date,
       end_date: form.timingMode === 'date_range' ? form.endDate : null,
       availability_label: availLabel, recurrence_freq: recurFreq,
-      max_participants: parseInt(form.maxParticipants) || 6, tip_enabled: form.tipEnabled,
+      max_participants: parseInt(form.maxParticipants) || 6,
+      // `tip_enabled` kept for backward-compat readers (card pills etc). New
+      // intent-based fields carry the real meaning.
+      tip_enabled: form.contributionType === 'tips',
+      contribution_type: form.contributionType,
+      contribution_note: form.contributionNote?.trim() || null,
       location_lat: lat, location_lng: lng, state_code: stateCode,
       cover_image_url: coverUrl,
     }
@@ -385,11 +410,59 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
             <input type="number" value={form.maxParticipants} onChange={e => update('maxParticipants', e.target.value)} min={2} max={10000} style={{ ...inputStyle, textAlign: 'center' }} />
           </div>
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '12px 14px', background: '#F9FAFB', borderRadius: 12, border: '1px solid #F1F5F9' }}>
-            <input type="checkbox" checked={form.tipEnabled} onChange={e => update('tipEnabled', e.target.checked)} style={{ width: 16, height: 16, accentColor: '#3293CB' }} />
-            <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>Enable optional tips</span>
-          </label>
-          {form.tipEnabled && <p style={{ fontSize: 12, color: '#6B7280', marginTop: -8 }}>Tips are never required. This just lets participants leave a voluntary tip.</p>}
+          {/* Cost & Contribution — intent-first, not price-first. Frames the
+              activity as shared effort, not a transaction. See CONTRIBUTION_OPTIONS. */}
+          <div>
+            <label style={labelStyle}>Cost &amp; Contribution</label>
+            <p style={{ fontSize: 12, color: '#6B7280', margin: '0 0 10px', lineHeight: 1.5 }}>
+              This isn&rsquo;t a marketplace &mdash; just a way to coordinate shared costs or appreciation.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
+              {CONTRIBUTION_OPTIONS.map(opt => {
+                const selected = form.contributionType === opt.value
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      update('contributionType', opt.value)
+                      // Clear note if we're moving to an option that doesn't use one.
+                      if (!opt.placeholder) update('contributionNote', '')
+                    }}
+                    style={{
+                      padding: '10px 12px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
+                      fontSize: 13, fontWeight: 700,
+                      ...(selected
+                        ? { background: '#EFF6FF', border: '2px solid #3293CB', color: '#0652B7' }
+                        : { background: '#fff', border: '1px solid #E5E7EB', color: '#111827' }),
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+            {/* Helper + optional note — drive both off the selected option so
+                the copy stays in sync with the picker. */}
+            {(() => {
+              const opt = CONTRIBUTION_OPTIONS.find(o => o.value === form.contributionType) || CONTRIBUTION_OPTIONS[0]
+              return (
+                <div style={{ marginTop: 10 }}>
+                  <p style={{ fontSize: 12, color: '#4B5563', margin: 0, lineHeight: 1.5 }}>{opt.helper}</p>
+                  {opt.placeholder && (
+                    <input
+                      type="text"
+                      value={form.contributionNote}
+                      onChange={e => update('contributionNote', e.target.value)}
+                      placeholder={opt.placeholder}
+                      maxLength={120}
+                      style={{ ...inputStyle, marginTop: 8 }}
+                    />
+                  )}
+                </div>
+              )
+            })()}
+          </div>
 
           <div style={{ display: 'flex', gap: 10, paddingTop: 8, flexWrap: 'wrap' }}>
             <button type="submit" disabled={loading} style={{ flex: 1, minWidth: 180, padding: 14, borderRadius: 14, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer', opacity: loading ? 0.6 : 1, boxShadow: '0 4px 12px rgba(50,147,203,0.25)' }}>

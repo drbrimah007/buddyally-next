@@ -153,6 +153,9 @@ export default function ExplorePage() {
   const [explorePage, setExplorePage] = useState(0)
   const [activeNoticeIndex, setActiveNoticeIndex] = useState(0)
   const [noticePaused, setNoticePaused] = useState(false)
+  // Noticeboard auto-advance speed in ms. 6000 is the sweet spot; 3500 feels
+  // hyperactive and 9000 feels sleepy. User can pick via the label selector.
+  const [noticeSpeed, setNoticeSpeed] = useState(6000)
 
   const searchTimeout = useRef<any>(null)
 
@@ -431,22 +434,22 @@ export default function ExplorePage() {
 
     const interval = window.setInterval(() => {
       setActiveNoticeIndex((current) => (current + 1) % noticeItems.length)
-    }, 3200)
+    }, noticeSpeed)
 
     return () => window.clearInterval(interval)
-  }, [noticePaused, noticeItems.length])
+  }, [noticePaused, noticeItems.length, noticeSpeed])
 
   return (
     <main className="min-h-screen bg-[#f4f5f7] px-4 py-5 text-[#111827] sm:px-6 lg:px-8">
       <style
         dangerouslySetInnerHTML={{
           __html: `
-            /* Two-column layout only on wide desktops — below 1350px we stack
-               so the map card doesn't get crushed. Main column has a 760px
-               floor so cards + pins keep breathing room. */
-            .ba-grid{display:grid;grid-template-columns:430px minmax(760px,1fr);gap:24px;align-items:start}
+            /* Mobile-first: single column stack. Desktop (≥1200px): two
+               equal columns so neither side crowds the other. */
+            .ba-grid{display:grid;grid-template-columns:1fr;gap:18px;align-items:start}
+            @media(min-width:1200px){.ba-grid{grid-template-columns:1fr 1fr}}
             .activity-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-            @media(max-width:1350px){.ba-grid{grid-template-columns:1fr}.activity-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+            @media(max-width:1350px){.activity-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
             @media(max-width:720px){.activity-grid{grid-template-columns:1fr}.filter-scroll{overflow-x:auto;flex-wrap:nowrap!important;padding-bottom:4px}.filter-scroll>*{white-space:nowrap}}
           `,
         }}
@@ -581,21 +584,35 @@ export default function ExplorePage() {
             </section>
 
             <section className="rounded-[30px] bg-[#EEE9DF] p-5 shadow-sm ring-1 ring-black/5">
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
                   <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Dynamic noticeboard</div>
-                  <div className="mt-1 text-2xl font-black tracking-[-0.05em]">{cityInput || 'Nearby'}</div>
+                  <div className="mt-1 text-2xl font-black tracking-[-0.05em] truncate">{cityInput || 'Nearby'}</div>
                 </div>
 
-                <div className="rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-slate-500">
-                  {noticePaused ? 'Paused' : 'Blending'}
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Speed adjuster — defaults to 6000ms. 3500 feels rushed,
+                      9000 feels sleepy. 6000 is the Goldilocks pick. */}
+                  <select
+                    value={noticeSpeed}
+                    onChange={(e) => setNoticeSpeed(Number(e.target.value))}
+                    className="rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-slate-500"
+                    aria-label="Notice auto-advance speed"
+                  >
+                    <option value={9000}>Slow</option>
+                    <option value={6000}>Normal</option>
+                    <option value={3500}>Fast</option>
+                  </select>
+                  <div className="rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-slate-500">
+                    {noticePaused ? 'Paused' : 'Blending'}
+                  </div>
                 </div>
               </div>
 
               <div
                 onMouseEnter={() => setNoticePaused(true)}
                 onMouseLeave={() => setNoticePaused(false)}
-                className="relative mt-5 h-[280px] overflow-hidden rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-black/5"
+                className="group relative mt-5 h-[280px] overflow-hidden rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-black/5"
               >
                 <div
                   className="pointer-events-none absolute inset-0 opacity-[0.08] mix-blend-multiply"
@@ -608,7 +625,7 @@ export default function ExplorePage() {
 
                 <button
                   onClick={prevNotice}
-                  className="absolute left-3 top-1/2 z-20 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-slate-700 shadow ring-1 ring-black/10"
+                  className="absolute left-3 top-1/2 z-20 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-slate-700 shadow ring-1 ring-black/10 opacity-0 group-hover:opacity-100 transition"
                   title="Previous notice"
                 >
                   <IconArrow dir="left" />
@@ -616,7 +633,7 @@ export default function ExplorePage() {
 
                 <button
                   onClick={nextNotice}
-                  className="absolute right-3 top-1/2 z-20 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-slate-700 shadow ring-1 ring-black/10"
+                  className="absolute right-3 top-1/2 z-20 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-slate-700 shadow ring-1 ring-black/10 opacity-0 group-hover:opacity-100 transition"
                   title="Next notice"
                 >
                   <IconArrow />
