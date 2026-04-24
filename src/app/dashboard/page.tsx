@@ -48,13 +48,19 @@ function formatTiming(a: any) {
   return 'TBA'
 }
 
+// Category color palette.
+//   • ride/travel/party/event/help/learning keep their signal colors so
+//     you can scan the feed at a glance (reds for events, green for help, etc.)
+//   • Everything else (pray, wellness, outdoor, local activities, others)
+//     defaults to the site blue — that's the brand primary.
 function categoryColor(category?: string) {
   const c = (category || '').toLowerCase()
   if (c.includes('ride') || c.includes('travel')) return { dot: '#3293CB', bg: '#EAF6FC', text: '#197BB8' }
   if (c.includes('event') || c.includes('party')) return { dot: '#EF4444', bg: '#FEF2F2', text: '#DC2626' }
   if (c.includes('help') || c.includes('support') || c.includes('dog') || c.includes('baby')) return { dot: '#22C55E', bg: '#F0FDF4', text: '#16A34A' }
   if (c.includes('learning') || c.includes('gaming') || c.includes('sports')) return { dot: '#8B5CF6', bg: '#F5F3FF', text: '#7C3AED' }
-  return { dot: '#64748B', bg: '#F1F5F9', text: '#475569' }
+  // Site-default blue fallback (pray, wellness, outdoor, local activities, others)
+  return { dot: '#3293CB', bg: '#EAF6FC', text: '#197BB8' }
 }
 
 function GrainBlendText({ text }: { text: string }) {
@@ -163,6 +169,9 @@ export default function ExplorePage() {
   const [noticeSpeed, setNoticeSpeed] = useState(6000)
 
   const searchTimeout = useRef<any>(null)
+  // Points at the noticeboard card so clicking a pick in the list below
+  // scrolls the card into view (desktop + mobile).
+  const noticeboardRef = useRef<HTMLDivElement | null>(null)
 
   // URL-param hydration — runs once so we don't stomp on user edits.
   // Powers the "Run now" button from /dashboard/saved-searches.
@@ -671,6 +680,7 @@ export default function ExplorePage() {
               </div>
 
               <div
+                ref={noticeboardRef}
                 onMouseEnter={() => setNoticePaused(true)}
                 onMouseLeave={() => setNoticePaused(false)}
                 className="group relative mt-5 h-[280px] overflow-hidden rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-black/5"
@@ -806,9 +816,12 @@ export default function ExplorePage() {
                     onClick={() => {
                       setActiveNoticeIndex(index)
                       setNoticePaused(true)
+                      // Scroll the noticeboard card into view so the user
+                      // sees the preview they just selected (works desktop + mobile).
+                      noticeboardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
                     }}
                     className={`w-full rounded-2xl px-4 py-3 text-left transition ${
-                      activeNotice?.id === a.id ? 'bg-slate-950 text-white' : 'bg-white/70 text-slate-700 hover:bg-white'
+                      activeNotice?.id === a.id ? 'bg-[#3293CB] text-white' : 'bg-white/70 text-slate-700 hover:bg-white'
                     }`}
                   >
                     <div className="text-[11px] font-black uppercase opacity-60">
@@ -1007,7 +1020,7 @@ export default function ExplorePage() {
                                 title so the title can use the full card width
                                 and doesn't get squeezed by the pill. */}
                             <span
-                              className="mb-2 self-start rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.04em]"
+                              className="mb-2 self-start rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.04em] shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
                               style={{ background: color.bg, color: color.text }}
                             >
                               {a.category}
