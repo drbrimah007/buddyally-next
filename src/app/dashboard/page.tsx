@@ -261,7 +261,33 @@ export default function ExplorePage() {
 
     if (cachedCoords) {
       try {
-        setCityCoords(JSON.parse(cachedCoords))
+        const parsed = JSON.parse(cachedCoords)
+        setCityCoords(parsed)
+        // Back-fill state + country if the cache came from a pre-update
+        // session (only has {lat, lon}). Without this, Statewide /
+        // Nationwide fall through to radius matching and return too few rows.
+        if (parsed?.lat != null && parsed?.lon != null && (!parsed.state || !parsed.country)) {
+          ;(async () => {
+            try {
+              const place = await reverseGeocode(parsed.lat, parsed.lon)
+              if (place) {
+                const pick = pickPlace(place)
+                setCityCoords({
+                  lat: parsed.lat,
+                  lon: parsed.lon,
+                  state: parsed.state || pick.stateCode || undefined,
+                  country: parsed.country || pick.countryCode || undefined,
+                })
+                // Re-write cache with the filled-in values
+                sessionStorage.setItem('ba_coords', JSON.stringify({
+                  lat: parsed.lat, lon: parsed.lon,
+                  state: parsed.state || pick.stateCode || null,
+                  country: parsed.country || pick.countryCode || null,
+                }))
+              }
+            } catch {}
+          })()
+        }
         didSet = true
       } catch {}
     }
@@ -272,7 +298,14 @@ export default function ExplorePage() {
     }
 
     if (!cachedCoords && profile?.home_lat && profile?.home_lng) {
-      setCityCoords({ lat: profile.home_lat, lon: profile.home_lng })
+      // Profile has home_state_code + home_country_code — use them so
+      // Statewide / Nationwide have real state/country to match against.
+      setCityCoords({
+        lat: profile.home_lat,
+        lon: profile.home_lng,
+        state: (profile as any).home_state_code || undefined,
+        country: (profile as any).home_country_code || undefined,
+      })
       didSet = true
     }
 
