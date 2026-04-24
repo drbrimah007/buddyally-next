@@ -35,6 +35,8 @@ export default function ContactsPage() {
   const [requestsOut, setRequestsOut] = useState<ContactRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(0)
+  // Tracks which ally's gear menu is open, so we don't need a state per card.
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   useEffect(() => { if (user) loadAll() }, [user])
   useEffect(() => { setPage(0) }, [tab, filter])
@@ -179,38 +181,115 @@ export default function ContactsPage() {
           ) : (
             <>
               <div className="contact-grid">
-                {pageItems.map(c => (
-                  <div key={c.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, padding: 14, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                    <Link href={`/u/${c.contact_user_id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit', minWidth: 0 }}>
-                      {avatar(c.contact)}
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName(c.contact)}</div>
-                        {c.contact?.city && <div style={{ fontSize: 12, color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📍 {c.contact.city}</div>}
-                      </div>
-                    </Link>
-                    <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
+                {pageItems.map(c => {
+                  // Actions for the gear menu depend on current status.
+                  //   active    → Archive / Disconnect / Block
+                  //   archived  → Restore / Disconnect / Block
+                  //   blocked   → Unblock / Remove
+                  // Disconnect = delete the ally row entirely (softer label
+                  // than "Delete" for an active contact).
+                  const menuActions: { label: string; danger?: boolean; onClick: () => void }[] =
+                    c.status === 'active'
+                      ? [
+                          { label: 'Archive',    onClick: () => { setContactStatus(c, 'archived'); setOpenMenuId(null) } },
+                          { label: 'Disconnect', danger: true, onClick: () => { deleteContact(c); setOpenMenuId(null) } },
+                          { label: 'Block',      danger: true, onClick: () => { setContactStatus(c, 'blocked'); setOpenMenuId(null) } },
+                        ]
+                      : c.status === 'archived'
+                      ? [
+                          { label: 'Restore',    onClick: () => { setContactStatus(c, 'active'); setOpenMenuId(null) } },
+                          { label: 'Disconnect', danger: true, onClick: () => { deleteContact(c); setOpenMenuId(null) } },
+                          { label: 'Block',      danger: true, onClick: () => { setContactStatus(c, 'blocked'); setOpenMenuId(null) } },
+                        ]
+                      : [
+                          { label: 'Unblock', onClick: () => { setContactStatus(c, 'active'); setOpenMenuId(null) } },
+                          { label: 'Remove',  danger: true, onClick: () => { deleteContact(c); setOpenMenuId(null) } },
+                        ]
+
+                  const isOpen = openMenuId === c.id
+                  return (
+                    <div key={c.id} style={{ position: 'relative', background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, padding: 14, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                      {/* Gear button — sits top-right so the card stays clean */}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setOpenMenuId(isOpen ? null : c.id) }}
+                        aria-label="Ally options"
+                        style={{
+                          position: 'absolute', top: 8, right: 8, width: 30, height: 30,
+                          display: 'grid', placeItems: 'center',
+                          background: isOpen ? '#EFF6FF' : '#F9FAFB',
+                          border: '1px solid #E5E7EB', borderRadius: 8,
+                          color: '#4B5563', cursor: 'pointer',
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="3" />
+                          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                        </svg>
+                      </button>
+
+                      {/* Avatar + identity — bumped to 52px so the photo
+                          (when present) actually reads as a face. */}
+                      <Link href={`/u/${c.contact_user_id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', color: 'inherit', minWidth: 0, paddingRight: 32 }}>
+                        {avatar(c.contact, 52)}
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName(c.contact)}</div>
+                          {c.contact?.city && <div style={{ fontSize: 12, color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📍 {c.contact.city}</div>}
+                        </div>
+                      </Link>
+
+                      {/* Primary CTA. Archived/blocked states don't expose
+                          messaging directly — use the gear to restore first. */}
                       {c.status === 'active' && (
-                        <>
-                          <button onClick={() => router.push(`/dashboard/messages?to=${c.contact_user_id}`)} style={btnPrimary}>Message</button>
-                          <button onClick={() => setContactStatus(c, 'archived')} style={btnGhost}>Archive</button>
-                          <button onClick={() => setContactStatus(c, 'blocked')} style={btnDanger}>Block</button>
-                        </>
+                        <button
+                          onClick={() => router.push(`/dashboard/messages?to=${c.contact_user_id}`)}
+                          style={{ ...btnPrimary, marginTop: 12, width: '100%', padding: '10px 14px', fontSize: 13 }}
+                        >
+                          Message
+                        </button>
                       )}
                       {c.status === 'archived' && (
-                        <>
-                          <button onClick={() => setContactStatus(c, 'active')} style={btnPrimary}>Restore</button>
-                          <button onClick={() => deleteContact(c)} style={btnDanger}>Delete</button>
-                        </>
+                        <div style={{ marginTop: 12, fontSize: 12, color: '#6B7280', fontWeight: 600 }}>Archived</div>
                       )}
                       {c.status === 'blocked' && (
+                        <div style={{ marginTop: 12, fontSize: 12, color: '#DC2626', fontWeight: 600 }}>Blocked</div>
+                      )}
+
+                      {/* Popover menu */}
+                      {isOpen && (
                         <>
-                          <button onClick={() => setContactStatus(c, 'active')} style={btnGhost}>Unblock</button>
-                          <button onClick={() => deleteContact(c)} style={btnDanger}>Delete</button>
+                          <div
+                            onClick={() => setOpenMenuId(null)}
+                            style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+                          />
+                          <div style={{
+                            position: 'absolute', top: 42, right: 8, zIndex: 50,
+                            minWidth: 160, background: '#fff', border: '1px solid #E5E7EB',
+                            borderRadius: 10, boxShadow: '0 12px 28px rgba(15,23,42,0.12)',
+                            padding: 4, display: 'flex', flexDirection: 'column',
+                          }}>
+                            {menuActions.map(a => (
+                              <button
+                                key={a.label}
+                                onClick={a.onClick}
+                                style={{
+                                  textAlign: 'left', padding: '8px 12px', borderRadius: 8,
+                                  border: 'none', background: 'transparent', cursor: 'pointer',
+                                  fontSize: 13, fontWeight: 600,
+                                  color: a.danger ? '#DC2626' : '#111827',
+                                }}
+                                onMouseEnter={e => (e.currentTarget.style.background = a.danger ? '#FEF2F2' : '#F3F4F6')}
+                                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                              >
+                                {a.label}
+                              </button>
+                            ))}
+                          </div>
                         </>
                       )}
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
               <Paginator page={page} totalPages={totalPages} onChange={setPage} />
             </>

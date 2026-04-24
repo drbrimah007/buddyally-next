@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ToastProvider'
 import { searchPlaces as searchPlacesApi, pickPlace, renderPlaceLabel } from '@/lib/geo'
+import MapPicker from '@/components/MapPicker'
 
 const CATEGORIES = ['Travel','Local Activities','Sports / Play','Learning','Help / Support','Events','Outdoor','Gaming','Wellness','Ride Share','Dog Walk','Babysit','Party','Pray','Others']
 const TIMING_OPTIONS = ['TBA','Anytime','This week','Weekends','Evenings','Daytime','This month','Not Set']
@@ -344,6 +345,30 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
                   )}
                 </div>
                 {placeSelected && <p style={{ fontSize: 12, color: '#059669', marginTop: 6, fontWeight: 600 }}>✓ Used for search and distance</p>}
+
+                {/* Real map tag — drop/drag a pin to persist exact coordinates.
+                    City search above is a shortcut; the pin is the source of truth
+                    for everything geo-filtered (radius search, map-pin rendering,
+                    distance from viewer). */}
+                <div style={{ marginTop: 14 }}>
+                  <label style={labelStyle}>Tag this activity on the map</label>
+                  <p style={{ fontSize: 12, color: '#6B7280', margin: '0 0 8px', lineHeight: 1.5 }}>
+                    Drop a pin so people nearby can find this activity.
+                  </p>
+                  <MapPicker
+                    lat={selectedCoords?.lat ?? null}
+                    lng={selectedCoords?.lon ?? null}
+                    defaultCenter={{ lat: 40.7128, lng: -74.006 }}
+                    onPick={(place) => {
+                      setSelectedCoords({ lat: place.lat, lon: place.lng, state: place.stateCode || undefined })
+                      setPlaceSelected(true)
+                      // Only auto-fill the display when the user hasn't already
+                      // typed/picked one — don't stomp their existing label.
+                      if (!form.location) update('location', place.display)
+                    }}
+                  />
+                </div>
+
                 <div style={{ marginTop: 10 }}>
                   <label style={labelStyle}>Venue details <span style={{ fontWeight: 500, color: '#9CA3AF', textTransform: 'none', letterSpacing: 0 }}>optional</span></label>
                   <input value={form.venueNote} onChange={e => update('venueNote', e.target.value)} style={inputStyle} placeholder="Meeting point, room number, etc." />

@@ -22,6 +22,7 @@ import ActivityDetailModal from '@/components/ActivityDetailModal'
 import SafetyBanner from '@/components/SafetyBanner'
 import Paginator from '@/components/Paginator'
 import SaveSearchButton from '@/components/SaveSearchButton'
+import ExploreMap, { type ExploreMapItem } from '@/components/ExploreMap'
 import {
   haversineMiles,
   formatDistance,
@@ -444,10 +445,15 @@ export default function ExplorePage() {
       <style
         dangerouslySetInnerHTML={{
           __html: `
-            /* Mobile-first: single column stack. Desktop (≥1200px): two
-               equal columns so neither side crowds the other. */
-            .ba-grid{display:grid;grid-template-columns:1fr;gap:18px;align-items:start}
-            @media(min-width:1200px){.ba-grid{grid-template-columns:1fr 1fr}}
+            /* Mobile-first: single column stack. Desktop (≥1024px): two
+               strictly-equal columns. minmax(0,1fr) prevents any child's
+               intrinsic min-width (e.g. long titles, fixed-width inner tiles)
+               from pushing one column wider than the other. */
+            .ba-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
+            @media(min-width:1024px){.ba-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+            /* Both column wrappers stretch to fill their grid cell so the
+               tan "back panel" on the right matches the left card's width. */
+            .ba-grid > *{min-width:0;width:100%}
             .activity-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
             @media(max-width:1350px){.activity-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
             @media(max-width:720px){.activity-grid{grid-template-columns:1fr}.filter-scroll{overflow-x:auto;flex-wrap:nowrap!important;padding-bottom:4px}.filter-scroll>*{white-space:nowrap}}
@@ -473,7 +479,7 @@ export default function ExplorePage() {
 
             <button
               onClick={() => setShowCreate(true)}
-              className="h-11 rounded-2xl bg-[#3293CB] px-5 text-sm font-black uppercase text-white shadow-[0_10px_24px_rgba(50,147,203,0.25)]"
+              className="h-11 rounded-2xl bg-[#3293CB] px-5 text-sm font-black uppercase text-white shadow-[0_14px_28px_-6px_rgba(50,147,203,0.55),0_4px_10px_-2px_rgba(50,147,203,0.4)] hover:shadow-[0_18px_34px_-8px_rgba(50,147,203,0.65),0_6px_14px_-2px_rgba(50,147,203,0.45)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[0_6px_12px_-2px_rgba(50,147,203,0.35)] transition"
             >
               + New Activity
             </button>
@@ -586,7 +592,7 @@ export default function ExplorePage() {
             <section className="rounded-[30px] bg-[#EEE9DF] p-5 shadow-sm ring-1 ring-black/5">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Dynamic noticeboard</div>
+                  <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Buddy Pulse</div>
                   <div className="mt-1 text-2xl font-black tracking-[-0.05em] truncate">{cityInput || 'Nearby'}</div>
                 </div>
 
@@ -599,7 +605,7 @@ export default function ExplorePage() {
                     className="rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-slate-500"
                     aria-label="Notice auto-advance speed"
                   >
-                    <option value={9000}>Slow</option>
+                    <option value={9000}>Paced</option>
                     <option value={6000}>Normal</option>
                     <option value={3500}>Fast</option>
                   </select>
@@ -733,40 +739,49 @@ export default function ExplorePage() {
                 <div className="rounded-full bg-white/75 px-4 py-2 text-sm font-bold text-slate-600">{scope}</div>
               </div>
 
-              <div className="relative z-10 mt-5 h-[230px] rounded-[28px] bg-white/45 ring-1 ring-black/5 backdrop-blur-sm">
-                <div className="absolute left-1/2 top-1/2 w-[310px] -translate-x-1/2 -translate-y-1/2 rounded-[28px] bg-white/90 p-5 text-center shadow-xl ring-1 ring-black/5">
-                  <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Selected area</div>
-                  <div className="mt-2 text-4xl font-black tracking-[-0.07em]">{cityInput || 'All areas'}</div>
-                  <div className="mt-2 text-sm text-slate-500">Pins use the same filtered activity set as the feed.</div>
-                </div>
-
-                {noticeItems.map((a: any, index: number) => {
-                  const color = categoryColor(a.category)
-                  const positions = [
-                    [18, 24],
-                    [72, 22],
-                    [38, 65],
-                    [82, 68],
-                    [22, 76],
-                    [58, 42],
-                    [44, 24],
-                    [67, 78],
-                  ]
-                  const [left, top] = positions[index % positions.length]
-
+              {/* Real map — OSM tiles with a pin per activity that has
+                  saved coordinates. Clicking a pin focuses it in the
+                  noticeboard carousel. Fallback "no pins" tile shows if
+                  nothing in the current filter has a location_lat. */}
+              <div className="relative z-10 mt-5">
+                {(() => {
+                  const mapItems: ExploreMapItem[] = withDistance
+                    .filter((a: any) => a.location_lat != null && a.location_lng != null)
+                    .slice(0, 120) // cap so we don't hammer the tile server
+                    .map((a: any) => ({
+                      id: a.id, title: a.title, category: a.category,
+                      location_lat: a.location_lat, location_lng: a.location_lng,
+                    }))
+                  if (mapItems.length === 0) {
+                    return (
+                      <div className="h-[230px] rounded-[28px] bg-white/60 ring-1 ring-black/5 backdrop-blur-sm grid place-items-center text-center p-6">
+                        <div>
+                          <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Selected area</div>
+                          <div className="mt-2 text-3xl font-black tracking-[-0.07em]">{cityInput || 'All areas'}</div>
+                          <div className="mt-2 text-sm text-slate-500">No activities with a saved pin in this filter yet. Create one and tag it on the map.</div>
+                        </div>
+                      </div>
+                    )
+                  }
                   return (
-                    <button
-                      key={a.id}
-                      onClick={() => {
-                        setActiveNoticeIndex(index)
-                        setNoticePaused(true)
+                    <ExploreMap
+                      items={mapItems}
+                      center={coords ? { lat: coords.lat, lng: coords.lon } : undefined}
+                      activeId={activeNotice?.id || null}
+                      height={260}
+                      onPinClick={(id) => {
+                        const idx = noticeItems.findIndex((n: any) => n.id === id)
+                        if (idx >= 0) {
+                          setActiveNoticeIndex(idx)
+                          setNoticePaused(true)
+                        } else {
+                          // Pin isn't in the top-8 carousel — open the detail modal.
+                          setViewActivityId(id)
+                        }
                       }}
-                      className="absolute z-20 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-[0_0_0_10px_rgba(255,255,255,0.5)] transition hover:scale-125"
-                      style={{ left: `${left}%`, top: `${top}%`, background: color.dot }}
-                      title={a.title}
                     />
                   )
-                })}
+                })()}
               </div>
             </div>
 
