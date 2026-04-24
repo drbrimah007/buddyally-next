@@ -52,6 +52,10 @@ export default function FeedPage() {
   const { user } = useAuth()
   const [followingIds, setFollowingIds] = useState<string[]>([])
   const [items, setItems] = useState<FeedItem[]>([])
+  // Your own recent posts live as a separate "header" pinned to the top,
+  // not mixed into the feed stream. Conceptually they're YOUR broadcast,
+  // not news from other people.
+  const [myPosts, setMyPosts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(0)
 
@@ -72,33 +76,48 @@ export default function FeedPage() {
       const followIds = (follows || []).map((f: any) => f.followed_id)
       setFollowingIds(followIds)
 
-      // Include the user's OWN posts + activities in their feed so they can
-      // see what they shared (and edit/delete their own posts inline).
-      const ids = Array.from(new Set([user.id, ...followIds]))
+      // The feed stream is strictly OTHER people's content. Our own posts are
+      // handled separately below and shown as a pinned header.
+      const ids = followIds
 
       // Parallel queries, bounded to recent 60 days for the following-based feeds.
       const since = new Date(Date.now() - 60 * 24 * 3600 * 1000).toISOString()
-      const [actRes, postRes, savedRes] = await Promise.all([
-        supabase
-          .from('activities')
-          .select('*, host:profiles!host_id(id, first_name, last_name, avatar_url)')
-          .in('host_id', ids)
-          .gte('created_at', since)
-          .order('created_at', { ascending: false })
-          .limit(60),
-        supabase
-          .from('posts')
-          .select('*, author:profiles!user_id(id, first_name, last_name, avatar_url)')
-          .in('user_id', ids)
-          .is('deleted_at', null)
-          .gte('created_at', since)
-          .order('created_at', { ascending: false })
-          .limit(60),
+      const [actRes, postRes, savedRes, myPostsRes] = await Promise.all([
+        ids.length
+          ? supabase
+              .from('activities')
+              .select('*, host:profiles!host_id(id, first_name, last_name, avatar_url)')
+              .in('host_id', ids)
+              .gte('created_at', since)
+              .order('created_at', { ascending: false })
+              .limit(60)
+          : Promise.resolve({ data: [] }),
+        ids.length
+          ? supabase
+              .from('posts')
+              .select('*, author:profiles!user_id(id, first_name, last_name, avatar_url)')
+              .in('user_id', ids)
+              .is('deleted_at', null)
+              .gte('created_at', since)
+              .order('created_at', { ascending: false })
+              .limit(60)
+          : Promise.resolve({ data: [] }),
         supabase
           .from('saved_searches')
           .select('*')
           .eq('user_id', user.id),
+        // Own recent posts — for the "Your posts" header. Not limited to 60
+        // days; show the latest 5 regardless so the user always sees their
+        // most recent share even if it was a while back.
+        supabase
+          .from('posts')
+          .select('*, author:profiles!user_id(id, first_name, last_name, avatar_url)')
+          .eq('user_id', user.id)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false })
+          .limit(5),
       ])
+      setMyPosts((myPostsRes.data as any[]) || [])
 
       // Build saved-search match list. For each saved search, find activities
       // created after the user's last_seen_at that match the filter_json.
@@ -158,7 +177,12 @@ export default function FeedPage() {
         <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>Feed</h2>
         <Link
           href="/dashboard/saved-searches"
-          style={{ padding: '6px 12px', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', color: '#111827', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
+          style={{
+            padding: '8px 14px', borderRadius: 10, border: 'none',
+            background: '#3293CB', color: '#fff',
+            fontSize: 13, fontWeight: 700, textDecoration: 'none',
+            boxShadow: '0 4px 10px -2px rgba(50,147,203,0.35)',
+          }}
         >
           Saved Searches
         </Link>
@@ -166,6 +190,37 @@ export default function FeedPage() {
 
       {/* Compose — public posts to your followers */}
       <PostComposer onPosted={() => loadFeed()} />
+
+      {/* YOUR POSTS header — your own shares live up top as a pinned banner,
+          not inline with other people's content. Editable/deletable right
+          here so it's obvious this is yours. */}
+      {myPosts.length > 0 && (
+        <section style={{
+          marginBottom: 16,
+          background: 'linear-gradient(180deg, #EFF6FF 0%, #fff 100%)',
+          border: '1px solid #DBEAFE', borderRadius: 16, padding: 14,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#0652B7', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+              Your posts
+            </div>
+            <div style={{ fontSize: 11, color: '#6B7280' }}>
+              Only you see this banner — others see your posts in their own feed.
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {myPosts.map((p: any) => (
+              <PostCard
+                key={p.id}
+                post={p}
+                ts={p.created_at}
+                currentUserId={user.id}
+                onChanged={loadFeed}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {loading ? (
         <div style={{ padding: 40, textAlign: 'center', color: '#6B7280' }}>Loading…</div>

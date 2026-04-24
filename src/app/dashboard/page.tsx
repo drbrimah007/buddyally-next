@@ -446,13 +446,12 @@ export default function ExplorePage() {
         dangerouslySetInnerHTML={{
           __html: `
             /* Mobile-first: single column stack. Desktop (≥1024px): two
-               strictly-equal columns. minmax(0,1fr) prevents any child's
-               intrinsic min-width (e.g. long titles, fixed-width inner tiles)
-               from pushing one column wider than the other. */
+               strictly-equal columns so both sides get the same breathing
+               room the stacked single-column view gave each panel. */
             .ba-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
             @media(min-width:1024px){.ba-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
-            /* Both column wrappers stretch to fill their grid cell so the
-               tan "back panel" on the right matches the left card's width. */
+            /* Both column wrappers fill their grid cell so backdrops span
+               the full width assigned by the grid. */
             .ba-grid > *{min-width:0;width:100%}
             .activity-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
             @media(max-width:1350px){.activity-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -461,7 +460,10 @@ export default function ExplorePage() {
         }}
       />
 
-      <div className="mx-auto max-w-[1600px]">
+      {/* No wrapper cap — fills the viewport. Combined with the 1fr 1fr grid,
+          each column ends up as wide as the old single-column width used to
+          be, including the tan backdrop on the right. */}
+      <div className="mx-auto w-full">
         <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="text-[13px] font-black uppercase tracking-[0.2em] text-[#3293CB]">buddyally activities</div>
@@ -592,8 +594,11 @@ export default function ExplorePage() {
             <section className="rounded-[30px] bg-[#EEE9DF] p-5 shadow-sm ring-1 ring-black/5">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Buddy Pulse</div>
-                  <div className="mt-1 text-2xl font-black tracking-[-0.05em] truncate">{cityInput || 'Nearby'}</div>
+                  <div className="text-[10px] sm:text-xs font-black uppercase tracking-[0.18em] text-slate-500">Buddy Pulse</div>
+                  {/* Let the city wrap on narrow screens so the full label
+                      survives; smaller type on mobile to keep the header
+                      compact and leave room for the speed/pause chips. */}
+                  <div className="mt-1 text-base sm:text-2xl font-black tracking-[-0.05em] break-words leading-tight">{cityInput || 'Nearby'}</div>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
@@ -609,9 +614,22 @@ export default function ExplorePage() {
                     <option value={6000}>Normal</option>
                     <option value={3500}>Fast</option>
                   </select>
-                  <div className="rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-slate-500">
-                    {noticePaused ? 'Paused' : 'Blending'}
-                  </div>
+                  {/* Click-to-resume: if the pulse got pinned by a hover that
+                      never resolved (mobile, stuck mouseleave), tapping the
+                      pill flips it back on without needing a page refresh. */}
+                  <button
+                    type="button"
+                    onClick={() => setNoticePaused(p => !p)}
+                    className={`rounded-full px-3 py-1 text-xs font-bold cursor-pointer transition ${
+                      noticePaused
+                        ? 'bg-slate-900 text-white hover:bg-slate-700'
+                        : 'bg-white/70 text-slate-500 hover:bg-white'
+                    }`}
+                    title={noticePaused ? 'Click to resume' : 'Click to pause'}
+                    aria-pressed={noticePaused}
+                  >
+                    {noticePaused ? 'Paused · tap to resume' : 'Blending'}
+                  </button>
                 </div>
               </div>
 
@@ -649,34 +667,80 @@ export default function ExplorePage() {
                   {activeNotice ? (
                     (() => {
                       const color = categoryColor(activeNotice.category)
+                      const spotsLeft = (activeNotice.max_participants ?? 0) - ((activeNotice.participants || []).length || 0)
+                      const isOwner = user && activeNotice.created_by === user.id
+                      const isJoined = user && (activeNotice.participants || []).some((p: any) => p.user_id === user.id)
 
                       return (
                         <motion.div
                           key={activeNotice.id}
-                          className="absolute inset-0 p-6"
+                          onClick={() => setViewActivityId(activeNotice.id)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => { if (e.key === 'Enter') setViewActivityId(activeNotice.id) }}
+                          className="absolute inset-0 p-5 sm:p-6 cursor-pointer hover:scale-[1.005] transition flex flex-col"
                           initial={{ opacity: 0, filter: 'blur(14px)', scale: 1.025 }}
                           animate={{ opacity: 1, filter: 'blur(0px)', scale: 1 }}
                           exit={{ opacity: 0, filter: 'blur(18px)', scale: 0.985 }}
                           transition={{ duration: 0.9, ease: 'easeInOut' }}
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="h-3 w-3 rounded-full" style={{ background: color.dot }} />
-                            <span className="text-xs font-black uppercase tracking-[0.16em]" style={{ color: color.text }}>
-                              {activeNotice.category}
-                            </span>
+                          {/* Top: category + title + description.
+                              min-h-0 lets the middle shrink so location +
+                              actions at the bottom always fit the 280px card. */}
+                          <div className="min-h-0 flex-1 overflow-hidden">
+                            <div className="flex items-center gap-2">
+                              <span className="h-3 w-3 rounded-full" style={{ background: color.dot }} />
+                              <span className="text-xs font-black uppercase tracking-[0.16em]" style={{ color: color.text }}>
+                                {activeNotice.category}
+                              </span>
+                            </div>
+
+                            <GrainBlendText text={activeNotice.title} />
+
+                            {activeNotice.description && (
+                              // Hard truncate to 160 chars on a single line-clamped
+                              // block so the location + action row below always
+                              // have a home on a narrow 280px card.
+                              <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600">
+                                {activeNotice.description.length > 160
+                                  ? activeNotice.description.slice(0, 157) + '…'
+                                  : activeNotice.description}
+                              </p>
+                            )}
                           </div>
 
-                          <GrainBlendText text={activeNotice.title} />
-
-                          {activeNotice.description && (
-                            <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{activeNotice.description}</p>
-                          )}
-
-                          <div className="mt-4 text-sm font-semibold text-slate-500">
+                          {/* Location is pinned above the action row — it never
+                              gets shoved off by long descriptions. */}
+                          <div className="mt-3 text-sm font-semibold text-slate-500 truncate">
                             {activeNotice.location_mode === 'remote'
                               ? 'Remote / Online'
                               : activeNotice.location_display || activeNotice.location_text || 'Location TBD'}
                             {activeNotice._dist != null ? ` · ${formatDistance(activeNotice._dist)}` : ''}
+                          </div>
+
+                          {/* Action row sits in normal flow at the bottom
+                              of the flex column. No more absolute overlap. */}
+                          <div className="mt-3 flex items-center justify-between gap-3">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setViewActivityId(activeNotice.id) }}
+                              className="text-sm font-bold text-[#3293CB] hover:underline"
+                            >
+                              View details →
+                            </button>
+                            {isOwner ? (
+                              <span className="rounded-xl bg-[#3293CB] px-4 py-2 text-xs font-black text-white">Yours</span>
+                            ) : isJoined ? (
+                              <span className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-black text-white">Joined</span>
+                            ) : spotsLeft > 0 && user ? (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); joinActivity(activeNotice.id, user.id) }}
+                                className="rounded-xl bg-[#3293CB] px-4 py-2 text-xs font-black text-white hover:bg-[#2678A8]"
+                              >
+                                Join
+                              </button>
+                            ) : null}
                           </div>
                         </motion.div>
                       )
@@ -882,7 +946,10 @@ export default function ExplorePage() {
                           onClick={() => setViewActivityId(a.id)}
                           className="group flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-[24px] border border-black/5 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                         >
-                          {a.cover_image_url ? (
+                          {/* Only render the image slot when the activity
+                              actually has a cover. No empty placeholder block
+                              — the card starts with content when there's no image. */}
+                          {a.cover_image_url && (
                             <div className="h-36 overflow-hidden bg-slate-100">
                               <img
                                 src={a.cover_image_url}
@@ -890,8 +957,6 @@ export default function ExplorePage() {
                                 className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                               />
                             </div>
-                          ) : (
-                            <div className="h-24" style={{ background: `linear-gradient(135deg, ${color.bg}, #ffffff)` }} />
                           )}
 
                           <div className="flex flex-1 flex-col p-4">
