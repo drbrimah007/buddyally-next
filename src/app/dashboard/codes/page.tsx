@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from '@/components/ToastProvider'
 import Paginator from '@/components/Paginator'
+import { notifyBadgesChanged } from '@/lib/badges-bus'
 
 const CODE_TYPES: Record<string, { label: string; emoji: string }> = {
   contact_me: { label: 'Contact me', emoji: '💬' },
@@ -523,6 +524,9 @@ export default function CodesPage() {
       if (error) { console.error('[codes] mark-as-read failed', error); return }
       // Reflect locally so the badge clears immediately without a full reload.
       setMessages(prev => prev.map(m => unreadIds.includes(m.id) ? { ...m, read: true, read_at: readAt } : m))
+      // Tell the bottom-nav Codes badge to re-poll. Without this, the red
+      // dot persists until the layout's 30s background poll fires.
+      notifyBadgesChanged()
     })()
   }, [viewingCode, messages])
 

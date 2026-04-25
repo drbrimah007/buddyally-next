@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import Paginator from '@/components/Paginator'
+import { notifyBadgesChanged } from '@/lib/badges-bus'
 
 const ALERT_PAGE_SIZE = 20
 
@@ -34,6 +35,7 @@ export default function AlertsPage() {
       const { error } = await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false)
       if (!error) {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+        notifyBadgesChanged() // ping the bottom-nav Alerts badge
       }
     }
   }

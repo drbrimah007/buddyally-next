@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -8,7 +8,19 @@ import { supabase } from '@/lib/supabase'
 
 const CATEGORIES = ['Travel','Local Activities','Sports / Play','Learning','Help / Support','Events','Outdoor','Gaming','Wellness','Ride Share','Dog Walk','Babysit','Party','Pray','Others']
 
+// Top-level export wraps the inner form in <Suspense>. Required by Next 16
+// because useSearchParams() (used to read ?invite=CODE for the Buddy Line
+// auto-prefill) opts the route into client-side rendering during prerender,
+// and Next refuses to statically prerender the page without a boundary.
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh' }} />}>
+      <SignupForm />
+    </Suspense>
+  )
+}
+
+function SignupForm() {
   const { signUpWithEmail, signInWithGoogle } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()

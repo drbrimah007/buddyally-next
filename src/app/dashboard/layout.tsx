@@ -7,6 +7,7 @@ import { Fragment, useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import InstallAutoPrompt from '@/components/InstallAutoPrompt'
+import { onBadgesChanged } from '@/lib/badges-bus'
 
 // NAV — restored to the 7 thumb anchors (Codes pinned last on the right
 // so the chain icon is exactly where the user's right thumb expects it),
@@ -76,6 +77,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const t = setTimeout(loadBadges, 600)
     return () => clearTimeout(t)
   }, [pathname, user, loadBadges])
+
+  // Pages that mark messages as read fire a custom 'ba:badges:refresh'
+  // event the moment their write commits — we re-poll instantly so the
+  // red dot disappears as soon as the user has actually seen the message.
+  useEffect(() => {
+    if (!user) return
+    const off = onBadgesChanged(() => { loadBadges() })
+    return off
+  }, [user, loadBadges])
 
   if (loading) return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

@@ -13,6 +13,7 @@ import SafetyBanner from '@/components/SafetyBanner'
 import Paginator from '@/components/Paginator'
 import ContactMessagesPreview from '@/components/ContactMessagesPreview'
 import TrustBadges from '@/components/TrustBadges'
+import { notifyBadgesChanged } from '@/lib/badges-bus'
 
 const CONV_PAGE_SIZE = 15
 
@@ -45,6 +46,23 @@ export default function MessagesPage() {
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { if (user) loadConversations() }, [user])
+
+  // Realtime: when ANY new message lands for this user (whether or not we
+  // currently have a chat open), reload the conversations list so the
+  // partner bubbles to the top. Cheap — loadConversations is one query.
+  useEffect(() => {
+    if (!user) return
+    const channel = supabase
+      .channel(`dm-list:${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `recipient_id=eq.${user.id}` },
+        () => { loadConversations() },
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
 
   // Deep-link: /dashboard/messages?to=<uid> opens a chat with that user.
   // ?about=<title> primes the composer with an opener.
@@ -117,6 +135,9 @@ export default function MessagesPage() {
     setChatPartnerTrust((trustRes.data as any) || null)
     await supabase.from('messages').update({ read: true })
       .eq('sender_id', pid).eq('recipient_id', user.id).eq('read', false)
+    // Tell the layout's nav badge to re-poll right now — without this the
+    // red dot lingers until the 30s background poll fires.
+    notifyBadgesChanged()
     queueMicrotask(() => chatEndRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior }))
   }
 
