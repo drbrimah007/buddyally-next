@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import SafetyBanner from '@/components/SafetyBanner'
 import Paginator from '@/components/Paginator'
+import ContactMessagesPreview from '@/components/ContactMessagesPreview'
 
 const CONV_PAGE_SIZE = 15
 
@@ -199,6 +200,12 @@ export default function MessagesPage() {
         <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>Messages</h2>
         <button onClick={() => setShowPicker(v => !v)} style={{ height: 40, padding: '0 16px', borderRadius: 10, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ New Message</button>
       </div>
+
+      {/* v1 parity — incoming contact-code messages live in their own table
+          (`connect_messages`) and used to be invisible from the Messages
+          inbox. This box lifts them into view so a stranger pinging your
+          car/bike/pet code doesn't get lost. */}
+      <ContactMessagesPreview />
 
       {showPicker && (
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 16, marginBottom: 16, boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>

@@ -524,12 +524,23 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* Account actions */}
+      {/* Manage — secondary destinations that don't deserve a thumb slot
+          but still need a clear home. Includes the surfaces that used to
+          clutter the bottom nav (Saved Searches, Alerts) plus the lighter
+          actions (New Post, Notification Settings, Install). */}
       <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 16 }}>
-        <h3 style={{ fontWeight: 600, marginBottom: 12 }}>Account</h3>
+        <h3 style={{ fontWeight: 600, marginBottom: 12 }}>Manage</h3>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          <button onClick={startEdit} style={{ fontSize: 13, fontWeight: 600, border: '1px solid #E5E7EB', borderRadius: 10, padding: '8px 16px', background: '#fff', cursor: 'pointer' }}>Edit Profile</button>
-          <button onClick={shareProfile} style={{ fontSize: 13, fontWeight: 600, border: '1px solid #E5E7EB', borderRadius: 10, padding: '8px 16px', background: '#fff', cursor: 'pointer' }}>Share Profile</button>
+          <button onClick={startEdit} style={manageBtn}>Edit Profile</button>
+          <button onClick={shareProfile} style={manageBtn}>Share Profile</button>
+          {/* Status / Post creation lives here now — too occasional for the
+              + dial, which is reserved for Create Activity / Quick Ask. */}
+          <a href="/dashboard/feed?compose=1" style={manageLink}>+ New Post</a>
+          <a href="/dashboard/saved-searches" style={manageLink}>Saved Searches</a>
+          <a href="/dashboard/alerts" style={manageLink}>Alerts</a>
+          {/* Notification settings — restored from v1. Master push/email
+              switches and a one-click test send. */}
+          <a href="/dashboard/notification-settings" style={manageLink}>Notifications</a>
           <InstallAppButton style={{ height: 34, padding: '0 16px', borderRadius: 10, fontSize: 13 }} />
           <button onClick={() => signOut()} style={{ fontSize: 13, fontWeight: 600, color: '#DC2626', background: '#FEE2E2', borderRadius: 10, padding: '8px 16px', border: 'none', cursor: 'pointer' }}>Log Out</button>
         </div>
@@ -698,4 +709,16 @@ export default function ProfilePage() {
       )}
     </div>
   )
+}
+
+// Shared styles for the Manage section's button + link tiles. Keeps the
+// row visually consistent regardless of <button> vs <a>.
+const manageBtn: React.CSSProperties = {
+  fontSize: 13, fontWeight: 600,
+  border: '1px solid #E5E7EB', borderRadius: 10,
+  padding: '8px 16px', background: '#fff', cursor: 'pointer',
+}
+const manageLink: React.CSSProperties = {
+  ...manageBtn,
+  color: '#111827', textDecoration: 'none', display: 'inline-block',
 }

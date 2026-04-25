@@ -220,19 +220,42 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  let supabase
+  // Annotate explicitly so TS doesn't infer `any` (the inner `masterFlags`
+  // closure references `supabase` which would otherwise leak through).
+  let supabase: ReturnType<typeof createServiceRoleClient>
   try {
     supabase = createServiceRoleClient()
   } catch {
     return NextResponse.json({ error: 'Service role key not configured' }, { status: 500 })
   }
 
+  // Look up the recipient's master push/email switches from `profiles`.
+  // These AND-gate everything (the per-code flags can only be more
+  // restrictive). Missing columns or rows = treat as ON (default-allow),
+  // matching what the per-code flags do.
+  async function masterFlags(userId: string): Promise<{ push: boolean; email: boolean }> {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('notify_push_enabled, notify_email_enabled')
+        .eq('id', userId)
+        .maybeSingle()
+      const push  = (data?.notify_push_enabled  as boolean | null | undefined) !== false
+      const email = (data?.notify_email_enabled as boolean | null | undefined) !== false
+      return { push, email }
+    } catch {
+      return { push: true, email: true }
+    }
+  }
+
   // --- Shape A: contact-code message (v1 parity) ---
   if (isCodeMessageBody(payload)) {
     const p = payload as CodeMessageBody
     const urgent = p.priority === 'urgent'
-    const pushAllowed = p.push_enabled !== false
-    const emailAllowed = p.email_enabled !== false
+    const master = await masterFlags(p.ownerId)
+    // Per-code flag AND master flag must both allow.
+    const pushAllowed = p.push_enabled !== false && master.push
+    const emailAllowed = p.email_enabled !== false && master.email
 
     // 1) Write in-app notification row
     const title = urgent ? `🚨 URGENT: new message on ${p.codeTitle || p.code}` : `New message on ${p.codeTitle || p.code}`
@@ -284,18 +307,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Insert failed', detail: insErr.message }, { status: 500 })
     }
 
-    const pushRes = await sendFcm({
-      supabase,
-      userId: user_id,
-      title,
-      body,
-      urgent: !!urgent,
-      data: {
-        type,
-        reference_id: reference_id || '',
-        reference_type: reference_type || '',
-      },
-    })
+    // Master push toggle gate. The in-app row is always written so the bell
+    // still lights up; only the *push* fanout is suppressed.
+    const master = await masterFlags(user_id)
+    const pushRes = master.push
+      ? await sendFcm({
+          supabase,
+          userId: user_id,
+          title,
+          body,
+          urgent: !!urgent,
+          data: {
+            type,
+            reference_id: reference_id || '',
+            reference_type: reference_type || '',
+          },
+        })
+      : { push: 'skipped_disabled_by_owner' as const }
     return NextResponse.json({ ok: true, ...pushRes })
   }
 
