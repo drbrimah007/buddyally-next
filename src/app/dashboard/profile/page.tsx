@@ -551,6 +551,9 @@ export default function ProfilePage() {
               switches and a one-click test send. */}
           <a href="/dashboard/notification-settings" style={manageLink}>Notifications</a>
           <a href="/trust-and-safety" style={manageLink}>Trust &amp; Safety</a>
+          {/* Contact / help — prominent here per spec. The /contact page is
+              the explainer for getting in touch with the BuddyAlly team. */}
+          <a href="/contact" style={{ ...manageLink, color: '#0652B7', borderColor: '#BFDBFE', background: '#EFF6FF' }}>Help &amp; Contact</a>
           <InstallAppButton style={{ height: 34, padding: '0 16px', borderRadius: 10, fontSize: 13 }} />
           <button onClick={() => signOut()} style={{ fontSize: 13, fontWeight: 600, color: '#DC2626', background: '#FEE2E2', borderRadius: 10, padding: '8px 16px', border: 'none', cursor: 'pointer' }}>Log Out</button>
         </div>

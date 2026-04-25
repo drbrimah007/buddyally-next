@@ -678,6 +678,35 @@ export default function CodesPage() {
     loadCodes()
   }
 
+  // Inline per-code Push / Email toggles. v1 only let you change these
+  // through the create/edit modal — surfacing them as tappable pills in
+  // the list lets owners flip a single channel for a single code without
+  // opening the full edit form. Optimistic UI: flip locally first, write
+  // to DB, revert on failure.
+  async function toggleCodePush(codeId: string, current: boolean) {
+    const next = !current
+    setCodes((prev) => prev.map((c) => (c.id === codeId ? { ...c, push_enabled: next } : c)))
+    const { error } = await supabase.from('connect_codes').update({ push_enabled: next }).eq('id', codeId)
+    if (error) {
+      setCodes((prev) => prev.map((c) => (c.id === codeId ? { ...c, push_enabled: current } : c)))
+      toast('Could not update push setting: ' + error.message, 'error')
+      return
+    }
+    toast(next ? 'Push on for this code' : 'Push off for this code', 'success')
+  }
+
+  async function toggleCodeEmail(codeId: string, current: boolean) {
+    const next = !current
+    setCodes((prev) => prev.map((c) => (c.id === codeId ? { ...c, email_enabled: next } : c)))
+    const { error } = await supabase.from('connect_codes').update({ email_enabled: next }).eq('id', codeId)
+    if (error) {
+      setCodes((prev) => prev.map((c) => (c.id === codeId ? { ...c, email_enabled: current } : c)))
+      toast('Could not update email setting: ' + error.message, 'error')
+      return
+    }
+    toast(next ? 'Email on for this code' : 'Email off for this code', 'success')
+  }
+
   async function deleteCode(codeId: string) {
     if (!confirm('Delete this code? Messages will also be removed.')) return
     const { error: mErr } = await supabase.from('connect_messages').delete().eq('code_id', codeId)
@@ -828,8 +857,36 @@ export default function CodesPage() {
                   {unread > 0 && <span style={{ background: '#DC2626', color: '#fff', fontSize: 10, fontWeight: 800, padding: '1px 6px', borderRadius: 999 }}>{unread} new</span>}
                 </button>
                 <span style={{ background: '#F0FDF4', color: '#059669', fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999 }}>Active</span>
-                <span style={{ fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999, ...(c.push_enabled !== false ? { background: '#F0FDF4', color: '#065F46' } : { background: '#FEF2F2', color: '#991B1B' }) }}>Push: {c.push_enabled !== false ? 'On' : 'Off'}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999, ...(c.email_enabled !== false ? { background: '#F0FDF4', color: '#065F46' } : { background: '#FEF2F2', color: '#991B1B' }) }}>Email: {c.email_enabled !== false ? 'On' : 'Off'}</span>
+                {/* Inline toggle pills — tap to flip push / email for
+                    just this code without opening the edit modal. */}
+                <button
+                  type="button"
+                  onClick={() => toggleCodePush(c.id, c.push_enabled !== false)}
+                  title={c.push_enabled !== false ? 'Tap to turn push off for this code' : 'Tap to turn push on for this code'}
+                  style={{
+                    fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999,
+                    border: 'none', cursor: 'pointer',
+                    ...(c.push_enabled !== false
+                      ? { background: '#F0FDF4', color: '#065F46' }
+                      : { background: '#FEF2F2', color: '#991B1B' }),
+                  }}
+                >
+                  🔔 Push: {c.push_enabled !== false ? 'On' : 'Off'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleCodeEmail(c.id, c.email_enabled !== false)}
+                  title={c.email_enabled !== false ? 'Tap to turn email off for this code' : 'Tap to turn email on for this code'}
+                  style={{
+                    fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 999,
+                    border: 'none', cursor: 'pointer',
+                    ...(c.email_enabled !== false
+                      ? { background: '#F0FDF4', color: '#065F46' }
+                      : { background: '#FEF2F2', color: '#991B1B' }),
+                  }}
+                >
+                  ✉️ Email: {c.email_enabled !== false ? 'On' : 'Off'}
+                </button>
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button onClick={() => setShowPrint(c)} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: '#3293CB', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Print Sticker</button>
@@ -1080,9 +1137,28 @@ export default function CodesPage() {
   // ─── CODES LIST ───────────────────────────────────────────
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>My Contact Codes</h2>
         <button onClick={() => setShowCreate(true)} style={{ height: 40, padding: '0 16px', borderRadius: 10, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ New Code</button>
+      </div>
+
+      {/* Helper-link row — sits under the header. About Contact Codes
+          deep-links to the /contact explainer (what codes are for, how
+          they work). Notification Settings opens the global push/email
+          master-switches page. Both kept on a single low-noise row so
+          they're discoverable without dominating the codes list. */}
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20,
+        padding: '8px 12px', background: '#F8FAFC',
+        border: '1px solid #E5E7EB', borderRadius: 12,
+        fontSize: 13, fontWeight: 700,
+      }}>
+        <a href="/contact" style={{ color: '#0652B7', textDecoration: 'none', padding: '6px 12px', borderRadius: 8, background: '#EFF6FF' }}>
+          ℹ️ About Contact Codes
+        </a>
+        <a href="/dashboard/notification-settings" style={{ color: '#374151', textDecoration: 'none', padding: '6px 12px', borderRadius: 8 }}>
+          🔔 Notification Settings
+        </a>
       </div>
 
       {loading ? (

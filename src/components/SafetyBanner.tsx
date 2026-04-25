@@ -63,9 +63,12 @@ export default function SafetyBanner() {
               copy="Identity confirmed through secure ID verification (third-party, optional)."
             />
           </div>
-          <p style={{ fontSize: 12, marginTop: 12, color: '#6B7280' }}>
+          <p style={{ fontSize: 12, marginTop: 12, color: '#6B7280', display: 'flex', flexWrap: 'wrap', gap: 12 }}>
             <Link href="/trust-and-safety" style={{ color: '#3293CB', fontWeight: 700, textDecoration: 'none' }}>
               Read the full Trust &amp; Safety guide →
+            </Link>
+            <Link href="/contact" style={{ color: '#3293CB', fontWeight: 700, textDecoration: 'none' }}>
+              Contact us →
             </Link>
           </p>
         </div>

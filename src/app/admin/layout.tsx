@@ -11,6 +11,8 @@ const ITEMS = [
   { href: '/admin', label: 'Overview' },
   { href: '/admin/reports', label: 'Reports' },
   { href: '/admin/users', label: 'Users' },
+  { href: '/admin/id-verifications', label: 'ID Verifications' },
+  { href: '/admin/short-links', label: 'Short Links' },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

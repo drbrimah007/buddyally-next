@@ -277,6 +277,9 @@ export default function BuddyallyDesktopLanding() {
               <div><a href="/terms">Guidelines</a></div>
               <div><a href="/home">Blog</a></div>
               <div><a href="/contact">Support</a></div>
+              {/* Contact Codes — link to the explainer; high-intent surface
+                  for the QR / pet tag / package code feature. */}
+              <div><a href="/contact">Contact Codes</a></div>
             </div>
           </div>
           <div>
