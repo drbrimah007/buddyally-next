@@ -427,7 +427,7 @@ export default function ExplorePage() {
           <div className="flex gap-2">
             <button
               onClick={() => fetchActivities()}
-              className="grid h-11 w-11 place-items-center rounded-2xl border border-black/10 bg-white text-slate-700 shadow-sm"
+              className="grid h-10 w-11 place-items-center rounded-2xl border border-black/10 bg-white text-slate-700 shadow-sm"
               title="Refresh"
             >
               <IconRefresh />
@@ -435,7 +435,7 @@ export default function ExplorePage() {
 
             <button
               onClick={() => setShowCreate(true)}
-              className="h-11 rounded-2xl bg-[#3293CB] px-5 text-sm font-black uppercase text-white shadow-[0_10px_24px_rgba(50,147,203,0.25)]"
+              className="h-10 rounded-2xl bg-[#3293CB] px-5 text-sm font-black uppercase text-white shadow-[0_10px_24px_rgba(50,147,203,0.25)]"
             >
               + New Activity
             </button>
@@ -457,7 +457,7 @@ export default function ExplorePage() {
               </div>
 
               <div className="relative">
-                <div className="flex h-12 items-center gap-3 rounded-2xl border border-black/10 bg-[#F8FAFC] px-4 text-slate-500">
+                <div className="flex h-10 items-center gap-3 rounded-2xl border border-black/10 bg-[#F8FAFC] px-4 text-slate-500">
                   <IconLocation />
 
                   <input
@@ -497,7 +497,7 @@ export default function ExplorePage() {
                 <select
                   value={radius}
                   onChange={(e) => setRadius(parseFloat(e.target.value))}
-                  className="h-11 rounded-2xl border border-black/10 bg-white px-3 text-sm font-semibold outline-none"
+                  className="h-10 rounded-2xl border border-black/10 bg-white px-3 text-sm font-semibold outline-none"
                 >
                   <option value={0.3}>2 blocks</option>
                   <option value={0.5}>5 min walk</option>
@@ -514,13 +514,13 @@ export default function ExplorePage() {
                 <button
                   onClick={useGPS}
                   disabled={gpsLoading}
-                  className="h-11 rounded-2xl bg-[#EFF8FE] px-4 text-sm font-black text-[#197BB8] ring-1 ring-[#CFE8F8]"
+                  className="h-10 rounded-2xl bg-[#EFF8FE] px-4 text-sm font-black text-[#197BB8] ring-1 ring-[#CFE8F8]"
                 >
                   {gpsLoading ? 'Locating...' : 'Use GPS'}
                 </button>
               </div>
 
-              <div className="mt-3 flex h-12 items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 text-slate-500">
+              <div className="mt-3 flex h-10 items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 text-slate-500">
                 <IconSearch />
 
                 <input

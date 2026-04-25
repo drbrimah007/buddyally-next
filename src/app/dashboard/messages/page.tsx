@@ -91,11 +91,13 @@ export default function MessagesPage() {
       .limit(100)
     if (!msgs) { setLoading(false); return }
     const convMap = new Map<string, Conversation>()
+    let hadUnread = false
     for (const m of msgs) {
       const isMe = m.sender_id === user.id
       const pid = isMe ? m.recipient_id : m.sender_id
       if (!pid) continue
       const p: any = isMe ? m.recipient : m.sender
+      if (!isMe && !m.read) hadUnread = true
       if (!convMap.has(pid)) {
         convMap.set(pid, {
           partnerId: pid,
@@ -111,6 +113,19 @@ export default function MessagesPage() {
     }
     setConversations(Array.from(convMap.values()))
     setLoading(false)
+
+    // Bulk mark all DMs to me as read AFTER rendering the unread state.
+    // This clears the bottom-nav badge in one shot — opening a single
+    // conversation only used to clear that sender's unreads, leaving the
+    // count stuck if you had pings from multiple people.
+    if (hadUnread) {
+      void supabase.from('messages').update({ read: true })
+        .eq('recipient_id', user.id)
+        .eq('read', false)
+        .is('group_id', null)
+        .is('activity_id', null)
+        .then(() => { notifyBadgesChanged() })
+    }
   }
 
   async function openChat(pid: string, name: string) {

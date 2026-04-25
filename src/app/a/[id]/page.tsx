@@ -273,18 +273,32 @@ export default function ActivityPage() {
 
         {/* Details tab content — gated to logged-in users only. */}
         {tab === 'details' && user && <>
-        {/* Host card */}
+        {/* Host card — full card is a link to the host's public profile.
+            Without this you couldn't dig into who the host is before
+            joining their activity, which is the central trust action. */}
         {host && (
-          <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 16, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
+          <Link
+            href={`/u/${host.id}`}
+            style={{
+              background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16,
+              padding: 16, marginBottom: 16,
+              display: 'flex', alignItems: 'center', gap: 16,
+              textDecoration: 'none', color: 'inherit',
+              transition: 'background 0.15s, border-color 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.borderColor = '#CBD5E1' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#E5E7EB' }}
+          >
             <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: '#4B5563', overflow: 'hidden', flexShrink: 0 }}>
-              {host.avatar_url ? <img src={host.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : (host.first_name?.[0] || '?')}
+              {host.avatar_url ? <img src={host.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} alt="" /> : (host.first_name?.[0] || '?')}
             </div>
-            <div>
-              <p style={{ fontWeight: 600 }}>{host.first_name} {host.last_name}</p>
-              <p style={{ fontSize: 13, color: '#6B7280' }}>{'★'.repeat(Math.round(host.rating_avg || 0))} {host.rating_avg?.toFixed(1) || '0.0'} ({host.rating_count || 0} reviews)</p>
-              <p style={{ fontSize: 12, color: '#6B7280' }}>{host.home_display_name || host.city}</p>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontWeight: 600, color: '#111827', margin: 0 }}>{host.first_name} {host.last_name}</p>
+              <p style={{ fontSize: 13, color: '#6B7280', margin: '2px 0 0' }}>{'★'.repeat(Math.round(host.rating_avg || 0))} {host.rating_avg?.toFixed(1) || '0.0'} ({host.rating_count || 0} reviews)</p>
+              <p style={{ fontSize: 12, color: '#6B7280', margin: '2px 0 0' }}>{host.home_display_name || host.city}</p>
             </div>
-          </div>
+            <span style={{ fontSize: 13, color: '#3293CB', fontWeight: 700, flexShrink: 0 }}>View profile →</span>
+          </Link>
         )}
 
         {/* Description */}

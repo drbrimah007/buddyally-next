@@ -118,15 +118,31 @@ export default function MyActivitiesPage() {
               const isCancelled = a.status === 'cancelled'
               return (
                 <div key={a.id} onClick={() => setViewActivityId(a.id)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, cursor: 'pointer', opacity: isCancelled ? 0.75 : 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4, textDecoration: isCancelled ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</h3>
+                      {/* 2-line clamp instead of single-line nowrap+ellipsis.
+                          The previous version + the status pill on the right
+                          left only ~7 characters of the title visible
+                          ("Book La...") — useless. Two lines plus ellipsis
+                          gives titles room to read. */}
+                      <h3
+                        style={{
+                          fontWeight: 700, fontSize: 16, marginBottom: 4,
+                          lineHeight: 1.25,
+                          textDecoration: isCancelled ? 'line-through' : 'none',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          wordBreak: 'break-word',
+                        }}
+                      >{a.title}</h3>
                       <p style={{ fontSize: 13, color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.location_display || a.location_text}{a.date ? ` • ${new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</p>
                     </div>
                     {isCancelled ? (
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#991B1B', background: '#FEE2E2', padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>Cancelled</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#991B1B', background: '#FEE2E2', padding: '3px 8px', borderRadius: 999, whiteSpace: 'nowrap', flexShrink: 0 }}>Cancelled</span>
                     ) : (
-                      <span style={{ fontSize: 12, fontWeight: 600, color: '#059669', background: '#F0FDF4', padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#059669', background: '#F0FDF4', padding: '3px 8px', borderRadius: 999, whiteSpace: 'nowrap', flexShrink: 0 }}>
                         {a.max_participants == null || a.max_participants === 0
                           ? `${a.participants?.length || 0} · Open`
                           : `${a.participants?.length || 0}/${a.max_participants}`}
@@ -170,13 +186,25 @@ export default function MyActivitiesPage() {
             <div className="act-grid">
             {pageItems.map((a: any) => (
               <div key={a.id} onClick={() => setViewActivityId(a.id)} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, cursor: 'pointer', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <h3 style={{ fontWeight: 600, fontSize: 16, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</h3>
+                    {/* 2-line clamp — was nowrap+ellipsis which truncated
+                        titles to ~7 chars when the category pill sat right. */}
+                    <h3
+                      style={{
+                        fontWeight: 700, fontSize: 16, marginBottom: 4,
+                        lineHeight: 1.25,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        wordBreak: 'break-word',
+                      }}
+                    >{a.title}</h3>
                     <p style={{ fontSize: 13, color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.location_display || a.location_text}{a.date ? ` • ${new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}</p>
                     <p style={{ fontSize: 12, color: '#4B5563', marginTop: 4 }}>Host: {a.host?.first_name} {a.host?.last_name}</p>
                   </div>
-                  <span style={{ background: '#3293CB', color: '#fff', fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>{a.category}</span>
+                  <span style={{ background: '#3293CB', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 999, whiteSpace: 'nowrap', flexShrink: 0 }}>{a.category}</span>
                 </div>
                 {a.description && <p style={{ fontSize: 13, color: '#4B5563', marginTop: 8, lineHeight: 1.6 }}>{a.description.substring(0, 100)}{a.description.length > 100 ? '...' : ''}</p>}
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>

@@ -606,7 +606,7 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
           </div>
 
           <div>
-            <label style={labelStyle}>Max Participants</label>
+            <label style={labelStyle}>Max Participants?</label>
             <input type="number" value={form.maxParticipants} onChange={e => update('maxParticipants', e.target.value)} min={2} max={10000} placeholder="No Limit" style={{ ...inputStyle, textAlign: 'center' }} />
           </div>
 

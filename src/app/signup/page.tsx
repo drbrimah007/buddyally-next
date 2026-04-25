@@ -134,7 +134,14 @@ function SignupForm() {
         </Link>
       </p>
       <div style={{ background: '#fff', borderRadius: 20, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: 32, width: '100%', maxWidth: 520 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 16 }}>Join BuddyAlly</h1>
+        {/* Logo + headline. The wordmark anchors the page so it doesn't
+            feel like a generic sign-up form — same brand cue users see
+            on the splash and dashboard. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/buddyally-logo.png" alt="BuddyAlly" style={{ width: 36, height: 36, borderRadius: 8 }} />
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>Join BuddyAlly</h1>
+        </div>
 
         {/* Chooser — Buddy Line lineage path (recommended) vs direct join.
             Per spec §9, the invite path is the primary CTA. Once chosen,
@@ -166,7 +173,7 @@ function SignupForm() {
             >
               <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Join Directly</div>
               <div style={{ fontSize: 13, color: '#6B7280', fontWeight: 500 }}>
-                No invite? You can still join.
+                Join now and invite trusted people later to build your Buddy Line.
               </div>
             </button>
           </div>

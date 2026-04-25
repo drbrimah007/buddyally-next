@@ -2,7 +2,7 @@
 
 // Public user profile — shown from chat, activities, groups.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -202,8 +202,11 @@ export default function UserProfilePage() {
                 text={profile.bio ? String(profile.bio).slice(0, 140) : ''}
                 label="Share"
               />
-              <button onClick={reportUser} style={{ padding: '10px 16px', borderRadius: 12, border: '1px solid #FECACA', background: '#fff', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Report</button>
-              <button onClick={blockUser} style={{ padding: '10px 16px', borderRadius: 12, border: '1px solid #E5E7EB', background: '#fff', color: '#6B7280', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Block</button>
+              {/* Report / Block live in a small overflow menu — they should
+                  feel like recovery actions, not promoted alongside Message
+                  and Follow. (WhatsApp pattern: Block tucked inside the
+                  conversation settings menu, not at the top of the chat.) */}
+              <ProfileOverflowMenu onReport={reportUser} onBlock={blockUser} />
             </>
           )}
           {isSelf && (
@@ -237,4 +240,76 @@ export default function UserProfilePage() {
 
 function Badge({ children, color = '#065F46', bg = '#ECFDF5' }: { children: React.ReactNode; color?: string; bg?: string }) {
   return <span style={{ background: bg, color, fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.04)' }}>{children}</span>
+}
+
+// Small ⋯ menu next to the action row. Houses Report and Block — actions
+// people will only ever need in a bad situation, and shouldn't sit at the
+// same visual weight as Message / Follow / Link up. Mirrors the WhatsApp
+// pattern (settings ⋯ at the top right of a chat).
+function ProfileOverflowMenu({ onReport, onBlock }: { onReport: () => void; onBlock: () => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="More"
+        title="More"
+        style={{
+          width: 36, height: 36, padding: 0, borderRadius: 999,
+          border: '1px solid #E5E7EB', background: '#fff', color: '#6B7280',
+          fontSize: 16, fontWeight: 700, cursor: 'pointer',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          letterSpacing: '0.1em',
+        }}
+      >⋯</button>
+      {open && (
+        <div
+          style={{
+            position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 60,
+            background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12,
+            boxShadow: '0 12px 28px rgba(15,23,42,0.12)',
+            minWidth: 160, padding: 4,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onReport() }}
+            style={{
+              display: 'block', width: '100%', textAlign: 'left',
+              padding: '8px 12px', borderRadius: 8, border: 'none',
+              background: 'transparent', color: '#DC2626',
+              fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            }}
+          >🚩 Report</button>
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onBlock() }}
+            style={{
+              display: 'block', width: '100%', textAlign: 'left',
+              padding: '8px 12px', borderRadius: 8, border: 'none',
+              background: 'transparent', color: '#374151',
+              fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            }}
+          >🚫 Block</button>
+        </div>
+      )}
+    </div>
+  )
 }

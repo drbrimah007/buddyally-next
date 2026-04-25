@@ -649,9 +649,9 @@ export default function ExplorePage() {
         <section className="mb-5 rounded-[24px] bg-white p-4 sm:p-5 shadow-sm ring-1 ring-black/5">
           <div className="flex flex-wrap items-center gap-3">
             {/* City/area — flex-grow so it takes the most room on desktop.
-                h-14 matches siblings' effective height so nothing looks thinner. */}
+                h-10 matches siblings' effective height so nothing looks thinner. */}
             <div ref={citySearchRef} className="relative flex-1 min-w-[240px]">
-              <div className="flex h-14 items-center gap-3 rounded-2xl border border-black/10 bg-[#F8FAFC] px-4 text-slate-500 focus-within:border-[#3293CB] focus-within:ring-2 focus-within:ring-[#3293CB]/20">
+              <div className="flex h-10 items-center gap-3 rounded-2xl border border-black/10 bg-[#F8FAFC] px-4 text-slate-500 focus-within:border-[#3293CB] focus-within:ring-2 focus-within:ring-[#3293CB]/20">
                 <span className="text-slate-400 shrink-0"><IconLocation /></span>
                 {/* h-full + border-0 so the input fills the container's
                     entire height edge-to-edge — no tiny inset field. The
@@ -668,14 +668,14 @@ export default function ExplorePage() {
                     onClick={clearCity}
                     aria-label="Clear city"
                     title="Clear"
-                    className="shrink-0 grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-600 text-xl font-bold leading-none hover:bg-slate-200 hover:text-slate-900 transition"
+                    className="shrink-0 grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-slate-600 text-base font-bold leading-none hover:bg-slate-200 hover:text-slate-900 transition"
                   >
                     ×
                   </button>
                 )}
               </div>
               {showPlaces && placeResults.length > 0 && (
-                <div className="absolute left-0 right-0 top-[62px] z-40 max-h-64 overflow-y-auto rounded-2xl border border-black/10 bg-white shadow-xl">
+                <div className="absolute left-0 right-0 top-[44px] z-40 max-h-64 overflow-y-auto rounded-2xl border border-black/10 bg-white shadow-xl">
                   {placeResults.map((p: any, i: number) => {
                     const lbl = renderPlaceLabel(p)
                     return (
@@ -696,7 +696,7 @@ export default function ExplorePage() {
             <select
               value={radius}
               onChange={(e) => setRadius(parseFloat(e.target.value))}
-              className="h-14 rounded-2xl border border-black/10 bg-white px-3 text-sm font-semibold outline-none"
+              className="h-10 rounded-2xl border border-black/10 bg-white px-3 text-sm font-semibold outline-none"
               aria-label="Radius"
             >
               <option value={0.3}>2 blocks</option>
@@ -714,12 +714,12 @@ export default function ExplorePage() {
             <button
               onClick={useGPS}
               disabled={gpsLoading}
-              className="h-14 rounded-2xl bg-[#EFF8FE] px-4 text-sm font-black text-[#197BB8] ring-1 ring-[#CFE8F8] whitespace-nowrap"
+              className="h-10 rounded-2xl bg-[#EFF8FE] px-4 text-sm font-black text-[#197BB8] ring-1 ring-[#CFE8F8] whitespace-nowrap"
             >
               {gpsLoading ? 'Locating…' : 'Use GPS'}
             </button>
 
-            <div className="flex h-14 flex-1 min-w-[220px] items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 text-slate-500 focus-within:border-[#3293CB] focus-within:ring-2 focus-within:ring-[#3293CB]/20">
+            <div className="flex h-10 flex-1 min-w-[220px] items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 text-slate-500 focus-within:border-[#3293CB] focus-within:ring-2 focus-within:ring-[#3293CB]/20">
               <span className="shrink-0"><IconSearch /></span>
               <input
                 value={search}

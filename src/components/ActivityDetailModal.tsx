@@ -155,18 +155,30 @@ export default function ActivityDetailModal({ activityId, onClose }: { activityI
           {/* Details tab */}
           {tab === 'details' && (
             <>
-              {/* Host card */}
+              {/* Host card — entire card is a Link to the host's public
+                  profile, so the user can dig into who they are before
+                  joining. The modal closes itself on tap so the route
+                  navigation isn't blocked by the open modal layer. */}
               {host && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: 14, background: '#F9FAFB', borderRadius: 14 }}>
+                <Link
+                  href={`/u/${host.id}`}
+                  onClick={onClose}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16,
+                    padding: 14, background: '#F9FAFB', borderRadius: 14,
+                    textDecoration: 'none', color: 'inherit',
+                  }}
+                >
                   <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#E0F2FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: '#3293CB', overflow: 'hidden', flexShrink: 0 }}>
                     {host.avatar_url ? <img src={host.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : (host.first_name?.[0] || '?')}
                   </div>
-                  <div>
-                    <p style={{ fontWeight: 600, fontSize: 14 }}>{host.first_name} {host.last_name}</p>
-                    <p style={{ fontSize: 12, color: '#6B7280' }}><span style={{ color: '#F59E0B' }}>{'★'.repeat(Math.round(host.rating_avg || 0))}</span><span style={{ color: '#E2E8F0' }}>{'★'.repeat(5 - Math.round(host.rating_avg || 0))}</span> {host.rating_avg?.toFixed(1) || '0.0'} ({host.rating_count || 0})</p>
-                    <p style={{ fontSize: 12, color: '#6B7280' }}>{host.home_display_name || host.city}</p>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: 600, fontSize: 14, color: '#111827', margin: 0 }}>{host.first_name} {host.last_name}</p>
+                    <p style={{ fontSize: 12, color: '#6B7280', margin: '2px 0 0' }}><span style={{ color: '#F59E0B' }}>{'★'.repeat(Math.round(host.rating_avg || 0))}</span><span style={{ color: '#E2E8F0' }}>{'★'.repeat(5 - Math.round(host.rating_avg || 0))}</span> {host.rating_avg?.toFixed(1) || '0.0'} ({host.rating_count || 0})</p>
+                    <p style={{ fontSize: 12, color: '#6B7280', margin: '2px 0 0' }}>{host.home_display_name || host.city}</p>
                   </div>
-                </div>
+                  <span style={{ fontSize: 12, color: '#3293CB', fontWeight: 700, flexShrink: 0 }}>View →</span>
+                </Link>
               )}
 
               {/* Description */}
