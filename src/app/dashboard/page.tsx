@@ -150,9 +150,21 @@ export default function ExplorePage() {
   const { profile, user } = useAuth()
   const searchParams = useSearchParams()
 
-  const [radius, setRadius] = useState(5)
+  // Hydrate radius and category from localStorage so a refresh keeps
+  // whatever the user picked last time. Falls back to defaults (5 mi /
+  // 'all') for first-time visitors. Reads happen lazily inside the
+  // initializer so they only run once and survive SSR.
+  const [radius, setRadius] = useState<number>(() => {
+    if (typeof window === 'undefined') return 5
+    const saved = window.localStorage.getItem('ba_explore_radius')
+    const n = saved == null ? NaN : Number(saved)
+    return Number.isFinite(n) ? n : 5
+  })
   const [search, setSearch] = useState('')
-  const [category, setCategory] = useState('all')
+  const [category, setCategory] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'all'
+    return window.localStorage.getItem('ba_explore_category') || 'all'
+  })
   // Secondary tag filter — populated from the selected category's palette
   // (see /src/lib/categories.ts → TAGS_BY_CATEGORY). Cleared when the
   // category changes so old tags don't leak across filters.
@@ -260,6 +272,18 @@ export default function ExplorePage() {
     setExplorePage(0)
     setActiveNoticeIndex(0)
   }, [search, category, radius, cityCoords?.lat, cityCoords?.lon, showAll])
+
+  // Persist radius + category to localStorage so a hard refresh keeps
+  // the current filter state. (Search query is intentionally NOT persisted —
+  // people don't want to re-find the search they typed yesterday.)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try { window.localStorage.setItem('ba_explore_radius', String(radius)) } catch {}
+  }, [radius])
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try { window.localStorage.setItem('ba_explore_category', category) } catch {}
+  }, [category])
 
   useEffect(() => {
     // If the page was opened via a Saved Search "Run now" URL (which

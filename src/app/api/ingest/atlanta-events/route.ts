@@ -47,13 +47,18 @@ function classifyEvent(segment: string | null | undefined): { publisher_id: stri
   }
 }
 
-function isAuthorized(req: Request): boolean {
+type AuthResult = { ok: true } | { ok: false; reason: 'no_env' | 'no_header' | 'mismatch' }
+
+function checkAuth(req: Request): AuthResult {
   // Vercel cron is trusted by header
-  if (req.headers.get('x-vercel-cron') === '1') return true
+  if (req.headers.get('x-vercel-cron') === '1') return { ok: true }
   const auth = req.headers.get('authorization') || ''
   const match = auth.match(/^Bearer (.+)$/)
   const secret = process.env.CRON_SECRET
-  return !!(secret && match && match[1] === secret)
+  if (!secret) return { ok: false, reason: 'no_env' }       // env var missing on the deploy
+  if (!match) return { ok: false, reason: 'no_header' }     // browser sent no Bearer token
+  if (match[1] !== secret) return { ok: false, reason: 'mismatch' }
+  return { ok: true }
 }
 
 type TmEvent = {
@@ -97,8 +102,19 @@ export async function GET(req: Request)  { return run(req) }
 export async function POST(req: Request) { return run(req) }
 
 async function run(req: Request) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  const auth = checkAuth(req)
+  if (!auth.ok) {
+    // Diagnostic 401 — tells you exactly why so you can fix it without
+    // spelunking. Does NOT leak the secret value.
+    return NextResponse.json({
+      error: 'unauthorized',
+      reason: auth.reason,
+      hint: auth.reason === 'no_env'
+        ? 'CRON_SECRET env var is not set on this deployment. Add it in Vercel → Settings → Environment Variables, then Redeploy.'
+        : auth.reason === 'no_header'
+        ? 'Authorization: Bearer <secret> header missing. The /admin button sends it; if you called this URL directly you need to add the header.'
+        : 'CRON_SECRET in env does not match the value sent. Re-copy from Vercel and paste again.',
+    }, { status: 401 })
   }
 
   const apiKey = process.env.TICKETMASTER_API_KEY

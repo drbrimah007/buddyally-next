@@ -60,6 +60,23 @@ body {
   h1, h2, h3, h4, h5, h6, p, span, div, label, a, button {
     color: inherit;
   }
+  /* Tailwind v4's preflight strips the default pointer cursor from
+     <button> and from elements with role="button", so click targets
+     felt static (arrow cursor over filter pills, pagination, etc.).
+     Restore it for any non-disabled button + role-button. The :where()
+     wrapper keeps specificity at 0 so utility/inline overrides still win. */
+  :where(button, [role="button"]):not(:disabled):not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  :where(button, [role="button"]):disabled,
+  :where(button, [role="button"])[aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+  /* Anchor-tagged links (Next <Link>) — same idea. The browser default
+     usually does this, but reset stylesheets often kill it. */
+  :where(a[href]) {
+    cursor: pointer;
+  }
 }
 
 /* Layered so Tailwind utilities (`bg-transparent`, `border-0`, `shadow-none`,
