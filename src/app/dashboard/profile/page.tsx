@@ -43,6 +43,7 @@ export default function ProfilePage() {
   const [homeResults, setHomeResults] = useState<any[]>([])
   const [showHomeResults, setShowHomeResults] = useState(false)
   const homeSearchTimer = useRef<any>(null)
+  const homeBoxRef = useRef<HTMLDivElement | null>(null)
   const [interestsForm, setInterestsForm] = useState<string[]>([])
   const [socialsForm, setSocialsForm] = useState({ instagram: '', twitter: '', linkedin: '', website: '' })
   const [phoneNumber, setPhoneNumber] = useState('')
@@ -94,11 +95,34 @@ export default function ProfilePage() {
     if (homeSearchTimer.current) clearTimeout(homeSearchTimer.current)
     if (!val || val.length < 2) { setHomeResults([]); setShowHomeResults(false); return }
     homeSearchTimer.current = setTimeout(async () => {
-      const data = await searchPlacesApi(val, 5)
+      // Bias by current home country (if any) so the user's local
+      // neighborhood beats global lookalikes (Brownsville Brooklyn vs Browns NZ).
+      const cc = ((profile as any)?.home_country_code || '').toLowerCase() || null
+      const data = await searchPlacesApi(val, 8, cc)
       setHomeResults(data)
       setShowHomeResults(data.length > 0)
     }, 300)
   }
+
+  // Close the dropdown on outside click / Escape — without this it lingers
+  // and obscures the field when the user moves on.
+  useEffect(() => {
+    if (!showHomeResults) return
+    function onClick(e: MouseEvent) {
+      if (homeBoxRef.current && !homeBoxRef.current.contains(e.target as Node)) {
+        setShowHomeResults(false)
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setShowHomeResults(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [showHomeResults])
 
   function selectHomePlace(place: any) {
     const pick = pickPlace(place)
@@ -525,7 +549,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <label style={{ fontSize: 13, fontWeight: 600, color: '#4B5563', display: 'block', marginBottom: 6 }}>Home Area</label>
-                <div style={{ position: 'relative' }}>
+                <div ref={homeBoxRef} style={{ position: 'relative', zIndex: 50 }}>
                   <input
                     value={form.city}
                     onChange={e => searchHome(e.target.value)}
@@ -533,7 +557,7 @@ export default function ProfilePage() {
                     style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #E5E7EB', borderRadius: 12, fontSize: 14, color: '#111827' }}
                   />
                   {showHomeResults && homeResults.length > 0 && (
-                    <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 999, maxHeight: 220, overflowY: 'auto' }}>
+                    <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 9999, maxHeight: 240, overflowY: 'auto' }}>
                       {homeResults.map((p: any, i: number) => {
                         const lbl = renderPlaceLabel(p)
                         return (

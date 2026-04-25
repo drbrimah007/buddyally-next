@@ -16,7 +16,7 @@ export type Activity = {
   end_date: string | null
   availability_label: string | null
   recurrence_freq: string | null
-  max_participants: number
+  max_participants: number | null
   tip_enabled: boolean
   cover_image_url: string | null
   status: 'open' | 'full' | 'completed' | 'cancelled'

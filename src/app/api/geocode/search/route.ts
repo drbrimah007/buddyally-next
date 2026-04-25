@@ -35,16 +35,30 @@ async function fetchNominatim(params: Record<string, string>) {
   return Array.isArray(data) ? data : []
 }
 
-// Run two Nominatim queries in parallel and merge:
-//   • Primary free-form (cities/neighborhoods/etc.)
-//   • Country-only structured (so "United States", "USA", "Nigeria" return
-//     the actual country boundary, which Nominatim ranks low for free-form).
-// Country results are pinned to the top of the merged list when present.
+// Run several Nominatim queries in parallel and merge with locality bias.
+//
+// Why this is more than a single call:
+//   • Nominatim's free-form ranking weights by importance/population, so a
+//     small NYC neighborhood like "Brownsville, Brooklyn" gets buried under
+//     Southgate (UK) or Browns (NZ) when you type "brownsville".
+//   • We bias by the caller's country (`?cc=US` from the client, OR the
+//     `x-vercel-ip-country` header) and pin in-country results to the top.
+//   • We still keep a global free-form pass for genuine international intent
+//     ("paris" should still surface Paris, France even from a US viewer).
+//   • A separate `country=` structured pass surfaces actual country
+//     boundaries when someone types "United States" / "Nigeria".
 export async function GET(req: Request) {
   const url = new URL(req.url)
   const q = (url.searchParams.get('q') || '').trim()
   const limit = url.searchParams.get('limit') || '12'
   if (q.length < 2) return NextResponse.json([])
+
+  // Caller's country code, used to bias ranking. Priority:
+  //   1. Explicit `?cc=US` from the client (profile home country)
+  //   2. Vercel edge IP-country header (set on every prod request)
+  //   3. None — pure global free-form
+  const ccRaw = (url.searchParams.get('cc') || req.headers.get('x-vercel-ip-country') || '').toLowerCase()
+  const cc = /^[a-z]{2}$/.test(ccRaw) ? ccRaw : ''
 
   const baseParams = {
     format: 'json',
@@ -54,16 +68,17 @@ export async function GET(req: Request) {
     limit,
   }
 
-  const [freeForm, countryHit] = await Promise.all([
+  const [freeForm, countryHit, biasedHit] = await Promise.all([
     fetchNominatim({ ...baseParams, q }),
-    // `country=` is a structured Nominatim search field — returns the
-    // country boundary itself when the query matches a country name or
-    // common alias (USA, U.K., etc.). Returns [] when there's no match.
+    // `country=` matches country boundaries — surfaces "United States" itself
+    // when typed by name. Returns [] for non-country queries.
     fetchNominatim({ ...baseParams, country: q, limit: '3' }),
+    // In-country search — restricts to the caller's country. This is what
+    // surfaces Brownsville (Brooklyn) for a US viewer typing "brownsville".
+    cc ? fetchNominatim({ ...baseParams, q, countrycodes: cc }) : Promise.resolve([] as any[]),
   ])
 
-  // Pin country boundaries to the top so users searching "United States"
-  // see the country before random localities named "United States".
+  // Order:  country-name boundaries → in-country localities → global free-form
   const countryBoundaries = countryHit.filter((p: any) =>
     p?.class === 'boundary' && p?.type === 'administrative' && (p?.address?.country_code || '').length === 2
   )
@@ -76,6 +91,7 @@ export async function GET(req: Request) {
     merged.push(p)
   }
   countryBoundaries.forEach(push)
+  biasedHit.forEach(push)
   freeForm.forEach(push)
 
   // Comma-fallback if still nothing (e.g., "Brownsville, Brooklyn, NY"

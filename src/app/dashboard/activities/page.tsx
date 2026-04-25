@@ -127,7 +127,9 @@ export default function MyActivitiesPage() {
                       <span style={{ fontSize: 12, fontWeight: 700, color: '#991B1B', background: '#FEE2E2', padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>Cancelled</span>
                     ) : (
                       <span style={{ fontSize: 12, fontWeight: 600, color: '#059669', background: '#F0FDF4', padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>
-                        {(a.participants?.length || 0)}/{a.max_participants}
+                        {a.max_participants == null || a.max_participants === 0
+                          ? `${a.participants?.length || 0} · Open`
+                          : `${a.participants?.length || 0}/${a.max_participants}`}
                       </span>
                     )}
                   </div>

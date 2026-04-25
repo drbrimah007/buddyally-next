@@ -143,16 +143,19 @@ export function formatDistance(miles: number): string {
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org'
 
-export async function searchPlaces(query: string, limit = 10): Promise<NominatimPlace[]> {
+export async function searchPlaces(query: string, limit = 10, cc?: string | null): Promise<NominatimPlace[]> {
   if (!query || query.trim().length < 2) return []
   try {
     // Proxy through our own API so we can set a proper User-Agent and
     // tweak Nominatim params (namedetails, dedupe=0, higher limit) so
     // neighborhoods like "Brownsville, Brooklyn" surface, not just city-level.
-    const res = await fetch(
-      `/api/geocode/search?q=${encodeURIComponent(query)}&limit=${limit}`,
-      { headers: { Accept: 'application/json' } }
-    )
+    // The `cc` (country code) is passed for locality bias — without it small
+    // local matches lose to global heavyweights of the same name.
+    const params = new URLSearchParams({ q: query, limit: String(limit) })
+    if (cc && /^[a-zA-Z]{2}$/.test(cc)) params.set('cc', cc.toLowerCase())
+    const res = await fetch(`/api/geocode/search?${params.toString()}`, {
+      headers: { Accept: 'application/json' },
+    })
     if (!res.ok) return []
     const data = await res.json()
     return Array.isArray(data) ? data : []

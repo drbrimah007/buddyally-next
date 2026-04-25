@@ -78,7 +78,9 @@ export default function ActivityDetailModal({ activityId, onClose }: { activityI
 
   const host = activity.host as any
   const participants = activity.participants || []
-  const spotsLeft = activity.max_participants - participants.length
+  // Null / 0 cap = "Open" (no limit). Otherwise compute spots left.
+  const unlimited = activity.max_participants == null || activity.max_participants === 0
+  const spotsLeft = unlimited ? Infinity : activity.max_participants - participants.length
   const isOwner = user && activity.created_by === user.id
   const isJoined = user && participants.some((p: any) => p.user_id === user.id)
   const timing = activity.timing_mode === 'flexible'
@@ -202,7 +204,7 @@ export default function ActivityDetailModal({ activityId, onClose }: { activityI
                 </div>
                 <div style={{ background: '#F9FAFB', borderRadius: 12, padding: 14 }}>
                   <p style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', marginBottom: 4 }}>Spots</p>
-                  <p style={{ fontWeight: 600, fontSize: 13 }}>{spotsLeft > 0 ? `${spotsLeft} of ${activity.max_participants} left` : 'Full'}</p>
+                  <p style={{ fontWeight: 600, fontSize: 13 }}>{unlimited ? 'Open' : (spotsLeft > 0 ? `${spotsLeft} of ${activity.max_participants} left` : 'Full')}</p>
                 </div>
                 <div style={{ background: '#F9FAFB', borderRadius: 12, padding: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {(() => {

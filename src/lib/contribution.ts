@@ -21,12 +21,12 @@ export function contributionBadge(
   const t: ContributionType =
     (contribution_type as ContributionType) || (tip_enabled ? 'tips' : 'free')
   switch (t) {
-    case 'free':    return { label: 'Free to join',    bg: '#059669', fg: '#ffffff' }
-    case 'split':   return { label: 'Split cost',      bg: '#2563EB', fg: '#ffffff' }
-    case 'gas':     return { label: 'Gas help',        bg: '#D97706', fg: '#ffffff' }
-    case 'tips':    return { label: 'Tips welcome',    bg: '#CA8A04', fg: '#ffffff' }
-    case 'bring':   return { label: 'Bring something', bg: '#7C3AED', fg: '#ffffff' }
-    case 'covered': return { label: 'Covered',         bg: '#0EA5E9', fg: '#ffffff' }
-    default:        return { label: 'Free to join',    bg: '#059669', fg: '#ffffff' }
+    case 'free':    return { label: 'Free to Join',    bg: '#059669', fg: '#ffffff' }
+    case 'split':   return { label: 'Split Costs',     bg: '#2563EB', fg: '#ffffff' }
+    case 'gas':     return { label: 'Gas Help',        bg: '#D97706', fg: '#ffffff' }
+    case 'tips':    return { label: 'Tips Welcome',    bg: '#CA8A04', fg: '#ffffff' }
+    case 'bring':   return { label: 'Bring Something', bg: '#7C3AED', fg: '#ffffff' }
+    case 'covered': return { label: 'Covered Already', bg: '#0EA5E9', fg: '#ffffff' }
+    default:        return { label: 'Free to Join',    bg: '#059669', fg: '#ffffff' }
   }
 }

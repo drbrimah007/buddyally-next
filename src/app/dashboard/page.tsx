@@ -833,7 +833,10 @@ export default function ExplorePage() {
                   {activeNotice ? (
                     (() => {
                       const color = categoryColor(activeNotice.category)
-                      const spotsLeft = (activeNotice.max_participants ?? 0) - ((activeNotice.participants || []).length || 0)
+                      // Null / 0 cap = "Open" (no limit). Otherwise compute spots left.
+                      const unlimited = activeNotice.max_participants == null || activeNotice.max_participants === 0
+                      const spotsLeft = unlimited ? Infinity : (activeNotice.max_participants ?? 0) - ((activeNotice.participants || []).length || 0)
+                      const hasRoom = unlimited || spotsLeft > 0
                       const isOwner = user && activeNotice.created_by === user.id
                       const isJoined = user && (activeNotice.participants || []).some((p: any) => p.user_id === user.id)
 
@@ -898,7 +901,7 @@ export default function ExplorePage() {
                               <span className="rounded-xl bg-[#3293CB] px-4 py-2 text-xs font-black text-white">Yours</span>
                             ) : isJoined ? (
                               <span className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-black text-white">Joined</span>
-                            ) : spotsLeft > 0 && user ? (
+                            ) : hasRoom && user ? (
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); joinActivity(activeNotice.id, user.id) }}
@@ -1138,7 +1141,10 @@ export default function ExplorePage() {
                   <div className="activity-grid">
                     {pageItems.map((a: any) => {
                       const host = a.host as any
-                      const spotsLeft = a.max_participants - (a.participants?.length || 0)
+                      // Null / 0 cap = "Open" (no limit). Otherwise compute spots left.
+                      const unlimited = a.max_participants == null || a.max_participants === 0
+                      const spotsLeft = unlimited ? Infinity : a.max_participants - (a.participants?.length || 0)
+                      const hasRoom = unlimited || spotsLeft > 0
                       const isOwner = user && a.created_by === user.id
                       const isJoined = user && (a.participants || []).some((p: any) => p.user_id === user.id)
                       const color = categoryColor(a.category)
@@ -1196,7 +1202,7 @@ export default function ExplorePage() {
 
                             <div className="mt-4 flex flex-wrap gap-2">
                               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                                {spotsLeft > 0 ? `${spotsLeft} spot${spotsLeft !== 1 ? 's' : ''} left` : 'Full'}
+                                {unlimited ? 'Open' : spotsLeft > 0 ? `${spotsLeft} spot${spotsLeft !== 1 ? 's' : ''} left` : 'Full'}
                               </span>
 
                               {(() => {
@@ -1253,7 +1259,7 @@ export default function ExplorePage() {
                                   <span className="rounded-full bg-[#3293CB] px-3 py-2 text-xs font-black text-white">Yours</span>
                                 ) : isJoined ? (
                                   <span className="rounded-full bg-emerald-600 px-3 py-2 text-xs font-black text-white">Joined</span>
-                                ) : spotsLeft > 0 ? (
+                                ) : hasRoom ? (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()

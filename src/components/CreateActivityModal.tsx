@@ -20,12 +20,12 @@ const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
 // note (e.g. "$20ish per person"), but we never render a currency input.
 type ContributionType = 'free' | 'split' | 'gas' | 'tips' | 'bring' | 'covered'
 const CONTRIBUTION_OPTIONS: { value: ContributionType; label: string; helper: string; placeholder?: string }[] = [
-  { value: 'free',    label: 'Free',              helper: 'No cost — just show up.' },
-  { value: 'split',   label: 'Split cost',        helper: 'Shared expense, figured out together.', placeholder: 'Estimate per person (optional) — e.g. "$15ish"' },
-  { value: 'gas',     label: 'Gas help',          helper: 'A little something for the driver. Usually $5–$20 depending on distance.', placeholder: 'Ballpark (optional)' },
-  { value: 'tips',    label: 'Tips welcome',      helper: 'Optional appreciation — never required.' },
-  { value: 'bring',   label: 'Bring something',   helper: 'Potluck-style — everyone brings a small thing.', placeholder: 'e.g. "snacks, a drink, or a chair"' },
-  { value: 'covered', label: 'Covered already',   helper: 'Host is taking care of it.' },
+  { value: 'free',    label: 'Free to Join',     helper: 'No cost — just show up.' },
+  { value: 'split',   label: 'Split Costs',      helper: 'Shared expense, figured out together.', placeholder: 'Estimate per person (optional) — e.g. "$15ish"' },
+  { value: 'gas',     label: 'Gas Help',         helper: 'A little something for the driver. Usually $5–$20 depending on distance.', placeholder: 'Ballpark (optional)' },
+  { value: 'tips',    label: 'Tips Welcome',     helper: 'Optional appreciation — never required.' },
+  { value: 'bring',   label: 'Bring Something',  helper: 'Potluck-style — everyone brings a small thing.', placeholder: 'e.g. "snacks, a drink, or a chair"' },
+  { value: 'covered', label: 'Covered Already',  helper: 'Host is taking care of it.' },
 ]
 
 type InitialActivity = {
@@ -63,8 +63,11 @@ type Props = {
 export default function CreateActivityModal({ onClose, onSaved, initialActivity }: Props) {
   const isEdit = !!initialActivity
   const { createActivity, updateActivity } = useActivities()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const { error: toastError, success } = useToast()
+  // User's country biases place-search ranking so locals like
+  // "Brownsville, Brooklyn" beat global heavyweights like Southgate UK.
+  const userCountry = ((profile as any)?.home_country_code || '').toLowerCase() || null
   const [loading, setLoading] = useState(false)
 
   // If editing and recurrence_freq has "(Mon, Tue)" style appended, strip the
@@ -97,7 +100,7 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
       recurFreq,
       recurTime: '',
       recurDays,
-      maxParticipants: String(a.max_participants ?? 6),
+      maxParticipants: a.max_participants == null ? '' : String(a.max_participants),
       contributionType: (a.contribution_type as ContributionType) || (a.tip_enabled ? 'tips' : 'free'),
       contributionNote: a.contribution_note || '',
       tags: (a.tags || []) as string[],
@@ -110,7 +113,7 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
     timingMode: 'one_time', date: '', time: '', startDate: '', endDate: '', startTime: '', endTime: '',
     availLabel: 'TBA', availNote: '',
     recurFreq: 'weekly', recurTime: '', recurDays: [] as string[],
-    maxParticipants: '6',
+    maxParticipants: '',
     contributionType: 'free' as ContributionType,
     contributionNote: '',
     tags: [] as string[],
@@ -162,11 +165,35 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
     if (searchTimeout.current) clearTimeout(searchTimeout.current)
     if (!val || val.length < 2) { setPlaceResults([]); setShowPlaces(false); return }
     searchTimeout.current = setTimeout(async () => {
-      const data = await searchPlacesApi(val, 5)
+      // Bump limit to 8 so US-biased + global hits both have room. The API
+      // dedupes and pins in-country results to the top.
+      const data = await searchPlacesApi(val, 8, userCountry)
       setPlaceResults(data)
       setShowPlaces(data.length > 0)
     }, 300)
   }
+
+  // Close the suggestions dropdown on outside click / Escape. Without this
+  // it stays open while the rest of the form (map, fields) sit underneath
+  // and look broken — the most common complaint after first opening it.
+  const placeBoxRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (!showPlaces) return
+    function onClick(e: MouseEvent) {
+      if (placeBoxRef.current && !placeBoxRef.current.contains(e.target as Node)) {
+        setShowPlaces(false)
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setShowPlaces(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [showPlaces])
 
   function selectPlace(place: any) {
     const pick = pickPlace(place)
@@ -215,7 +242,7 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
     let stateCode = selectedCoords?.state || null
 
     if (!lat && form.locationMode !== 'remote' && form.locationMode !== 'nationwide' && form.location) {
-      const results = await searchPlacesApi(form.location, 1)
+      const results = await searchPlacesApi(form.location, 1, userCountry)
       if (results.length > 0) {
         const pick = pickPlace(results[0])
         lat = pick.lat
@@ -231,7 +258,8 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
       start_date: form.timingMode === 'date_range' ? form.startDate : date,
       end_date: form.timingMode === 'date_range' ? form.endDate : null,
       availability_label: availLabel, recurrence_freq: recurFreq,
-      max_participants: parseInt(form.maxParticipants) || 6,
+      // Empty / 0 → null = "Open" (no cap). Otherwise parse the number.
+      max_participants: form.maxParticipants.trim() === '' ? null : (parseInt(form.maxParticipants) || null),
       // `tip_enabled` kept for backward-compat readers (card pills etc). New
       // intent-based fields carry the real meaning.
       tip_enabled: form.contributionType === 'tips',
@@ -404,10 +432,10 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
             {form.locationMode === 'area' && (
               <>
                 <label style={labelStyle}>Search a place</label>
-                <div style={{ position: 'relative', marginBottom: 12 }}>
+                <div ref={placeBoxRef} style={{ position: 'relative', marginBottom: 12, zIndex: 50 }}>
                   <input value={form.location} onChange={e => searchLocation(e.target.value)} style={inputStyle} placeholder="City, neighborhood, or venue…" />
                   {showPlaces && placeResults.length > 0 && (
-                    <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 999, maxHeight: 200, overflowY: 'auto' }}>
+                    <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 9999, maxHeight: 240, overflowY: 'auto' }}>
                       {placeResults.map((p: any, i: number) => {
                         const lbl = renderPlaceLabel(p)
                         return (
@@ -423,28 +451,32 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
                   )}
                 </div>
 
-                {/* Map is OPTIONAL — collapsed by default. The city search
-                    above already gives us coords. The map is for users who
-                    want to fine-tune to a specific spot (a park entrance, a
-                    venue side door). Most users skip it. */}
-                <details style={{ marginTop: 4 }}>
-                  <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#3293CB', padding: '8px 0', listStyle: 'none' }}>
-                    📍 Refine on map <span style={{ fontWeight: 500, color: '#9CA3AF' }}>· optional</span>
-                  </summary>
-                  <p style={{ fontSize: 12, color: '#6B7280', margin: '4px 0 8px', lineHeight: 1.5 }}>
-                    Tap or drag the pin if you want a more exact spot than the search picked. Skip this if the city/area is enough.
-                  </p>
-                  <MapPicker
-                    lat={selectedCoords?.lat ?? null}
-                    lng={selectedCoords?.lon ?? null}
-                    defaultCenter={{ lat: 40.7128, lng: -74.006 }}
-                    onPick={(place) => {
-                      setSelectedCoords({ lat: place.lat, lon: place.lng, state: place.stateCode || undefined })
-                      setPlaceSelected(true)
-                      if (!form.location) update('location', place.display)
-                    }}
-                  />
-                </details>
+                {/* Map is OPTIONAL and only appears AFTER a place is picked.
+                    Before a pick: the search dropdown owns the visual space —
+                    showing a map underneath competed for attention and made
+                    its tooltip overlap the suggestions. After a pick: the
+                    user can fine-tune to a specific spot. Still collapsed by
+                    default; most users will skip it. */}
+                {placeSelected && (
+                  <details style={{ marginTop: 4 }}>
+                    <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#3293CB', padding: '8px 0', listStyle: 'none' }}>
+                      📍 Tag this activity on the map <span style={{ fontWeight: 700, color: '#9CA3AF' }}>(OPTIONAL)</span>
+                    </summary>
+                    <p style={{ fontSize: 12, color: '#6B7280', margin: '4px 0 8px', lineHeight: 1.5 }}>
+                      Tap or drag the pin if you want a more exact spot than the search picked. Skip this if the city/area is enough.
+                    </p>
+                    <MapPicker
+                      lat={selectedCoords?.lat ?? null}
+                      lng={selectedCoords?.lon ?? null}
+                      defaultCenter={{ lat: 40.7128, lng: -74.006 }}
+                      onPick={(place) => {
+                        setSelectedCoords({ lat: place.lat, lon: place.lng, state: place.stateCode || undefined })
+                        setPlaceSelected(true)
+                        if (!form.location) update('location', place.display)
+                      }}
+                    />
+                  </details>
+                )}
 
                 <div style={{ marginTop: 12 }}>
                   <label style={labelStyle}>Venue details <span style={{ fontWeight: 500, color: '#9CA3AF', textTransform: 'none', letterSpacing: 0 }}>optional</span></label>
@@ -457,10 +489,10 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
             {form.locationMode === 'statewide' && (
               <>
                 <label style={labelStyle}>Which state?</label>
-                <div style={{ position: 'relative' }}>
+                <div ref={placeBoxRef} style={{ position: 'relative', zIndex: 50 }}>
                   <input value={form.location} onChange={e => searchLocation(e.target.value)} style={inputStyle} placeholder="Search a state or major city in it…" />
                   {showPlaces && placeResults.length > 0 && (
-                    <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 999, maxHeight: 200, overflowY: 'auto' }}>
+                    <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 9999, maxHeight: 240, overflowY: 'auto' }}>
                       {placeResults.map((p: any, i: number) => {
                         const lbl = renderPlaceLabel(p)
                         return (
@@ -485,10 +517,10 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
             {form.locationMode === 'nationwide' && (
               <>
                 <label style={labelStyle}>Which country?</label>
-                <div style={{ position: 'relative' }}>
+                <div ref={placeBoxRef} style={{ position: 'relative', zIndex: 50 }}>
                   <input value={form.location} onChange={e => searchLocation(e.target.value)} style={inputStyle} placeholder="Search a country…" />
                   {showPlaces && placeResults.length > 0 && (
-                    <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 999, maxHeight: 200, overflowY: 'auto' }}>
+                    <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 9999, maxHeight: 240, overflowY: 'auto' }}>
                       {placeResults.map((p: any, i: number) => {
                         const lbl = renderPlaceLabel(p)
                         return (
@@ -575,13 +607,13 @@ export default function CreateActivityModal({ onClose, onSaved, initialActivity 
 
           <div>
             <label style={labelStyle}>Max Participants</label>
-            <input type="number" value={form.maxParticipants} onChange={e => update('maxParticipants', e.target.value)} min={2} max={10000} style={{ ...inputStyle, textAlign: 'center' }} />
+            <input type="number" value={form.maxParticipants} onChange={e => update('maxParticipants', e.target.value)} min={2} max={10000} placeholder="No Limit" style={{ ...inputStyle, textAlign: 'center' }} />
           </div>
 
           {/* Cost & Contribution — intent-first, not price-first. Frames the
               activity as shared effort, not a transaction. See CONTRIBUTION_OPTIONS. */}
           <div>
-            <label style={labelStyle}>Cost &amp; Contribution</label>
+            <label style={labelStyle}>How People Contribute</label>
             <p style={{ fontSize: 12, color: '#6B7280', margin: '0 0 10px', lineHeight: 1.5 }}>
               This isn&rsquo;t a marketplace &mdash; just a way to coordinate shared costs or appreciation.
             </p>

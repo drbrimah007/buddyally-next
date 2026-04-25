@@ -92,7 +92,9 @@ export default function ActivityPage() {
 
   const host = activity.host as any
   const participants = activity.participants || []
-  const spotsLeft = activity.max_participants - participants.length
+  // Null / 0 cap = "Open" (no limit). Otherwise compute spots left.
+  const unlimited = activity.max_participants == null || activity.max_participants === 0
+  const spotsLeft = unlimited ? Infinity : activity.max_participants - participants.length
   const isOwner = user && activity.created_by === user.id
   const isJoined = user && participants.some((p: any) => p.user_id === user.id)
   const timing = activity.timing_mode === 'flexible'
@@ -146,7 +148,9 @@ export default function ActivityPage() {
             People share what looks alive, not what looks like a paywall. */}
         {!user && (() => {
           const goingCount = activity.participants?.length || 0
-          const spotsLeft = (activity.max_participants ?? 0) - goingCount
+          // Null / 0 cap = "Open" (no limit). Otherwise compute spots left.
+          const unlimitedHere = activity.max_participants == null || activity.max_participants === 0
+          const spotsLeft = unlimitedHere ? Infinity : (activity.max_participants ?? 0) - goingCount
           const when = activity.date ? new Date(activity.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : (activity.availability_label || 'Flexible')
           const hostName = host ? `${host.first_name || ''} ${host.last_name?.[0] || ''}`.trim() : 'Someone'
           const hostInitial = (host?.first_name?.[0] || '?').toUpperCase()
@@ -295,7 +299,7 @@ export default function ActivityPage() {
           {[
             { label: 'Location', value: activity.location_mode === 'remote' ? 'Remote / Online' : activity.location_display || activity.location_text },
             { label: 'Date & Time', value: timing },
-            { label: 'Spots', value: spotsLeft > 0 ? `${spotsLeft} of ${activity.max_participants} left` : 'Full' },
+            { label: 'Spots', value: unlimited ? 'Open' : (spotsLeft > 0 ? `${spotsLeft} of ${activity.max_participants} left` : 'Full') },
           ].map(d => (
             <div key={d.label} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, padding: 16 }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{d.label}</p>
