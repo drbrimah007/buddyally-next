@@ -374,7 +374,14 @@ export default function ActivityPage() {
               if (!user || !host) return
               router.push(`/dashboard/messages?to=${host.id}&about=${encodeURIComponent(activity.title)}`)
             }} style={{ background: 'none', border: 'none', color: '#3293CB', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Message Host</button>
-            <button onClick={() => { navigator.share?.({ title: activity.title, url: window.location.href }).catch(() => { navigator.clipboard.writeText(window.location.href); toast('Link copied', 'info') }) }} style={{ background: 'none', border: 'none', color: '#6B7280', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Share</button>
+            {/* Use the rich ShareButton popover (Copy Link / WhatsApp /
+                SMS / Email / X / native fallback) instead of the OS sheet. */}
+            <ShareButton
+              url={typeof window !== 'undefined' ? window.location.href : `https://buddyally.com/a/${id}`}
+              title={`${activity.title} — BuddyAlly`}
+              text={activity.description ? String(activity.description).slice(0, 140) : 'Join me on BuddyAlly'}
+              label="Share"
+            />
             <button onClick={async () => {
               if (!confirm('Report this activity for inappropriate content?')) return
               const { error } = await supabase.from('reports').insert({ reporter_id: user!.id, reported_type: 'activity', reported_id: id, reason: 'inappropriate' })

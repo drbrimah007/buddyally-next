@@ -15,7 +15,11 @@ export function useActivities() {
     // (city, radius, country, category) so we need the full dataset on hand.
     const { data, error } = await supabase
       .from('activities')
-      .select('*, host:profiles!created_by(id, first_name, last_name, rating_avg, rating_count, verified_selfie, avatar_url, city, home_display_name), participants:activity_participants(user_id)')
+      // Trust signals (buddy_verified_at, id_verified_at, is_invited_member)
+      // pulled here so the host's TrustBadges render on every activity card.
+      // is_invited_member is a generated column — invited_by_user_id is
+      // never returned to the client per privacy spec §4.
+      .select('*, host:profiles!created_by(id, first_name, last_name, rating_avg, rating_count, verified_selfie, avatar_url, city, home_display_name, buddy_verified_at, id_verified_at, is_invited_member), participants:activity_participants(user_id)')
       .eq('status', 'open')
       .order('date', { ascending: true })
       .limit(500)

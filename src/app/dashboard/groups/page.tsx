@@ -21,6 +21,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ToastProvider'
 import Paginator from '@/components/Paginator'
+import SafetyBanner from '@/components/SafetyBanner'
 
 const GROUP_CATEGORIES = ['Travel', 'Sports', 'Learning', 'Social', 'Outdoor', 'Gaming', 'Wellness', 'Help', 'Events', 'Other']
 const GROUP_PAGE_SIZE = 12
@@ -381,64 +382,57 @@ export default function GroupsPage() {
                     key={g.id}
                     onClick={() => router.push(`/dashboard/groups/${g.id}`)}
                     style={{
-                      background: '#fff', border: '1px solid #E5E7EB', borderRadius: 18,
-                      overflow: 'hidden', cursor: 'pointer', transition: 'all 0.15s',
+                      background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16,
+                      cursor: 'pointer', transition: 'all 0.15s',
                       boxShadow: '0 1px 2px rgba(15,23,42,0.04)',
-                      display: 'flex', flexDirection: 'column',
+                      padding: 16, display: 'flex', flexDirection: 'column', gap: 12,
                     }}
                   >
-                    {/* Cover strip — image if set, else gradient */}
-                    <div style={{
-                      height: 96, position: 'relative',
-                      background: g.image_url
-                        ? '#F1F5F9'
-                        : 'linear-gradient(135deg, #3293CB 0%, #5d92f6 100%)',
-                    }}>
-                      {g.image_url && (
-                        <img src={g.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      )}
-                      <span style={{
-                        position: 'absolute', top: 10, right: 10,
-                        background: '#fff', color: '#3293CB',
-                        fontSize: 11, fontWeight: 700, padding: '3px 10px',
-                        borderRadius: 999, boxShadow: '0 1px 2px rgba(15,23,42,0.1)',
-                      }}>{g.category || 'Group'}</span>
-                      {g.visibility === 'hidden' && (
-                        <span style={{
-                          position: 'absolute', top: 10, left: 10,
-                          background: 'rgba(15,23,42,0.65)', color: '#fff',
-                          fontSize: 10, fontWeight: 700, padding: '3px 8px',
-                          borderRadius: 999,
-                        }}>🔒 Hidden</span>
-                      )}
-                    </div>
-
-                    <div style={{ padding: 16, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                      <h3 style={{ fontWeight: 800, fontSize: 17, margin: 0, lineHeight: 1.25 }}>{g.name}</h3>
-                      {g.description && (
-                        <p style={{ fontSize: 13, color: '#4B5563', marginTop: 6, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                          {g.description}
-                        </p>
-                      )}
-
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
-                        <Pill>{members.length} member{members.length === 1 ? '' : 's'}{g.max_members ? ` / ${g.max_members}` : ''}</Pill>
-                        <Pill>{g.join_mode === 'open' ? 'Open' : 'Approval'}</Pill>
-                        {g.chat_enabled && <Pill>💬 Chat</Pill>}
-                        {isOwner ? (
-                          <Pill color="#fff" bg="#3293CB">Owner</Pill>
-                        ) : isMember ? (
-                          <Pill color="#fff" bg="#059669">Joined</Pill>
-                        ) : null}
-                      </div>
-
-                      {g.creator && (
-                        <div style={{ marginTop: 'auto', paddingTop: 12, borderTop: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#F3F4F6', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 700, color: '#4B5563' }}>{g.creator.first_name?.[0] || '?'}</div>
-                          <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>by {g.creator.first_name} {g.creator.last_name}</p>
+                    {/* Icon + headline row — icon is treated as an ICON
+                        (small, square, rounded), not a banner. Sits left
+                        of the title; falls back to a colored initial tile. */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                      <GroupIcon name={g.name} url={g.image_url} hidden={g.visibility === 'hidden'} size={56} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                          <h3 style={{
+                            fontWeight: 800, fontSize: 16, margin: 0, lineHeight: 1.3,
+                            overflow: 'hidden', display: '-webkit-box',
+                            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                          }}>{g.name}</h3>
+                          <span style={{
+                            background: '#EFF6FF', color: '#0652B7',
+                            fontSize: 10, fontWeight: 800, padding: '3px 8px',
+                            borderRadius: 999, whiteSpace: 'nowrap', flexShrink: 0,
+                          }}>{g.category || 'Group'}</span>
                         </div>
-                      )}
+                        {g.description && (
+                          <p style={{
+                            fontSize: 13, color: '#4B5563', margin: '4px 0 0', lineHeight: 1.5,
+                            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                          }}>{g.description}</p>
+                        )}
+                      </div>
                     </div>
+
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <Pill>{members.length} member{members.length === 1 ? '' : 's'}{g.max_members ? ` / ${g.max_members}` : ''}</Pill>
+                      <Pill>{g.join_mode === 'open' ? 'Open' : 'Approval'}</Pill>
+                      {g.visibility === 'hidden' && <Pill color="#fff" bg="#475569">🔒 Hidden</Pill>}
+                      {g.chat_enabled && <Pill>💬</Pill>}
+                      {isOwner ? (
+                        <Pill color="#fff" bg="#3293CB">Owner</Pill>
+                      ) : isMember ? (
+                        <Pill color="#fff" bg="#059669">Joined</Pill>
+                      ) : null}
+                    </div>
+
+                    {g.creator && (
+                      <div style={{ paddingTop: 10, borderTop: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#F3F4F6', display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 700, color: '#4B5563' }}>{g.creator.first_name?.[0] || '?'}</div>
+                        <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>by {g.creator.first_name} {g.creator.last_name}</p>
+                      </div>
+                    )}
                   </article>
                 )
               })}
@@ -449,6 +443,7 @@ export default function GroupsPage() {
           </div>
         )
       })()}
+      <SafetyBanner />
     </div>
   )
 }
@@ -463,6 +458,46 @@ function tabBtn(active: boolean): React.CSSProperties {
 }
 function Pill({ children, color = '#374151', bg = '#F3F4F6' }: { children: React.ReactNode; color?: string; bg?: string }) {
   return <span style={{ background: bg, color, fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999 }}>{children}</span>
+}
+
+// Reusable icon tile. Treated as an icon (not a banner) — square,
+// rounded, sized 56 by default. Falls back to a gradient with the
+// group name's initial when no image is set. The hidden-lock badge sits
+// as a small overlay on the bottom-right corner instead of a separate
+// pill, keeping the card tight.
+export function GroupIcon({ name, url, hidden, size = 56 }: { name: string; url: string | null; hidden?: boolean; size?: number }) {
+  const initial = (name?.[0] || '?').toUpperCase()
+  return (
+    <div style={{
+      position: 'relative', width: size, height: size, flexShrink: 0,
+      borderRadius: 14, overflow: 'hidden',
+      background: url ? '#F1F5F9' : 'linear-gradient(135deg, #3293CB 0%, #5d92f6 100%)',
+      boxShadow: '0 1px 2px rgba(15,23,42,0.06)',
+    }}>
+      {url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      ) : (
+        <div style={{
+          width: '100%', height: '100%',
+          display: 'grid', placeItems: 'center',
+          color: '#fff', fontSize: Math.round(size * 0.42), fontWeight: 800,
+          letterSpacing: '-0.02em',
+        }}>{initial}</div>
+      )}
+      {hidden && (
+        <span
+          aria-label="Hidden group"
+          style={{
+            position: 'absolute', right: 4, bottom: 4,
+            background: 'rgba(15,23,42,0.85)', color: '#fff',
+            fontSize: 10, lineHeight: 1, padding: '3px 4px',
+            borderRadius: 999, border: '1.5px solid #fff',
+          }}
+        >🔒</span>
+      )}
+    </div>
+  )
 }
 function ChoiceCard({ active, onClick, title, subtitle }: { active: boolean; onClick: () => void; title: string; subtitle: string }) {
   return (

@@ -10,6 +10,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ToastProvider'
 import Reviews, { Stars } from '@/components/Reviews'
 import FollowButton from '@/components/FollowButton'
+import ShareButton from '@/components/ShareButton'
+import TrustBadges from '@/components/TrustBadges'
 
 export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>()
@@ -37,7 +39,10 @@ export default function UserProfilePage() {
   async function load() {
     setLoading(true)
     const [pRes, aRes] = await Promise.all([
-      supabase.from('profiles').select('id, first_name, last_name, bio, avatar_url, city, home_display_name, interests, rating_avg, rating_count, verified_email, verified_phone, verified_selfie, socials, created_at').eq('id', id).single(),
+      // profile_public is the privacy-safe view — strips lineage / trust_weight.
+      // We pull buddy_verified_at, id_verified_at, and is_invited_member here
+      // to drive the TrustBadges component.
+      supabase.from('profile_public').select('id, first_name, last_name, bio, avatar_url, city, home_display_name, interests, rating_avg, rating_count, verified_email, verified_phone, verified_selfie, socials, buddy_verified_at, id_verified_at, is_invited_member').eq('id', id).single(),
       supabase.from('activities').select('id, title, category, cover_image_url, location_display, date, status').eq('created_by', id).order('created_at', { ascending: false }).limit(10),
     ])
     setProfile(pRes.data)
@@ -107,11 +112,8 @@ export default function UserProfilePage() {
     info('User blocked')
   }
 
-  function share() {
-    const url = `${window.location.origin}/u/${id}`
-    if (navigator.share) navigator.share({ title: `${profile?.first_name} on BuddyAlly`, url }).catch(() => {})
-    else { navigator.clipboard.writeText(url); info('Profile link copied') }
-  }
+  // Share is handled by the ShareButton component in the action row below —
+  // it opens a modern panel with a short URL, copy button, and channels.
 
   if (loading) return <div style={{ textAlign: 'center', padding: 80, color: '#6B7280' }}>Loading…</div>
   if (!profile) return <div style={{ textAlign: 'center', padding: 80, color: '#6B7280' }}>Profile not found</div>
@@ -136,10 +138,25 @@ export default function UserProfilePage() {
               <Stars value={Math.round(profile.rating_avg || 0)} size={14} />
               <span style={{ fontSize: 12, color: '#6B7280' }}>{Number(profile.rating_avg || 0).toFixed(1)} · {profile.rating_count || 0} review{profile.rating_count === 1 ? '' : 's'}</span>
             </div>
+            {/* TrustBadges — fixed-order pills (Buddy Verified → Buddy
+                Line → ID Verified). Only renders earned signals. The
+                "Learn how trust works →" micro-link routes to the
+                Trust & Safety summary sheet. */}
+            <div style={{ marginTop: 8 }}>
+              <TrustBadges
+                buddyVerifiedAt={profile.buddy_verified_at}
+                isInvited={profile.is_invited_member}
+                idVerifiedAt={profile.id_verified_at}
+                variant="full"
+                showLearnMore
+              />
+            </div>
           </div>
         </div>
 
-        {/* Badges row */}
+        {/* Legacy verification chips (email / phone / selfie) — kept
+            because they signal which channels are confirmed. The new
+            TrustBadges row above is the public trust layer per spec. */}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           {profile.verified_email && <Badge>✓ Email</Badge>}
           {profile.verified_phone && <Badge>✓ Phone</Badge>}
@@ -179,7 +196,12 @@ export default function UserProfilePage() {
               {relation === 'contact' && (
                 <span style={{ padding: '10px 16px', borderRadius: 12, border: '1px solid #BBF7D0', background: '#F0FDF4', color: '#166534', fontSize: 13, fontWeight: 600 }}>✓ Ally</span>
               )}
-              <button onClick={share} style={{ padding: '10px 16px', borderRadius: 12, border: '1px solid #E5E7EB', background: '#fff', color: '#111827', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Share</button>
+              <ShareButton
+                url={typeof window !== 'undefined' ? `${window.location.origin}/u/${id}` : `https://buddyally.com/u/${id}`}
+                title={`${profile.first_name} on BuddyAlly`}
+                text={profile.bio ? String(profile.bio).slice(0, 140) : ''}
+                label="Share"
+              />
               <button onClick={reportUser} style={{ padding: '10px 16px', borderRadius: 12, border: '1px solid #FECACA', background: '#fff', color: '#DC2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Report</button>
               <button onClick={blockUser} style={{ padding: '10px 16px', borderRadius: 12, border: '1px solid #E5E7EB', background: '#fff', color: '#6B7280', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Block</button>
             </>

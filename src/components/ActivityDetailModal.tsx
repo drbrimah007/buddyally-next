@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/components/ToastProvider'
 import CreateActivityModal from '@/components/CreateActivityModal'
+import ShareButton from '@/components/ShareButton'
 import { contributionBadge } from '@/lib/contribution'
 
 export default function ActivityDetailModal({ activityId, onClose }: { activityId: string; onClose: () => void }) {
@@ -265,7 +266,12 @@ export default function ActivityDetailModal({ activityId, onClose }: { activityI
                     onClose()
                     router.push(`/dashboard/messages?to=${host.id}&about=${encodeURIComponent(activity.title)}`)
                   }} style={{ background: 'none', border: 'none', color: '#3293CB', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Message Host</button>
-                  <button onClick={() => { navigator.share?.({ title: activity.title, url: `https://buddyally.com/a/${activityId}` }).catch(() => { navigator.clipboard.writeText(`https://buddyally.com/a/${activityId}`); toast('Link copied', 'info') }) }} style={{ background: 'none', border: 'none', color: '#6B7280', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Share</button>
+                  <ShareButton
+                    url={typeof window !== 'undefined' ? `${window.location.origin}/a/${activityId}` : `https://buddyally.com/a/${activityId}`}
+                    title={`${activity.title} — BuddyAlly`}
+                    text={activity.description ? String(activity.description).slice(0, 140) : 'Join me on BuddyAlly'}
+                    label="Share"
+                  />
                   <button onClick={async () => {
                     if (!confirm('Report this activity?')) return
                     const { error } = await supabase.from('reports').insert({ reporter_id: user!.id, reported_type: 'activity', reported_id: activityId, reason: 'inappropriate' })

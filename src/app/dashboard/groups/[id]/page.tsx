@@ -9,13 +9,22 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ToastProvider'
+import { GroupIcon } from '../page'
+import TrustBadges from '@/components/TrustBadges'
 
 type Member = {
   user_id: string
   role: 'owner' | 'admin' | 'member'
   status: 'pending' | 'joined' | 'active' | 'removed'
   requested_at: string
-  profile?: { first_name: string; last_name: string; avatar_url: string }
+  profile?: {
+    first_name: string
+    last_name: string
+    avatar_url: string
+    buddy_verified_at?: string | null
+    id_verified_at?: string | null
+    is_invited_member?: boolean | null
+  }
 }
 
 type ChatMsg = {
@@ -53,11 +62,21 @@ export default function GroupDetailPage() {
     loadAll()
   }, [groupId])
 
+  // Open "neat": jump to top of the page on mount so the user lands on
+  // the cover/header rather than wherever the groups list left them
+  // scrolled, and don't show a half-loaded page.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }, [groupId])
+
   async function loadAll() {
     setLoading(true)
     const [gRes, mRes] = await Promise.all([
       supabase.from('groups').select('*, creator:profiles!created_by(id, first_name, last_name, avatar_url)').eq('id', groupId).single(),
-      supabase.from('group_members').select('user_id, role, status, requested_at, profile:profiles!user_id(first_name, last_name, avatar_url)').eq('group_id', groupId),
+      // Trust signals on the joined profile so the member row badges
+      // render. Privacy-safe: invited_by_user_id is never returned.
+      supabase.from('group_members').select('user_id, role, status, requested_at, profile:profiles!user_id(first_name, last_name, avatar_url, buddy_verified_at, id_verified_at, is_invited_member)').eq('group_id', groupId),
     ])
     setGroup(gRes.data)
     setMembers((mRes.data as any) || [])
@@ -146,43 +165,34 @@ export default function GroupDetailPage() {
   if (!group) return <div style={{ textAlign: 'center', padding: 80, color: '#6B7280' }}>Group not found</div>
 
   return (
-    <div>
+    <div style={{ animation: 'baFadeIn 180ms ease-out' }}>
+      {/* Subtle fade-in so the page lands "neat" instead of flashing
+          piecewise as data resolves. Plain <style> (no styled-jsx
+          dependency) — the keyframes are global but harmless. */}
+      <style>{`@keyframes baFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
       {/* Header */}
       <button onClick={() => router.push('/dashboard/groups')} style={{ background: 'none', border: 'none', color: '#3293CB', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginBottom: 16 }}>&larr; Back to groups</button>
-      <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, marginBottom: 16, overflow: 'hidden' }}>
-        {/* Cover strip — uses uploaded image_url if present, else gradient. */}
-        <div style={{
-          height: 120, position: 'relative',
-          background: group.image_url
-            ? '#F1F5F9'
-            : 'linear-gradient(135deg, #3293CB 0%, #5d92f6 100%)',
-        }}>
-          {group.image_url && (
-            <img src={group.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          )}
-          {group.visibility === 'hidden' && (
-            <span style={{
-              position: 'absolute', top: 12, left: 12,
-              background: 'rgba(15,23,42,0.7)', color: '#fff',
-              fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 999,
-            }}>🔒 Hidden</span>
-          )}
+      <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 18, marginBottom: 16, padding: 20 }}>
+        {/* Icon-left header. Icon is rendered as an icon (square, 80px,
+            rounded) — never stretched as a banner. */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 14 }}>
+          <GroupIcon name={group.name} url={group.image_url} hidden={group.visibility === 'hidden'} size={72} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+              <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0, lineHeight: 1.25 }}>{group.name}</h1>
+              <span style={{ background: '#EFF6FF', color: '#0652B7', fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 999, whiteSpace: 'nowrap', flexShrink: 0 }}>{group.category || 'Group'}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <Pill>{joinedMembers.length} member{joinedMembers.length === 1 ? '' : 's'}{group.max_members ? ` / ${group.max_members}` : ''}</Pill>
+              <Pill>{group.join_mode === 'open' ? 'Open' : 'Approval required'}</Pill>
+              <Pill>{group.visibility === 'public' ? '🌐 Public' : '🔒 Hidden'}</Pill>
+              {group.chat_enabled && <Pill>💬 Chat</Pill>}
+              {group.location_text && <Pill>{group.location_text}</Pill>}
+              {isOwner && <Pill color="#fff" bg="#3293CB">Owner</Pill>}
+              {!isOwner && isAdmin && <Pill color="#0E7490" bg="#CFFAFE">Admin</Pill>}
+            </div>
+          </div>
         </div>
-
-        <div style={{ padding: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
-            <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>{group.name}</h1>
-            <span style={{ background: '#E0F2FE', color: '#3293CB', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>{group.category || 'Group'}</span>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-            <Pill>{joinedMembers.length} member{joinedMembers.length === 1 ? '' : 's'}{group.max_members ? ` / ${group.max_members}` : ''}</Pill>
-            <Pill>{group.join_mode === 'open' ? 'Open' : 'Approval required'}</Pill>
-            <Pill>{group.visibility === 'public' ? '🌐 Public' : '🔒 Hidden'}</Pill>
-            {group.chat_enabled && <Pill>💬 Chat</Pill>}
-            {group.location_text && <Pill>{group.location_text}</Pill>}
-            {isOwner && <Pill color="#fff" bg="#3293CB">Owner</Pill>}
-            {!isOwner && isAdmin && <Pill color="#0E7490" bg="#CFFAFE">Admin</Pill>}
-          </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {!isMember && myMember?.status !== 'pending' && (
             <button onClick={join} style={primaryBtn}>{group.join_mode === 'approval' ? 'Request to Join' : 'Join Group'}</button>
@@ -193,7 +203,6 @@ export default function GroupDetailPage() {
           {isMember && !isOwner && (
             <button onClick={leave} style={{ ...primaryBtn, background: '#FEE2E2', color: '#DC2626', boxShadow: 'none' }}>Leave</button>
           )}
-          </div>
         </div>
       </div>
 
@@ -314,8 +323,16 @@ function MemberRow({ m, rightSlot }: { m: Member; rightSlot?: React.ReactNode })
         {m.profile?.avatar_url ? <img src={m.profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : name[0]}
       </div>
       <Link href={`/u/${m.user_id}`} style={{ flex: 1, minWidth: 0, textDecoration: 'none' }}>
-        <p style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>{name}</p>
-        <p style={{ fontSize: 12, color: '#6B7280' }}>{m.role === 'owner' ? 'Owner' : m.role === 'admin' ? 'Admin' : 'Member'}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <p style={{ fontWeight: 600, fontSize: 14, color: '#111827', margin: 0 }}>{name}</p>
+          <TrustBadges
+            buddyVerifiedAt={m.profile?.buddy_verified_at}
+            isInvited={m.profile?.is_invited_member}
+            idVerifiedAt={m.profile?.id_verified_at}
+            variant="compact"
+          />
+        </div>
+        <p style={{ fontSize: 12, color: '#6B7280', margin: '2px 0 0' }}>{m.role === 'owner' ? 'Owner' : m.role === 'admin' ? 'Admin' : 'Member'}</p>
       </Link>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>{rightSlot}</div>
     </div>

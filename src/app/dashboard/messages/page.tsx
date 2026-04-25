@@ -9,9 +9,10 @@ import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ToastProvider'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-// SafetyBanner replaced by the persistent SafetyFooter in dashboard/layout.tsx
+import SafetyBanner from '@/components/SafetyBanner'
 import Paginator from '@/components/Paginator'
 import ContactMessagesPreview from '@/components/ContactMessagesPreview'
+import TrustBadges from '@/components/TrustBadges'
 
 const CONV_PAGE_SIZE = 15
 
@@ -33,6 +34,9 @@ export default function MessagesPage() {
   const [chatMessages, setChatMessages] = useState<any[]>([])
   const [newMsg, setNewMsg] = useState('')
   const [chatPartnerName, setChatPartnerName] = useState('')
+  // Trust signals for the chat partner — populated when openChat fires.
+  // Drives the TrustBadges row under the partner name in the DM header.
+  const [chatPartnerTrust, setChatPartnerTrust] = useState<{ buddy_verified_at: string | null; id_verified_at: string | null; is_invited_member: boolean | null } | null>(null)
   const [showPicker, setShowPicker] = useState(false)
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<PickerUser[]>([])
@@ -93,14 +97,24 @@ export default function MessagesPage() {
 
   async function openChat(pid: string, name: string) {
     setChatWith(pid); setChatPartnerName(name); setShowPicker(false)
+    setChatPartnerTrust(null) // reset while loading
     if (!user) return
-    const { data } = await supabase.from('messages').select('*')
-      .or(`and(sender_id.eq.${user.id},recipient_id.eq.${pid}),and(sender_id.eq.${pid},recipient_id.eq.${user.id})`)
-      .is('group_id', null)
-      .is('activity_id', null)
-      .order('created_at', { ascending: true })
-      .limit(200)
-    setChatMessages(data || [])
+    // Fetch messages + partner trust in parallel. Trust comes from the
+    // privacy-safe profile_public view (no lineage exposed).
+    const [msgRes, trustRes] = await Promise.all([
+      supabase.from('messages').select('*')
+        .or(`and(sender_id.eq.${user.id},recipient_id.eq.${pid}),and(sender_id.eq.${pid},recipient_id.eq.${user.id})`)
+        .is('group_id', null)
+        .is('activity_id', null)
+        .order('created_at', { ascending: true })
+        .limit(200),
+      supabase.from('profile_public')
+        .select('buddy_verified_at, id_verified_at, is_invited_member')
+        .eq('id', pid)
+        .maybeSingle(),
+    ])
+    setChatMessages(msgRes.data || [])
+    setChatPartnerTrust((trustRes.data as any) || null)
     await supabase.from('messages').update({ read: true })
       .eq('sender_id', pid).eq('recipient_id', user.id).eq('read', false)
     queueMicrotask(() => chatEndRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior }))
@@ -174,7 +188,20 @@ export default function MessagesPage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <button onClick={() => { setChatWith(null); loadConversations() }} style={{ background: 'none', border: 'none', color: '#3293CB', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>&larr; Back</button>
         <Link href={`/u/${chatWith}`} style={{ textDecoration: 'none', color: '#111827' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700 }}>{chatPartnerName}</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{chatPartnerName}</h2>
+          {/* Trust signals appear directly under the name per spec §6.4 —
+              critical context before coordinating offline. Same fixed
+              order as everywhere else. */}
+          {chatPartnerTrust && (
+            <div style={{ marginTop: 4 }}>
+              <TrustBadges
+                buddyVerifiedAt={chatPartnerTrust.buddy_verified_at}
+                isInvited={chatPartnerTrust.is_invited_member}
+                idVerifiedAt={chatPartnerTrust.id_verified_at}
+                variant="compact"
+              />
+            </div>
+          )}
         </Link>
       </div>
       <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 16, marginBottom: 16, minHeight: 300, maxHeight: 500, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -272,7 +299,7 @@ export default function MessagesPage() {
         </div>
         )
       })()}
-      {/* SafetyBanner removed — covered by persistent SafetyFooter in layout. */}
+      <SafetyBanner />
     </div>
   )
 }

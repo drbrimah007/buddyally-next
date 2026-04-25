@@ -19,12 +19,13 @@ import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import CreateActivityModal from '@/components/CreateActivityModal'
 import ActivityDetailModal from '@/components/ActivityDetailModal'
-// SafetyBanner replaced by the persistent SafetyFooter in dashboard/layout.tsx
+import SafetyBanner from '@/components/SafetyBanner'
 import Paginator from '@/components/Paginator'
 import SaveSearchButton from '@/components/SaveSearchButton'
 import ExploreMap, { type ExploreMapItem } from '@/components/ExploreMap'
 import { contributionBadge } from '@/lib/contribution'
 import ShareButton from '@/components/ShareButton'
+import TrustBadges from '@/components/TrustBadges'
 import { CATEGORIES, tagsForCategory } from '@/lib/categories'
 import {
   haversineMiles,
@@ -1246,8 +1247,14 @@ export default function ExplorePage() {
                                   </div>
 
                                   <div>
-                                    <div className="text-sm font-bold">
-                                      {host.first_name} {host.last_name?.[0] || ''}
+                                    <div className="text-sm font-bold flex items-center gap-2">
+                                      <span>{host.first_name} {host.last_name?.[0] || ''}</span>
+                                      <TrustBadges
+                                        buddyVerifiedAt={host.buddy_verified_at}
+                                        isInvited={host.is_invited_member}
+                                        idVerifiedAt={host.id_verified_at}
+                                        variant="compact"
+                                      />
                                     </div>
                                     <div className="text-xs text-slate-400">
                                       ★ {host.rating_avg?.toFixed(1) || '0.0'} ({host.rating_count || 0})
@@ -1291,7 +1298,7 @@ export default function ExplorePage() {
         </div>
       </div>
 
-      {/* SafetyBanner removed — covered by persistent SafetyFooter in layout. */}
+      <SafetyBanner />
       {showCreate && <CreateActivityModal onClose={() => { setShowCreate(false); fetchActivities() }} />}
       {viewActivityId && <ActivityDetailModal activityId={viewActivityId} onClose={() => { setViewActivityId(null); fetchActivities() }} />}
     </main>

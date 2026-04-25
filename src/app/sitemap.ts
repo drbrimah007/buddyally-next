@@ -23,6 +23,10 @@ const STATIC_ROUTES: MetadataRoute.Sitemap = [
   { url: `${SITE}/privacy`, changeFrequency: 'yearly',  priority: 0.3 },
   { url: `${SITE}/terms`,   changeFrequency: 'yearly',  priority: 0.3 },
   { url: `${SITE}/contact`, changeFrequency: 'yearly',  priority: 0.3 },
+  { url: `${SITE}/trust-and-safety`, changeFrequency: 'monthly', priority: 0.6 },
+  // City landing pages — high-intent local SEO ("buddyally abuja", "abuja
+  // ride share", etc). One entry per supported city.
+  { url: `${SITE}/abuja`,   changeFrequency: 'weekly',  priority: 0.85 },
 ]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

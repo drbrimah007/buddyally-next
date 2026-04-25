@@ -29,8 +29,32 @@ export function useAuth() {
   }, [])
 
   async function loadProfile(userId: string) {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
-    setProfile(data)
+    // Explicit safe column list (no `select('*')`). The four admin-only
+    // fields — invited_by_user_id, invite_root_user_id, invite_chain_depth,
+    // invite_code_id, trust_weight — are revoked at the DB column level
+    // for the anon/authenticated roles, so a wildcard select would error.
+    // We keep this list narrow on purpose: even the user themselves should
+    // never see their own root inviter or chain depth (spec §4).
+    const SAFE_COLUMNS = [
+      'id', 'email', 'first_name', 'last_name', 'phone', 'city',
+      'home_display_name', 'bio', 'avatar_url', 'home_lat', 'home_lng',
+      'interests', 'rating_avg', 'rating_count',
+      'verified_email', 'verified_phone', 'verified_selfie',
+      'badges', 'socials',
+      'explore_display_name', 'explore_lat', 'explore_lng', 'explore_radius_miles',
+      'home_country_code',
+      // Trust-layer surface signals (boolean / timestamps only — no lineage).
+      'is_invited_member', 'buddy_verified_at', 'id_verified_at', 'id_verified_provider',
+      'notify_push_enabled', 'notify_email_enabled',
+      'blocked_users', 'is_admin',
+      'created_at', 'updated_at',
+    ].join(', ')
+    // Cast — passing a runtime column-list string widens Supabase's inferred
+    // row type to a generic shape that doesn't satisfy our Profile type.
+    // The shape is fine at runtime (these are the legit profile columns),
+    // we just need to tell TS to trust it.
+    const { data } = await supabase.from('profiles').select(SAFE_COLUMNS).eq('id', userId).single()
+    setProfile(data as any)
     setLoading(false)
   }
 

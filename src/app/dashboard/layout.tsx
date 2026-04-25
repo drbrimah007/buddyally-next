@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { Fragment, useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import SafetyFooter from '@/components/SafetyFooter'
+import InstallAutoPrompt from '@/components/InstallAutoPrompt'
 
 // NAV — restored to the 7 thumb anchors (Codes pinned last on the right
 // so the chain icon is exactly where the user's right thumb expects it),
@@ -89,7 +89,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!user) return null
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fff', paddingBottom: 110 }}>
+    <div style={{ minHeight: '100vh', background: '#fff', paddingBottom: 80 }}>
       {/* Top bar */}
       <header style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 90,
@@ -221,10 +221,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </Link>
 
-      {/* Persistent Safety + Report strip — sits just above the bottom
-          nav and is reachable from any dashboard page. Replaces the
-          per-page SafetyBanner so it's never duplicated and never missed. */}
-      <SafetyFooter />
+      {/* One-shot install nudge after sign-in. Self-gating: never shows
+          if installed, snoozed, or already prompted this session. */}
+      <InstallAutoPrompt />
     </div>
   )
 }

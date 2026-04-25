@@ -5,6 +5,8 @@ import { useState, useRef, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ToastProvider'
 import InstallAppButton from '@/components/InstallAppButton'
+import ShareButton from '@/components/ShareButton'
+import InviteCodesPanel from '@/components/InviteCodesPanel'
 import { searchPlaces as searchPlacesApi, pickPlace, renderPlaceLabel } from '@/lib/geo'
 
 const ALL_CATEGORIES = ['Travel','Local Activities','Sports / Play','Learning','Help / Support','Events','Outdoor','Gaming','Wellness','Ride Share','Dog Walk','Babysit','Party','Pray','Others']
@@ -389,15 +391,7 @@ export default function ProfilePage() {
     } catch { toastError('Verification failed') }
   }
 
-  function shareProfile() {
-    const url = `https://buddyally.com/u/${user?.id}`
-    if (navigator.share) {
-      navigator.share({ title: `${profile?.first_name} on BuddyAlly`, url }).catch(() => {})
-    } else {
-      navigator.clipboard.writeText(url)
-      info('Profile link copied')
-    }
-  }
+  // shareProfile removed — replaced by inline <ShareButton /> in Manage row.
 
   const verified = { email: profile.verified_email, phone: profile.verified_phone, selfie: profile.verified_selfie }
   const completion = [
@@ -524,6 +518,10 @@ export default function ProfilePage() {
         ))}
       </div>
 
+      {/* Buddy Line — invite codes the current user has minted. Sits
+          above Manage so it's findable for active inviters. */}
+      <InviteCodesPanel />
+
       {/* Manage — secondary destinations that don't deserve a thumb slot
           but still need a clear home. Includes the surfaces that used to
           clutter the bottom nav (Saved Searches, Alerts) plus the lighter
@@ -532,7 +530,14 @@ export default function ProfilePage() {
         <h3 style={{ fontWeight: 600, marginBottom: 12 }}>Manage</h3>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           <button onClick={startEdit} style={manageBtn}>Edit Profile</button>
-          <button onClick={shareProfile} style={manageBtn}>Share Profile</button>
+          {/* ShareButton renders its own pill-style trigger; uses the
+              modern panel with short URL + copy + channels. */}
+          <ShareButton
+            url={typeof window !== 'undefined' ? `${window.location.origin}/u/${user?.id}` : `https://buddyally.com/u/${user?.id}`}
+            title={`${profile?.first_name || 'My'} profile on BuddyAlly`}
+            text={profile?.bio ? String(profile.bio).slice(0, 140) : ''}
+            label="Share Profile"
+          />
           {/* Status / Post creation lives here now — too occasional for the
               + dial, which is reserved for Create Activity / Quick Ask. */}
           <a href="/dashboard/feed?compose=1" style={manageLink}>+ New Post</a>
@@ -541,6 +546,7 @@ export default function ProfilePage() {
           {/* Notification settings — restored from v1. Master push/email
               switches and a one-click test send. */}
           <a href="/dashboard/notification-settings" style={manageLink}>Notifications</a>
+          <a href="/trust-and-safety" style={manageLink}>Trust &amp; Safety</a>
           <InstallAppButton style={{ height: 34, padding: '0 16px', borderRadius: 10, fontSize: 13 }} />
           <button onClick={() => signOut()} style={{ fontSize: 13, fontWeight: 600, color: '#DC2626', background: '#FEE2E2', borderRadius: 10, padding: '8px 16px', border: 'none', cursor: 'pointer' }}>Log Out</button>
         </div>

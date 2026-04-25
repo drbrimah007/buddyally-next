@@ -9,6 +9,7 @@ import CreateActivityModal from '@/components/CreateActivityModal'
 import ActivityDetailModal from '@/components/ActivityDetailModal'
 import SafetyBanner from '@/components/SafetyBanner'
 import Paginator from '@/components/Paginator'
+import TrustBadges from '@/components/TrustBadges'
 import {
   haversineMiles,
   formatDistance,
@@ -876,8 +877,14 @@ export default function ExplorePage() {
                                   </div>
 
                                   <div>
-                                    <div className="text-sm font-bold">
-                                      {host.first_name} {host.last_name?.[0] || ''}
+                                    <div className="text-sm font-bold flex items-center gap-2">
+                                      <span>{host.first_name} {host.last_name?.[0] || ''}</span>
+                                      <TrustBadges
+                                        buddyVerifiedAt={host.buddy_verified_at}
+                                        isInvited={host.is_invited_member}
+                                        idVerifiedAt={host.id_verified_at}
+                                        variant="compact"
+                                      />
                                     </div>
                                     <div className="text-xs text-slate-400">
                                       ★ {host.rating_avg?.toFixed(1) || '0.0'} ({host.rating_count || 0})
