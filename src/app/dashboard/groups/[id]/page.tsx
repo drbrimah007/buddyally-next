@@ -149,18 +149,40 @@ export default function GroupDetailPage() {
     <div>
       {/* Header */}
       <button onClick={() => router.push('/dashboard/groups')} style={{ background: 'none', border: 'none', color: '#3293CB', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginBottom: 16 }}>&larr; Back to groups</button>
-      <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, padding: 20, marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>{group.name}</h1>
-          <span style={{ background: '#E0F2FE', color: '#3293CB', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20 }}>{group.category || 'Group'}</span>
+      <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 20, marginBottom: 16, overflow: 'hidden' }}>
+        {/* Cover strip — uses uploaded image_url if present, else gradient. */}
+        <div style={{
+          height: 120, position: 'relative',
+          background: group.image_url
+            ? '#F1F5F9'
+            : 'linear-gradient(135deg, #3293CB 0%, #5d92f6 100%)',
+        }}>
+          {group.image_url && (
+            <img src={group.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          )}
+          {group.visibility === 'hidden' && (
+            <span style={{
+              position: 'absolute', top: 12, left: 12,
+              background: 'rgba(15,23,42,0.7)', color: '#fff',
+              fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 999,
+            }}>🔒 Hidden</span>
+          )}
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-          <Pill>{joinedMembers.length} member{joinedMembers.length === 1 ? '' : 's'}</Pill>
-          <Pill>{group.join_mode === 'open' ? 'Open' : 'Approval required'}</Pill>
-          {group.location_text && <Pill>{group.location_text}</Pill>}
-          {isOwner && <Pill color="#3293CB" bg="#E0F2FE">Owner</Pill>}
-          {!isOwner && isAdmin && <Pill color="#0E7490" bg="#CFFAFE">Admin</Pill>}
-        </div>
+
+        <div style={{ padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
+            <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>{group.name}</h1>
+            <span style={{ background: '#E0F2FE', color: '#3293CB', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>{group.category || 'Group'}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+            <Pill>{joinedMembers.length} member{joinedMembers.length === 1 ? '' : 's'}{group.max_members ? ` / ${group.max_members}` : ''}</Pill>
+            <Pill>{group.join_mode === 'open' ? 'Open' : 'Approval required'}</Pill>
+            <Pill>{group.visibility === 'public' ? '🌐 Public' : '🔒 Hidden'}</Pill>
+            {group.chat_enabled && <Pill>💬 Chat</Pill>}
+            {group.location_text && <Pill>{group.location_text}</Pill>}
+            {isOwner && <Pill color="#fff" bg="#3293CB">Owner</Pill>}
+            {!isOwner && isAdmin && <Pill color="#0E7490" bg="#CFFAFE">Admin</Pill>}
+          </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {!isMember && myMember?.status !== 'pending' && (
             <button onClick={join} style={primaryBtn}>{group.join_mode === 'approval' ? 'Request to Join' : 'Join Group'}</button>
@@ -171,6 +193,7 @@ export default function GroupDetailPage() {
           {isMember && !isOwner && (
             <button onClick={leave} style={{ ...primaryBtn, background: '#FEE2E2', color: '#DC2626', boxShadow: 'none' }}>Leave</button>
           )}
+          </div>
         </div>
       </div>
 

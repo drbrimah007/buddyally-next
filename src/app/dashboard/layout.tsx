@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { Fragment, useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import SafetyFooter from '@/components/SafetyFooter'
 
 // NAV — restored to the 7 thumb anchors (Codes pinned last on the right
 // so the chain icon is exactly where the user's right thumb expects it),
@@ -88,7 +89,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!user) return null
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fff', paddingBottom: 80 }}>
+    <div style={{ minHeight: '100vh', background: '#fff', paddingBottom: 110 }}>
       {/* Top bar */}
       <header style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 90,
@@ -161,12 +162,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           // Reserve a transparent placeholder cell in the row at the
           // splice point (between Activities idx 2 and Groups idx 3) so
           // the absolutely-positioned FAB above sits over empty space and
-          // doesn't overlap a nav label.
+          // doesn't overlap a nav label. Width matches the FAB (44 + ring).
           const reservePlusSlot = idx === 3
           return (
             <Fragment key={item.href}>
               {reservePlusSlot && (
-                <span aria-hidden="true" style={{ width: 56, flexShrink: 0 }} />
+                <span aria-hidden="true" style={{ width: 46, flexShrink: 0 }} />
               )}
               <Link
                 href={item.href}
@@ -207,18 +208,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         href="/dashboard?create=1"
         aria-label="Create Activity"
         style={{
-          position: 'fixed', bottom: 14, left: '50%', transform: 'translateX(-50%)',
+          position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          width: 56, height: 56,
-          borderRadius: '50%', border: '3px solid #fff',
+          width: 44, height: 44,
+          borderRadius: '50%', border: '2.5px solid #fff',
           background: '#3293CB', color: '#fff',
-          boxShadow: '0 10px 24px -6px rgba(50,147,203,0.65)',
+          boxShadow: '0 8px 20px -6px rgba(50,147,203,0.65)',
           zIndex: 110,
           textDecoration: 'none',
         }}
       >
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </Link>
+
+      {/* Persistent Safety + Report strip — sits just above the bottom
+          nav and is reachable from any dashboard page. Replaces the
+          per-page SafetyBanner so it's never duplicated and never missed. */}
+      <SafetyFooter />
     </div>
   )
 }

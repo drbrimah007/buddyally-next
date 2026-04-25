@@ -19,7 +19,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import CreateActivityModal from '@/components/CreateActivityModal'
 import ActivityDetailModal from '@/components/ActivityDetailModal'
-import SafetyBanner from '@/components/SafetyBanner'
+// SafetyBanner replaced by the persistent SafetyFooter in dashboard/layout.tsx
 import Paginator from '@/components/Paginator'
 import SaveSearchButton from '@/components/SaveSearchButton'
 import ExploreMap, { type ExploreMapItem } from '@/components/ExploreMap'
@@ -1291,7 +1291,7 @@ export default function ExplorePage() {
         </div>
       </div>
 
-      <SafetyBanner />
+      {/* SafetyBanner removed — covered by persistent SafetyFooter in layout. */}
       {showCreate && <CreateActivityModal onClose={() => { setShowCreate(false); fetchActivities() }} />}
       {viewActivityId && <ActivityDetailModal activityId={viewActivityId} onClose={() => { setViewActivityId(null); fetchActivities() }} />}
     </main>

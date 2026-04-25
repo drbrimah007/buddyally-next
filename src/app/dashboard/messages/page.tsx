@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ToastProvider'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import SafetyBanner from '@/components/SafetyBanner'
+// SafetyBanner replaced by the persistent SafetyFooter in dashboard/layout.tsx
 import Paginator from '@/components/Paginator'
 import ContactMessagesPreview from '@/components/ContactMessagesPreview'
 
@@ -272,7 +272,7 @@ export default function MessagesPage() {
         </div>
         )
       })()}
-      <SafetyBanner />
+      {/* SafetyBanner removed — covered by persistent SafetyFooter in layout. */}
     </div>
   )
 }
