@@ -133,10 +133,11 @@ export default function InviteCodesPanel() {
           {busy ? 'Creating…' : '+ New code'}
         </button>
       </div>
-      <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 14, lineHeight: 1.5 }}>
-        Share an invite link. Anyone who signs up through it earns the ◎ Buddy Line trust
-        signal — and you become the start of their trust chain. <strong>This is how you
-        build your own Buddy Line.</strong>
+      <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 14, lineHeight: 1.6 }}>
+        Share an invite link and anyone who joins through it becomes part of your{' '}
+        ◎ Buddy Line, a private chain of trust that begins with you; these connections
+        are never public or exposed, but quietly strengthen reputation and signal
+        trusted relationships across the network—<strong>this is how you grow your Buddy Line.</strong>
       </p>
 
       {loading ? (
