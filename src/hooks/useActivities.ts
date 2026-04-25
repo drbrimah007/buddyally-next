@@ -15,11 +15,13 @@ export function useActivities() {
     // (city, radius, country, category) so we need the full dataset on hand.
     const { data, error } = await supabase
       .from('activities')
-      // Trust signals (buddy_verified_at, id_verified_at, is_invited_member)
-      // pulled here so the host's TrustBadges render on every activity card.
+      // Trust + account_type pulled on the host embed.
+      // - Trust: buddy_verified_at, id_verified_at, is_invited_member
+      // - account_type: drives the transparent FoundingBadge so seed
+      //   accounts are never mistaken for organic users.
       // is_invited_member is a generated column — invited_by_user_id is
       // never returned to the client per privacy spec §4.
-      .select('*, host:profiles!created_by(id, first_name, last_name, rating_avg, rating_count, verified_selfie, avatar_url, city, home_display_name, buddy_verified_at, id_verified_at, is_invited_member), participants:activity_participants(user_id)')
+      .select('*, host:profiles!created_by(id, first_name, last_name, rating_avg, rating_count, verified_selfie, avatar_url, city, home_display_name, buddy_verified_at, id_verified_at, is_invited_member, account_type), participants:activity_participants(user_id)')
       .eq('status', 'open')
       .order('date', { ascending: true })
       .limit(500)

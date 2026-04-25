@@ -26,6 +26,7 @@ import ExploreMap, { type ExploreMapItem } from '@/components/ExploreMap'
 import { contributionBadge } from '@/lib/contribution'
 import ShareButton from '@/components/ShareButton'
 import TrustBadges from '@/components/TrustBadges'
+import FoundingBadge from '@/components/FoundingBadge'
 import { CATEGORIES, tagsForCategory } from '@/lib/categories'
 import {
   haversineMiles,
@@ -1247,7 +1248,7 @@ export default function ExplorePage() {
                                   </div>
 
                                   <div>
-                                    <div className="text-sm font-bold flex items-center gap-2">
+                                    <div className="text-sm font-bold flex items-center gap-2 flex-wrap">
                                       <span>{host.first_name} {host.last_name?.[0] || ''}</span>
                                       <TrustBadges
                                         buddyVerifiedAt={host.buddy_verified_at}
@@ -1255,6 +1256,7 @@ export default function ExplorePage() {
                                         idVerifiedAt={host.id_verified_at}
                                         variant="compact"
                                       />
+                                      <FoundingBadge accountType={host.account_type} variant="compact" />
                                     </div>
                                     <div className="text-xs text-slate-400">
                                       ★ {host.rating_avg?.toFixed(1) || '0.0'} ({host.rating_count || 0})

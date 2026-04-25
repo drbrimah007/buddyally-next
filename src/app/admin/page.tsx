@@ -54,6 +54,73 @@ export default function AdminOverview() {
             : <div key={t.label}>{body}</div>
         })}
       </div>
+
+      <IngestPanel />
     </div>
+  )
+}
+
+// On-demand trigger for the Ticketmaster Atlanta-events ingest. Saves
+// you waiting for the daily cron when verifying the pipeline. Sends
+// Authorization: Bearer ${CRON_SECRET} via the prompt below — the
+// browser never has access to the env, so the admin types it in once.
+function IngestPanel() {
+  const [secret, setSecret] = useState('')
+  const [running, setRunning] = useState(false)
+  const [result, setResult] = useState<string>('')
+
+  async function run() {
+    if (!secret) { setResult('Paste the CRON_SECRET first.'); return }
+    setRunning(true); setResult('')
+    try {
+      const res = await fetch('/api/ingest/atlanta-events', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${secret}` },
+      })
+      const json = await res.json().catch(() => ({}))
+      setResult(JSON.stringify(json, null, 2))
+    } catch (e: any) {
+      setResult('Error: ' + (e?.message || String(e)))
+    } finally {
+      setRunning(false)
+    }
+  }
+
+  return (
+    <section style={{ marginTop: 28, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, padding: 20 }}>
+      <h2 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>Atlanta event ingest</h2>
+      <p style={{ fontSize: 13, color: '#6B7280', marginTop: 6, lineHeight: 1.6 }}>
+        Pulls real upcoming Atlanta events from Ticketmaster's Discovery API and posts them
+        as activities authored by the right Founding Publisher (sports → Sunday Social ATL,
+        music/arts → Black Atlanta Culture, the rest → ATL Social Pulse). Runs daily via
+        Vercel cron at 12:00 UTC; this button is for on-demand verification.
+      </p>
+      <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+        <input
+          type="password"
+          value={secret}
+          onChange={(e) => setSecret(e.target.value)}
+          placeholder="CRON_SECRET"
+          style={{ flex: 1, minWidth: 180, padding: '8px 12px', border: '1px solid #E5E7EB', borderRadius: 10, fontSize: 13 }}
+        />
+        <button
+          onClick={run}
+          disabled={running}
+          style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 700, fontSize: 13, cursor: running ? 'wait' : 'pointer' }}
+        >
+          {running ? 'Running…' : 'Run ingest now'}
+        </button>
+      </div>
+      {result && (
+        <pre style={{ marginTop: 12, padding: 12, background: '#0F172A', color: '#E2E8F0', borderRadius: 10, fontSize: 12, overflow: 'auto', maxHeight: 320 }}>
+          {result}
+        </pre>
+      )}
+      <p style={{ fontSize: 11, color: '#9CA3AF', marginTop: 10 }}>
+        Required env in Vercel: <code>TICKETMASTER_API_KEY</code>, <code>CRON_SECRET</code>,
+        <code> SUPABASE_SERVICE_ROLE_KEY</code>. Without TICKETMASTER_API_KEY the route
+        returns a no-op (safe to deploy without it).
+      </p>
+    </section>
   )
 }

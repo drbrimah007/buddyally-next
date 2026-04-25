@@ -156,28 +156,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {children}
       </main>
 
-      {/* Bottom nav — 7 anchor links. The center "+" FAB is rendered as a
-          *sibling* below this nav (not as a child) so its top half can sit
-          ABOVE the nav border without being clipped by overflow-x:auto. */}
+      {/* Bottom nav — 7 anchor links + 1 reserved slot for the center "+"
+          FAB (rendered as a sibling below). With the placeholder before
+          Messages (idx 4) we get 4 items left of the dial (Explore, Feed,
+          Activities, Groups) + dial + 3 items right (Messages, Allies,
+          Codes). Previous 3+dial+4 layout crushed Groups against the FAB.
+          space-around distributes the gap evenly so neither side feels
+          cramped. */}
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
         background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)',
         borderTop: '1px solid #E5E7EB', zIndex: 100,
-        display: 'flex', justifyContent: 'space-between', padding: '4px 4px',
+        display: 'flex', justifyContent: 'space-around', padding: '4px 2px',
         overflowX: 'auto', WebkitOverflowScrolling: 'touch', maxWidth: '100vw',
       }}>
         {NAV_ITEMS.map((item, idx) => {
           const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
           const badgeCount = item.badgeKey ? badges[item.badgeKey] || 0 : 0
-          // Reserve a transparent placeholder cell in the row at the
-          // splice point (between Activities idx 2 and Groups idx 3) so
-          // the absolutely-positioned FAB above sits over empty space and
-          // doesn't overlap a nav label. Width matches the FAB (44 + ring).
-          const reservePlusSlot = idx === 3
+          // Reserve the dial's slot BEFORE Messages (idx 4) so the visible
+          // split is: [Explore Feed Activities Groups]  ⊕  [Messages Allies Codes].
+          // Bumped width 46 → 56 so the dial (44px) has 6px of clear gap
+          // on each side and Groups/Messages don't kiss the FAB.
+          const reservePlusSlot = idx === 4
           return (
             <Fragment key={item.href}>
               {reservePlusSlot && (
-                <span aria-hidden="true" style={{ width: 46, flexShrink: 0 }} />
+                <span aria-hidden="true" style={{ width: 56, flexShrink: 0 }} />
               )}
               <Link
                 href={item.href}

@@ -12,6 +12,7 @@ import Reviews, { Stars } from '@/components/Reviews'
 import FollowButton from '@/components/FollowButton'
 import ShareButton from '@/components/ShareButton'
 import TrustBadges from '@/components/TrustBadges'
+import FoundingBadge from '@/components/FoundingBadge'
 
 export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>()
@@ -40,9 +41,9 @@ export default function UserProfilePage() {
     setLoading(true)
     const [pRes, aRes] = await Promise.all([
       // profile_public is the privacy-safe view — strips lineage / trust_weight.
-      // We pull buddy_verified_at, id_verified_at, and is_invited_member here
-      // to drive the TrustBadges component.
-      supabase.from('profile_public').select('id, first_name, last_name, bio, avatar_url, city, home_display_name, interests, rating_avg, rating_count, verified_email, verified_phone, verified_selfie, socials, buddy_verified_at, id_verified_at, is_invited_member').eq('id', id).single(),
+      // Includes account_type so we can render the FoundingBadge transparently
+      // for seed accounts (founding_publisher / founding_member).
+      supabase.from('profile_public').select('id, first_name, last_name, bio, avatar_url, city, home_display_name, interests, rating_avg, rating_count, verified_email, verified_phone, verified_selfie, socials, buddy_verified_at, id_verified_at, is_invited_member, account_type').eq('id', id).single(),
       supabase.from('activities').select('id, title, category, cover_image_url, location_display, date, status').eq('created_by', id).order('created_at', { ascending: false }).limit(10),
     ])
     setProfile(pRes.data)
@@ -132,7 +133,12 @@ export default function UserProfilePage() {
             {profile.avatar_url ? <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : name[0]}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, wordBreak: 'break-word' }}>{name}</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, wordBreak: 'break-word' }}>{name}</h1>
+              {/* Founding badge — transparent label for seed accounts so
+                  they're never deceptive. Renders nothing for normal users. */}
+              <FoundingBadge accountType={profile.account_type} variant="pill" />
+            </div>
             {(profile.home_display_name || profile.city) && <p style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>{profile.home_display_name || profile.city}</p>}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
               <Stars value={Math.round(profile.rating_avg || 0)} size={14} />
