@@ -22,6 +22,7 @@ import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ToastProvider'
 import { supabase } from '@/lib/supabase'
+import { enablePush } from '@/lib/firebase-client'
 
 type PermState = 'unknown' | 'default' | 'granted' | 'denied' | 'unsupported'
 
@@ -70,19 +71,49 @@ export default function NotificationSettingsPage() {
   }
 
   async function requestBrowserPermission() {
+    if (!user) return
     if (typeof window === 'undefined' || !('Notification' in window)) {
       toastError('This browser does not support notifications.')
       return
     }
-    const result = await Notification.requestPermission()
-    setPerm(result as PermState)
-    if (result === 'granted') {
-      success('Permission granted. You will now receive push notifications when configured.')
-      // TODO once firebase web SDK is installed: getMessaging() →
-      // getToken() → upsert into fcm_tokens(user_id, token).
-    } else if (result === 'denied') {
-      toastError('Permission denied. Re-enable from your browser site settings.')
+    // Full FCM enable flow: SW register → permission prompt → getToken().
+    const result = await enablePush()
+    if (result.ok) {
+      // Persist the token. Upsert by token so a re-enable on the same
+      // browser doesn't insert duplicates. RLS policy must allow users
+      // to write their own row.
+      const { error } = await supabase
+        .from('fcm_tokens')
+        .upsert(
+          { user_id: user.id, token: result.token },
+          { onConflict: 'token' },
+        )
+      setPerm('granted')
+      if (error) {
+        toastError('Permission granted but token save failed: ' + error.message)
+      } else {
+        success('Push enabled — you will now receive notifications.')
+      }
     } else {
+      // Reflect the underlying state so the badge updates accurately.
+      if (typeof Notification !== 'undefined') setPerm(Notification.permission as PermState)
+      switch (result.reason) {
+        case 'unsupported':
+          toastError('This browser does not support web push.')
+          break
+        case 'permission_denied':
+          toastError('Permission denied. Re-enable from your browser site settings.')
+          break
+        case 'no_vapid':
+          toastError('Push not configured: NEXT_PUBLIC_FIREBASE_VAPID_KEY is missing in this deployment.')
+          break
+        case 'sw_failed':
+          toastError('Service worker failed to register: ' + (result.detail || ''))
+          break
+        case 'token_failed':
+          toastError('Could not get a push token: ' + (result.detail || ''))
+          break
+      }
       info('No change.')
     }
   }
@@ -218,20 +249,16 @@ export default function NotificationSettingsPage() {
         </button>
       </section>
 
-      {/* Admin / setup status */}
+      {/* Admin / setup status — only the items that still require a human. */}
       <section style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 16, padding: 16 }}>
-        <h3 style={{ fontSize: 13, fontWeight: 800, marginBottom: 6, color: '#92400E' }}>Admin · Push delivery checklist</h3>
+        <h3 style={{ fontSize: 13, fontWeight: 800, marginBottom: 6, color: '#92400E' }}>Admin · Two env vars left</h3>
         <p style={{ fontSize: 12, color: '#78350F', marginBottom: 8, lineHeight: 1.6 }}>
-          For real push delivery (and per-account toggles to persist), the
-          following must be in place:
+          Schema, deps, and service worker are in place. To finish push end-to-end add these in Vercel → Project → Settings → Environment Variables, then redeploy:
         </p>
         <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: '#78350F', lineHeight: 1.7 }}>
-          <li><b>DB columns</b>: <code>profiles.notify_push_enabled boolean default true</code> and <code>profiles.notify_email_enabled boolean default true</code></li>
-          <li><b>FCM tokens table</b>: <code>fcm_tokens (user_id uuid, token text, created_at timestamptz)</code></li>
-          <li><b>Server env</b>: <code>FIREBASE_SERVICE_ACCOUNT_JSON</code>, <code>RESEND_API_KEY</code> (for email)</li>
-          <li><b>Server dep</b>: <code>npm i firebase-admin</code> (currently missing — build log warns about it)</li>
-          <li><b>Client env</b>: <code>NEXT_PUBLIC_FIREBASE_*</code> (apiKey, authDomain, projectId, messagingSenderId, appId, vapidKey)</li>
-          <li><b>Client dep</b>: <code>npm i firebase</code> + <code>/public/firebase-messaging-sw.js</code></li>
+          <li><b>FIREBASE_SERVICE_ACCOUNT_JSON</b> — the buddy-526fc service account JSON, stringified. Firebase Console → Project Settings → Service accounts → Generate new private key.</li>
+          <li><b>NEXT_PUBLIC_FIREBASE_VAPID_KEY</b> — Firebase Console → Project Settings → Cloud Messaging → Web Configuration → Web Push certificates → Generate key pair.</li>
+          <li><i>Optional</i> <b>RESEND_API_KEY</b> + <b>NOTIFY_EMAIL_FROM</b> for email delivery.</li>
         </ul>
       </section>
     </div>

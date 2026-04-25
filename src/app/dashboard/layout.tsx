@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import { useCallback, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -30,9 +30,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const router = useRouter()
   const [badges, setBadges] = useState<Record<string, number>>({ messages: 0, alerts: 0, codes: 0, contacts: 0 })
-  // Center-nav "+" sheet state — opens a quick-action menu (New Activity,
-  // New Post, New Code, Activities/Groups/Codes shortcuts).
-  const [plusOpen, setPlusOpen] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) router.replace('/')
@@ -148,9 +145,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {children}
       </main>
 
-      {/* Bottom nav — 7 anchors + a center "+" dial = 8 cells. Tight on
-          narrow phones; we shrink horizontal padding accordingly and let
-          horizontal scroll act as a safety net. */}
+      {/* Bottom nav — 7 anchor links. The center "+" FAB is rendered as a
+          *sibling* below this nav (not as a child) so its top half can sit
+          ABOVE the nav border without being clipped by overflow-x:auto. */}
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
         background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)',
@@ -161,31 +158,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {NAV_ITEMS.map((item, idx) => {
           const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
           const badgeCount = item.badgeKey ? badges[item.badgeKey] || 0 : 0
-          // Splice the center "+" between Activities (idx 2) and Groups (idx 3)
-          // — visual midpoint of the 7-item row.
-          const renderPlusBefore = idx === 3
+          // Reserve a transparent placeholder cell in the row at the
+          // splice point (between Activities idx 2 and Groups idx 3) so
+          // the absolutely-positioned FAB above sits over empty space and
+          // doesn't overlap a nav label.
+          const reservePlusSlot = idx === 3
           return (
-            <>
-              {renderPlusBefore && (
-                <button
-                  key="__plus"
-                  type="button"
-                  onClick={() => setPlusOpen(true)}
-                  aria-label="Create"
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 48, height: 48, marginTop: -14,
-                    borderRadius: '50%', border: 'none',
-                    background: '#3293CB', color: '#fff',
-                    boxShadow: '0 8px 18px -4px rgba(50,147,203,0.55)',
-                    cursor: 'pointer', flexShrink: 0,
-                  }}
-                >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                </button>
+            <Fragment key={item.href}>
+              {reservePlusSlot && (
+                <span aria-hidden="true" style={{ width: 56, flexShrink: 0 }} />
               )}
               <Link
-                key={item.href}
                 href={item.href}
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
@@ -209,68 +192,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   }}>{badgeCount > 9 ? '9+' : badgeCount}</span>
                 )}
               </Link>
-            </>
+            </Fragment>
           )
         })}
       </nav>
 
-      {/* + action sheet — opens from the center FAB. Holds the create
-          actions plus the secondary destinations (Activities, Groups, Codes,
-          Saved Searches, Alerts) so the bottom nav stays at 4 anchors. */}
-      {plusOpen && (
-        <div
-          onClick={() => setPlusOpen(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              background: '#fff', width: '100%', maxWidth: 540,
-              borderTopLeftRadius: 24, borderTopRightRadius: 24,
-              padding: '20px 16px max(20px, env(safe-area-inset-bottom))',
-              boxShadow: '0 -10px 40px rgba(0,0,0,0.18)',
-            }}
-          >
-            <div style={{ width: 40, height: 4, background: '#E5E7EB', borderRadius: 4, margin: '0 auto 18px' }} />
-            {/* RUTHLESS create dial — only two things you ever start fresh
-                from the + button: a full Activity, or a Quick Ask (a
-                lightweight micro-post asking for something specific). All
-                other destinations live in the bottom nav or in Profile. */}
-            <p style={{ fontSize: 11, fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>Create</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 4 }}>
-              <Link href="/dashboard?create=1" onClick={() => setPlusOpen(false)} style={plusBtn('#EFF6FF', '#0652B7')}>
-                <span style={{ fontSize: 26 }}>📅</span>
-                <span style={{ fontSize: 13, fontWeight: 800 }}>Create Activity</span>
-                <span style={{ fontSize: 10, fontWeight: 600, color: '#6B7280' }}>Plan something with people</span>
-              </Link>
-              {/* Quick Ask — a fast micro-post. Lightweight ask like
-                  "anyone going to JFK tomorrow?" Routes to feed compose
-                  pre-styled as an ask. */}
-              <Link href="/dashboard/feed?compose=1&type=ask" onClick={() => setPlusOpen(false)} style={plusBtn('#FEF3C7', '#92400E')}>
-                <span style={{ fontSize: 26 }}>❓</span>
-                <span style={{ fontSize: 13, fontWeight: 800 }}>Quick Ask</span>
-                <span style={{ fontSize: 10, fontWeight: 600, color: '#92400E' }}>Need a hand or a buddy?</span>
-              </Link>
-            </div>
-
-            <button
-              onClick={() => setPlusOpen(false)}
-              style={{ marginTop: 16, width: '100%', padding: 14, borderRadius: 12, border: '1px solid #E5E7EB', background: '#fff', color: '#374151', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Center "+" dial — direct link to Create Activity. No sheet, no
+          modal, no menu: tap goes straight to the Activity form on the
+          dashboard. Rendered OUTSIDE the nav so the top half of the circle
+          sits above the nav's border instead of being clipped by
+          overflow-x:auto. Positioned to align with the reserved slot in
+          the row above. */}
+      <Link
+        href="/dashboard?create=1"
+        aria-label="Create Activity"
+        style={{
+          position: 'fixed', bottom: 14, left: '50%', transform: 'translateX(-50%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 56, height: 56,
+          borderRadius: '50%', border: '3px solid #fff',
+          background: '#3293CB', color: '#fff',
+          boxShadow: '0 10px 24px -6px rgba(50,147,203,0.65)',
+          zIndex: 110,
+          textDecoration: 'none',
+        }}
+      >
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </Link>
     </div>
   )
 }
 
-// Compact action-tile style for the Plus action sheet.
-function plusBtn(bg: string, fg: string): React.CSSProperties {
-  return {
-    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
-    padding: '14px 6px', borderRadius: 14, background: bg, color: fg,
-    textDecoration: 'none', minHeight: 76,
-  }
-}
