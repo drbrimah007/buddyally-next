@@ -68,6 +68,30 @@ export default function ProfilePage() {
 
   useEffect(() => { if (user) loadStats() }, [user])
 
+  // Outside-click / Escape to close the home-area suggestions dropdown.
+  // MUST stay above the `if (!profile) return ...` guard below — moving
+  // it later (where it used to live) caused React error #310: on first
+  // render `profile` was null and this hook was skipped, then on the
+  // next render it ran, so React saw the hook count jump and crashed
+  // the whole page. All hooks now sit above the early return.
+  useEffect(() => {
+    if (!showHomeResults) return
+    function onClick(e: MouseEvent) {
+      if (homeBoxRef.current && !homeBoxRef.current.contains(e.target as Node)) {
+        setShowHomeResults(false)
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setShowHomeResults(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [showHomeResults])
+
   async function loadStats() {
     if (!user) return
     const [{ count: created }, { count: joined }] = await Promise.all([
@@ -105,26 +129,6 @@ export default function ProfilePage() {
       setShowHomeResults(data.length > 0)
     }, 300)
   }
-
-  // Close the dropdown on outside click / Escape — without this it lingers
-  // and obscures the field when the user moves on.
-  useEffect(() => {
-    if (!showHomeResults) return
-    function onClick(e: MouseEvent) {
-      if (homeBoxRef.current && !homeBoxRef.current.contains(e.target as Node)) {
-        setShowHomeResults(false)
-      }
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setShowHomeResults(false)
-    }
-    document.addEventListener('mousedown', onClick)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onClick)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [showHomeResults])
 
   function selectHomePlace(place: any) {
     const pick = pickPlace(place)

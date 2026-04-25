@@ -9,6 +9,7 @@ import { toast } from '@/components/ToastProvider'
 import CreateActivityModal from '@/components/CreateActivityModal'
 import { contributionBadge } from '@/lib/contribution'
 import ShareButton from '@/components/ShareButton'
+import SafetyBanner from '@/components/SafetyBanner'
 
 export default function ActivityPage() {
   const { id } = useParams<{ id: string }>()
@@ -405,22 +406,13 @@ export default function ActivityPage() {
           </div>
         )}
 
-        {/* Safety */}
-        <div style={{ border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden' }}>
-          <div style={{ background: '#F9FAFB', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>🛡</span>
-            <span style={{ fontWeight: 600, fontSize: 14 }}>Safety Protocols</span>
-          </div>
-          <div style={{ padding: '12px 16px', fontSize: 14, color: '#4B5563', lineHeight: 1.6 }}>
-            <ul style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <li>Do a live video call first</li>
-              <li>Ask for a photo of their ID</li>
-              <li>Let someone know where you are going</li>
-              <li>Choose public, well-lit locations</li>
-              <li>Never trust a buddy with valuables or anyone&apos;s life</li>
-            </ul>
-          </div>
-        </div>
+        {/* Safety — collapsed by default. Single shared SafetyBanner
+            component so this surface gets the full canonical checklist
+            (live video, screenshot, ID photo, tell-a-friend, public
+            locations, never-trust-valuables) AND the trust-badges
+            explainer underneath. Was previously an inline old/abridged
+            list that was forced-open. */}
+        <SafetyBanner />
         </>}
       </main>
 

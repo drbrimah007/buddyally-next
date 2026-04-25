@@ -1,12 +1,23 @@
-// Firebase Web SDK init — used only in the browser. The apiKey + IDs are
-// not secrets (they're embedded in every served Firebase web page); access
-// is gated by Firebase Auth + the apiKey's domain restriction in the
-// console. The one piece that is *required* and not in this file is the
-// VAPID key: it must come from NEXT_PUBLIC_FIREBASE_VAPID_KEY because it's
-// per-deployment and not in the v1 config dump.
+// Firebase Web SDK init — used only in the browser.
 //
-// Config below mirrors v1's `firebase-messaging-sw.js` so the web app talks
-// to the same buddy-526fc Firebase project that already has FCM enabled.
+// Note on the "secret": Firebase web apiKeys are PUBLIC by design. Google
+// publishes them in every Firebase JS app's bundle; real security comes
+// from (a) HTTP referrer restrictions on the key in Google Cloud Console
+// and (b) Auth rules + RLS on the data. GitHub's secret scanner doesn't
+// know this and flags any AIzaSy... pattern, so we now read the config
+// from NEXT_PUBLIC_FIREBASE_* env vars and hold no defaults in source.
+//
+// Required env vars (set in Vercel → Settings → Environment Variables):
+//   NEXT_PUBLIC_FIREBASE_API_KEY
+//   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+//   NEXT_PUBLIC_FIREBASE_PROJECT_ID
+//   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+//   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+//   NEXT_PUBLIC_FIREBASE_APP_ID
+//   NEXT_PUBLIC_FIREBASE_VAPID_KEY  (web push only)
+//
+// If any are missing, getFirebaseMessaging() returns null and push silently
+// degrades to "unavailable" — the rest of the app keeps working.
 
 // @ts-ignore -- resolved once `npm i firebase` lands. The package.json
 //               already declares the dep; Vercel's clean install picks
@@ -17,12 +28,16 @@ import { initializeApp, getApps, type FirebaseApp } from 'firebase/app'
 import { getMessaging, getToken, onMessage, isSupported, type Messaging } from 'firebase/messaging'
 
 const FIREBASE_CONFIG = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyCQ6dzEiXFHoZXcYOSxqTjWFZhdWAZzZ2A',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'buddy-526fc.firebaseapp.com',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'buddy-526fc',
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'buddy-526fc.firebasestorage.app',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '371416575771',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:371416575771:web:029223400e8a136e33edbe',
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
+}
+
+function configIsComplete(): boolean {
+  return !!(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId && FIREBASE_CONFIG.appId)
 }
 
 // VAPID key for web push. Generate one in Firebase Console → Project
@@ -44,6 +59,12 @@ function getOrInitApp(): FirebaseApp {
 // "push unavailable here, no error to bubble up".
 export async function getFirebaseMessaging(): Promise<Messaging | null> {
   if (typeof window === 'undefined') return null
+  if (!configIsComplete()) {
+    // Env vars not set — treat as "FCM not available" so the app keeps
+    // working. Settings page surfaces a clearer message to the admin.
+    console.warn('[firebase-client] NEXT_PUBLIC_FIREBASE_* env vars are not set; push disabled.')
+    return null
+  }
   try {
     const ok = await isSupported()
     if (!ok) return null
@@ -79,10 +100,24 @@ export async function enablePush(): Promise<EnablePushResult> {
   }
 
   // Register the FCM-specific service worker (separate from /sw.js so
-  // FCM's hooks don't conflict with the offline shell).
+  // FCM's hooks don't conflict with the offline shell). The Firebase
+  // config is passed as a query string because the SW file itself
+  // carries no config (kept out of the repo to avoid GitHub secret
+  // alerts). See public/firebase-messaging-sw.js.
+  const swParams = new URLSearchParams({
+    apiKey:            FIREBASE_CONFIG.apiKey,
+    authDomain:        FIREBASE_CONFIG.authDomain,
+    projectId:         FIREBASE_CONFIG.projectId,
+    storageBucket:     FIREBASE_CONFIG.storageBucket,
+    messagingSenderId: FIREBASE_CONFIG.messagingSenderId,
+    appId:             FIREBASE_CONFIG.appId,
+  })
   let registration: ServiceWorkerRegistration
   try {
-    registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/firebase-cloud-messaging-push-scope' })
+    registration = await navigator.serviceWorker.register(
+      `/firebase-messaging-sw.js?${swParams.toString()}`,
+      { scope: '/firebase-cloud-messaging-push-scope' },
+    )
   } catch (e: any) {
     return { ok: false, reason: 'sw_failed', detail: String(e?.message || e) }
   }
