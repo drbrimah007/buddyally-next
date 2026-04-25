@@ -10,11 +10,43 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 
+// Full social-share metadata. Without the openGraph + twitter blocks,
+// shares of /trust-and-safety inherited the root layout's OG (BuddyAlly
+// home) and lost the page's purpose. With them, WhatsApp / iMessage /
+// Slack / X / LinkedIn previews show the real headline + description.
+const SHARE_TITLE = 'Trust & Safety on BuddyAlly'
+const SHARE_DESCRIPTION =
+  'How BuddyAlly trust works: Buddy Verified (email + phone + selfie liveness), Buddy Line (joined through a trusted invite path), ID Verified (third-party identity check), plus how reporting and moderation run.'
+const SHARE_URL = 'https://buddyally.com/trust-and-safety'
+
 export const metadata: Metadata = {
   title: 'Trust & Safety — BuddyAlly',
-  description:
-    'How BuddyAlly trust signals work: Buddy Verified, Buddy Line, ID Verified, plus how to report and how moderation runs.',
-  alternates: { canonical: 'https://buddyally.com/trust-and-safety' },
+  description: SHARE_DESCRIPTION,
+  keywords: [
+    'BuddyAlly Trust & Safety',
+    'Buddy Verified',
+    'Buddy Line',
+    'ID Verified',
+    'BuddyAlly safety',
+    'verified profiles',
+    'trusted invite path',
+  ],
+  alternates: { canonical: SHARE_URL },
+  openGraph: {
+    type: 'website',
+    url: SHARE_URL,
+    siteName: 'BuddyAlly',
+    title: SHARE_TITLE,
+    description: SHARE_DESCRIPTION,
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'BuddyAlly Trust & Safety' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: SHARE_TITLE,
+    description: SHARE_DESCRIPTION,
+    images: ['/og-image.png'],
+  },
+  robots: { index: true, follow: true },
 }
 
 export default function TrustAndSafetyPage() {
@@ -39,16 +71,19 @@ export default function TrustAndSafetyPage() {
         <Section
           eyebrow="✔ Earned"
           title="Buddy Verified"
-          subtitle="Selfie liveness check confirms you&rsquo;re a real person."
+          subtitle="Email, phone (SMS or WhatsApp), and selfie liveness all confirmed."
         >
           <p>
-            Buddy Verified means a member has completed a quick selfie liveness check
-            — a short on-device process that confirms a real human is behind the
-            account. It doesn&rsquo;t share your photo publicly, and it&rsquo;s free.
+            Buddy Verified means a member has completed three checks: their email
+            address is confirmed, their phone number is confirmed via a one-time
+            code over SMS or WhatsApp, and a short on-device selfie liveness
+            confirms a real human is behind the account. None of the data is
+            shared publicly, and the whole flow is free.
           </p>
           <p style={small}>
-            How to get it: from your profile, open <em>Verifications</em> and follow
-            the prompt to take a short selfie video.
+            How to get it: from your profile, open <em>Verifications</em> and
+            complete each step — email confirmation, phone code, and the short
+            selfie liveness prompt.
           </p>
         </Section>
 

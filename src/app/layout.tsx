@@ -3,6 +3,15 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import ToastProvider from "@/components/ToastProvider";
 import PWAProvider from "@/components/PWAProvider";
+// Vercel built-ins. <Analytics /> tracks page views, top pages, referrers,
+// country, device — feeds the dashboard at vercel.com/<team>/<project>/analytics.
+// <SpeedInsights /> reports Web Vitals (LCP / INP / CLS) per page.
+// Both are privacy-first (no cookies, no GDPR banner needed) and free up
+// to a per-month event quota.
+// @ts-ignore -- resolved on Vercel's npm ci. package.json declares the dep.
+import { Analytics } from "@vercel/analytics/next";
+// @ts-ignore -- same as above
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -107,6 +116,10 @@ export default function RootLayout({
         <ToastProvider>
           <PWAProvider>{children}</PWAProvider>
         </ToastProvider>
+        {/* Mounted at the root so every route reports views + Web Vitals.
+            No-op in local dev; only hits the Vercel ingest in prod. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

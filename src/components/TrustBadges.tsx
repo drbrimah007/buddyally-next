@@ -17,7 +17,7 @@
 //
 // Interaction:
 //   • Hover (desktop) on any pill → native title tooltip with the exact
-//     spec copy ("Selfie liveness check confirms you're a real person.",
+//     spec copy ("Email, phone, and selfie liveness all confirmed.",
 //     "Joined through a trusted invite path.", etc).
 //   • Tap on a pill (mobile or click on desktop) → opens the Trust & Safety
 //     Summary bottom sheet. We intentionally collapse single-badge sheet
@@ -72,7 +72,7 @@ export default function TrustBadges({
       key: 'verified',
       label: 'Buddy Verified',
       iconText: '✔',
-      tooltip: "Selfie liveness check confirms you're a real person.",
+      tooltip: 'Email, phone (SMS or WhatsApp), and selfie liveness all confirmed.',
       bg: '#ECFDF5', fg: '#065F46',
     })
   }

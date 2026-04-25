@@ -46,7 +46,7 @@ export default function SafetyBanner() {
               iconBg="#ECFDF5"
               iconFg="#065F46"
               label="Buddy Verified"
-              copy="Selfie liveness check confirms you’re a real person."
+              copy="Email, phone (SMS or WhatsApp), and selfie liveness all confirmed — three signals that the account belongs to a real person."
             />
             <BadgeRow
               icon="◎"
