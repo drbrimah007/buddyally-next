@@ -109,6 +109,14 @@ export default function InviteCodesPanel() {
 
   if (!user) return null
 
+  // Copy below intentionally speaks to BOTH audiences:
+  //   • Direct-signup users — who got the chooser promise "Join now and
+  //     invite trusted people later to build your Buddy Line." This is
+  //     the surface that delivers on it. They become the *start* of their
+  //     own chain when someone redeems their code.
+  //   • Already-invited users — who can extend the chain by minting their
+  //     own codes for friends.
+
   return (
     <section style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 20, marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -126,7 +134,9 @@ export default function InviteCodesPanel() {
         </button>
       </div>
       <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 14, lineHeight: 1.5 }}>
-        Share an invite link. People who sign up through it earn the ◎ Buddy Line trust signal.
+        Share an invite link. Anyone who signs up through it earns the ◎ Buddy Line trust
+        signal — and you become the start of their trust chain. <strong>This is how you
+        build your own Buddy Line.</strong>
       </p>
 
       {loading ? (
