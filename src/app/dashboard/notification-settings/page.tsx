@@ -152,10 +152,35 @@ export default function NotificationSettingsPage() {
         }),
       })
       const out = await res.json().catch(() => ({}))
-      if (res.ok) {
-        success('Test sent — check the bell icon (Alerts).')
-      } else {
+      if (!res.ok) {
         toastError('Test failed: ' + (out.error || res.statusText))
+        return
+      }
+      // Surface the *actual* push delivery result, not just "API call OK".
+      // out.push is set by /api/notify → sendFcm():
+      //   'sent'                       → at least one device targeted
+      //   'skipped_no_fcm'             → server has no FIREBASE_SERVICE_ACCOUNT_JSON
+      //   'skipped_no_tokens'          → no fcm_tokens row for this user
+      //   'skipped_disabled_by_owner'  → master push toggle is off
+      //   'fcm_error'                  → admin.messaging() threw
+      switch (out.push) {
+        case 'sent':
+          success(`Push: ${out.success || 0} delivered, ${out.failure || 0} failed${out.pruned ? `, ${out.pruned} dead tokens removed` : ''}. In-app bell also lit.`)
+          break
+        case 'skipped_no_tokens':
+          toastError('No devices registered for push. Tap "Enable browser push" first (must be done from each device that should receive notifications).')
+          break
+        case 'skipped_no_fcm':
+          toastError('Server can\'t send push: FIREBASE_SERVICE_ACCOUNT_JSON missing in deployment.')
+          break
+        case 'skipped_disabled_by_owner':
+          toastError('Push is off in your settings — flip the master toggle on first.')
+          break
+        case 'fcm_error':
+          toastError('FCM send failed: ' + (out.detail || 'unknown'))
+          break
+        default:
+          success('Test fired — in-app bell lit. Push status: ' + (out.push || 'unknown'))
       }
     } catch (e: any) {
       toastError('Test failed: ' + e.message)
