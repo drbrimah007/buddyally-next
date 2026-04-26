@@ -47,12 +47,62 @@ export default function NotificationSettingsPage() {
     setEmail(p.notify_email_enabled !== false)
   }, [profile])
 
-  // Read browser permission state once on mount.
+  // Read browser permission state — and KEEP IT FRESH. iOS Settings can
+  // toggle the permission underneath us; without re-polling, the badge
+  // shows "Allowed" forever even after the user revoked at the OS level.
+  // Strategy:
+  //   1. Initial read on mount.
+  //   2. Re-read whenever the tab regains focus or visibility (covers the
+  //      case where the user switches to Settings, toggles, and comes back).
+  //   3. Subscribe to the Permissions API onchange where available (Chrome/
+  //      Edge — fires immediately, no polling needed).
+  //   4. If we detect permission flipped from granted → anything else, also
+  //      purge this user's FCM tokens so push can't try (and fail silently)
+  //      to reach a device whose subscription is no longer valid.
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (!('Notification' in window)) { setPerm('unsupported'); return }
-    setPerm(Notification.permission as PermState)
-  }, [])
+
+    let lastSeen: PermState = Notification.permission as PermState
+    setPerm(lastSeen)
+
+    async function syncFromOs() {
+      const next = (Notification.permission as PermState) || 'default'
+      if (next !== lastSeen) {
+        // If the user revoked at OS level, scrub the dead token from the DB
+        // for this device. (Other devices for the same user are unaffected
+        // because we only have THIS browser's notion of permission here.)
+        if (lastSeen === 'granted' && next !== 'granted' && user) {
+          await supabase.from('fcm_tokens').delete().eq('user_id', user.id)
+          info('Browser permission was revoked — push token cleared.')
+        }
+        lastSeen = next
+        setPerm(next)
+      }
+    }
+
+    const onVis = () => { if (document.visibilityState === 'visible') void syncFromOs() }
+    const onFocus = () => { void syncFromOs() }
+    document.addEventListener('visibilitychange', onVis)
+    window.addEventListener('focus', onFocus)
+
+    // Permissions API gives us a live event in Chromium-based browsers.
+    // Safari/iOS doesn't expose 'notifications' here yet, so the
+    // visibilitychange path is the actual fallback for iPhone PWAs.
+    let permStatus: PermissionStatus | null = null
+    if ('permissions' in navigator) {
+      navigator.permissions.query({ name: 'notifications' as PermissionName }).then((status) => {
+        permStatus = status
+        status.onchange = () => { void syncFromOs() }
+      }).catch(() => { /* not supported — visibilitychange covers it */ })
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVis)
+      window.removeEventListener('focus', onFocus)
+      if (permStatus) permStatus.onchange = null
+    }
+  }, [user])
 
   // Fetch env-var presence from /api/diag so the setup status box reflects
   // reality. Boolean presence only — values are never returned.
