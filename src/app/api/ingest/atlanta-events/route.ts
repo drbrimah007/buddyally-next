@@ -47,18 +47,40 @@ function classifyEvent(segment: string | null | undefined): { publisher_id: stri
   }
 }
 
-type AuthResult = { ok: true } | { ok: false; reason: 'no_env' | 'no_header' | 'mismatch' }
+type AuthResult = { ok: true; via: 'cron' | 'cron_secret' | 'moderator' } | { ok: false; reason: 'no_auth' | 'not_mod' }
 
-function checkAuth(req: Request): AuthResult {
-  // Vercel cron is trusted by header
-  if (req.headers.get('x-vercel-cron') === '1') return { ok: true }
+// Three paths to authorize:
+//   • Vercel cron header (x-vercel-cron: 1) — trusted out of the box.
+//   • Bearer token matches CRON_SECRET env (legacy / for cli use).
+//   • Bearer token is a Supabase JWT belonging to a profile with the
+//     'admin' or 'moderator' badge — checked via is_moderator() RPC.
+//
+// The moderator path is what removes the CRON_SECRET dependency for the
+// admin trigger button: signed-in admins just need their session JWT.
+async function checkAuth(req: Request, supabase: any): Promise<AuthResult> {
+  if (req.headers.get('x-vercel-cron') === '1') return { ok: true, via: 'cron' }
+
   const auth = req.headers.get('authorization') || ''
   const match = auth.match(/^Bearer (.+)$/)
+  const token = match?.[1]
+  if (!token) return { ok: false, reason: 'no_auth' }
+
+  // CRON_SECRET shortcut (still supported)
   const secret = process.env.CRON_SECRET
-  if (!secret) return { ok: false, reason: 'no_env' }       // env var missing on the deploy
-  if (!match) return { ok: false, reason: 'no_header' }     // browser sent no Bearer token
-  if (match[1] !== secret) return { ok: false, reason: 'mismatch' }
-  return { ok: true }
+  if (secret && token === secret) return { ok: true, via: 'cron_secret' }
+
+  // Otherwise treat the bearer as a Supabase JWT: who is this user, and
+  // is_moderator()? The service-role client lets us call auth.getUser
+  // with the caller's token + then call the SECURITY DEFINER mod helper.
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token)
+    if (error || !user) return { ok: false, reason: 'no_auth' }
+    const { data: isMod } = await supabase.rpc('is_moderator', { p_user: user.id })
+    if (isMod === true) return { ok: true, via: 'moderator' }
+    return { ok: false, reason: 'not_mod' }
+  } catch {
+    return { ok: false, reason: 'no_auth' }
+  }
 }
 
 type TmEvent = {
@@ -102,24 +124,26 @@ export async function GET(req: Request)  { return run(req) }
 export async function POST(req: Request) { return run(req) }
 
 async function run(req: Request) {
-  const auth = checkAuth(req)
+  // Build the service-role client up front so checkAuth can use it for
+  // the JWT → is_moderator() lookup.
+  let supabase
+  try { supabase = createServiceRoleClient() }
+  catch { return NextResponse.json({ error: 'service_role_missing' }, { status: 500 }) }
+
+  const auth = await checkAuth(req, supabase)
   if (!auth.ok) {
-    // Diagnostic 401 — tells you exactly why so you can fix it without
-    // spelunking. Does NOT leak the secret value.
     return NextResponse.json({
       error: 'unauthorized',
       reason: auth.reason,
-      hint: auth.reason === 'no_env'
-        ? 'CRON_SECRET env var is not set on this deployment. Add it in Vercel → Settings → Environment Variables, then Redeploy.'
-        : auth.reason === 'no_header'
-        ? 'Authorization: Bearer <secret> header missing. The /admin button sends it; if you called this URL directly you need to add the header.'
-        : 'CRON_SECRET in env does not match the value sent. Re-copy from Vercel and paste again.',
+      hint: auth.reason === 'not_mod'
+        ? 'Your account is signed in but does not have the admin/moderator badge.'
+        : 'Send Authorization: Bearer <session-jwt> from a signed-in admin, or set CRON_SECRET in Vercel and use that.',
     }, { status: 401 })
   }
 
   const apiKey = process.env.TICKETMASTER_API_KEY
   if (!apiKey) {
-    return NextResponse.json({ ok: true, ingested: 0, reason: 'no_key' })
+    return NextResponse.json({ ok: true, ingested: 0, reason: 'no_key', authed_via: auth.via })
   }
 
   // Discovery API: Atlanta market, upcoming, sorted by date asc.
@@ -138,10 +162,7 @@ async function run(req: Request) {
   const tmJson: any = await tmRes.json().catch(() => ({}))
   const events: TmEvent[] = tmJson?._embedded?.events || []
 
-  let supabase
-  try { supabase = createServiceRoleClient() }
-  catch { return NextResponse.json({ error: 'service_role_missing' }, { status: 500 }) }
-
+  // (supabase already initialized above in the auth block — reuse it.)
   // Pre-fetch existing external_ids so we skip dedupes in O(1).
   const externalIds = events.map((e) => e.id).filter(Boolean)
   const { data: existing } = await supabase

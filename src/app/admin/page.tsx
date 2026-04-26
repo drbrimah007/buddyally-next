@@ -60,22 +60,30 @@ export default function AdminOverview() {
   )
 }
 
-// On-demand trigger for the Ticketmaster Atlanta-events ingest. Saves
-// you waiting for the daily cron when verifying the pipeline. Sends
-// Authorization: Bearer ${CRON_SECRET} via the prompt below — the
-// browser never has access to the env, so the admin types it in once.
+// On-demand trigger for the Ticketmaster Atlanta-events ingest. Sends
+// the admin's Supabase session JWT as the bearer token — the route
+// validates it via is_moderator(). No CRON_SECRET needed (though it
+// remains supported for CLI / non-browser triggers).
 function IngestPanel() {
-  const [secret, setSecret] = useState('')
   const [running, setRunning] = useState(false)
   const [result, setResult] = useState<string>('')
 
   async function run() {
-    if (!secret) { setResult('Paste the CRON_SECRET first.'); return }
     setRunning(true); setResult('')
     try {
+      // Pull the current user's Supabase session token. The route's
+      // checkAuth() verifies it points to a profile with the admin /
+      // moderator badge.
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) {
+        setResult('No active session — please sign in again.')
+        setRunning(false)
+        return
+      }
       const res = await fetch('/api/ingest/atlanta-events', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${secret}` },
+        headers: { 'Authorization': `Bearer ${token}` },
       })
       const json = await res.json().catch(() => ({}))
       setResult(JSON.stringify(json, null, 2))
@@ -96,17 +104,10 @@ function IngestPanel() {
         Vercel cron at 12:00 UTC; this button is for on-demand verification.
       </p>
       <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-        <input
-          type="password"
-          value={secret}
-          onChange={(e) => setSecret(e.target.value)}
-          placeholder="CRON_SECRET"
-          style={{ flex: 1, minWidth: 180, padding: '8px 12px', border: '1px solid #E5E7EB', borderRadius: 10, fontSize: 13 }}
-        />
         <button
           onClick={run}
           disabled={running}
-          style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 700, fontSize: 13, cursor: running ? 'wait' : 'pointer' }}
+          style={{ padding: '10px 18px', borderRadius: 10, border: 'none', background: '#3293CB', color: '#fff', fontWeight: 700, fontSize: 14, cursor: running ? 'wait' : 'pointer' }}
         >
           {running ? 'Running…' : 'Run ingest now'}
         </button>
@@ -117,9 +118,10 @@ function IngestPanel() {
         </pre>
       )}
       <p style={{ fontSize: 11, color: '#9CA3AF', marginTop: 10 }}>
-        Required env in Vercel: <code>TICKETMASTER_API_KEY</code>, <code>CRON_SECRET</code>,
-        <code> SUPABASE_SERVICE_ROLE_KEY</code>. Without TICKETMASTER_API_KEY the route
-        returns a no-op (safe to deploy without it).
+        Auth: uses your signed-in admin session — no CRON_SECRET needed for this button.
+        Vercel cron + CLI use cases still support <code>CRON_SECRET</code>.
+        Only <code>TICKETMASTER_API_KEY</code> needs to be set in Vercel; without it the
+        route returns a no-op (safe to deploy without).
       </p>
     </section>
   )
