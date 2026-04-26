@@ -9,6 +9,7 @@ import { useEffect } from 'react'
 
 const ITEMS = [
   { href: '/admin', label: 'Overview' },
+  { href: '/admin/activities', label: 'Activities' },
   { href: '/admin/reports', label: 'Reports' },
   { href: '/admin/users', label: 'Users' },
   { href: '/admin/id-verifications', label: 'ID Verifications' },
