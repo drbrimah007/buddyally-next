@@ -218,6 +218,16 @@ function escapeHtml(s: string) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
+// Logo block reused across all email templates. Hosted at the public
+// asset URL on production so it works from any inbox. Width fixed at
+// 140px so retina-density 2x icons still render crisply without blowing
+// up Gmail's preview pane.
+const EMAIL_LOGO_HTML = `
+  <div style="text-align:center;padding:20px 0 4px">
+    <img src="https://buddyally.com/buddyally-logo-full.png" alt="BuddyAlly"
+         width="140" style="display:inline-block;height:auto;max-width:140px" />
+  </div>`
+
 // Generic email template for Shape B (typed) notifications — covers
 // DMs, alerts, activity pings, requests. Keeps a consistent visual to
 // the code-message template but lighter, with a single CTA back to the
@@ -226,8 +236,9 @@ function typedNotificationEmailHtml(p: { firstName: string; title: string; body:
   const headerColor = p.urgent ? '#DC2626' : '#0284C7'
   const greeting = p.firstName ? `Hi ${escapeHtml(p.firstName)},` : 'Hi,'
   return `<!doctype html><html><body style="margin:0;padding:0;background:#F9FAFB;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#111827">
-  <div style="max-width:560px;margin:0 auto;padding:24px 16px">
-    <div style="background:#fff;border:1px solid #E5E7EB;border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.06)">
+  <div style="max-width:560px;margin:0 auto;padding:8px 16px 24px">
+    ${EMAIL_LOGO_HTML}
+    <div style="background:#fff;border:1px solid #E5E7EB;border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.06);margin-top:14px">
       <div style="background:${headerColor};color:#fff;padding:18px 22px;font-weight:700;font-size:16px">
         ${p.urgent ? '🚨 URGENT — ' : ''}${escapeHtml(p.title)}
       </div>
@@ -250,8 +261,9 @@ function codeMessageEmailHtml(p: CodeMessageBody) {
   const urgent = p.priority === 'urgent'
   const title = p.codeTitle || p.code
   return `<!doctype html><html><body style="margin:0;padding:0;background:#F9FAFB;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#111827">
-  <div style="max-width:560px;margin:0 auto;padding:24px 16px">
-    <div style="background:#fff;border:1px solid #E5E7EB;border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.06)">
+  <div style="max-width:560px;margin:0 auto;padding:8px 16px 24px">
+    ${EMAIL_LOGO_HTML}
+    <div style="background:#fff;border:1px solid #E5E7EB;border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.06);margin-top:14px">
       <div style="background:${urgent ? '#DC2626' : '#0284C7'};color:#fff;padding:18px 22px;font-weight:700;font-size:16px">
         ${urgent ? '🚨 URGENT — ' : ''}New message on your BuddyAlly code
       </div>
