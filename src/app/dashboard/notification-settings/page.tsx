@@ -26,6 +26,17 @@ import { enablePush } from '@/lib/firebase-client'
 
 type PermState = 'unknown' | 'default' | 'granted' | 'denied' | 'unsupported'
 
+// Detect iOS so we can show OS-appropriate guidance. iOS PWAs don't have
+// per-site browser settings — re-enabling lives under iOS Settings →
+// Notifications → BuddyAlly. Desktop browsers point to the lock-icon
+// site settings flow instead.
+function detectIsIOS(): boolean {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent
+  // iPad on iPadOS 13+ identifies as Mac with touch — catch it explicitly.
+  return /iPhone|iPad|iPod/.test(ua) || (ua.includes('Mac') && 'ontouchend' in document)
+}
+
 export default function NotificationSettingsPage() {
   const { user, profile, refreshProfile } = useAuth()
   const { success, error: toastError, info } = useToast()
@@ -37,6 +48,9 @@ export default function NotificationSettingsPage() {
   // /api/diag tells us which env vars the deployment can actually see.
   // Used to render a real status block instead of a hardcoded "do this" notice.
   const [envStatus, setEnvStatus] = useState<Record<string, { present: boolean; length: number }> | null>(null)
+  // Read once on mount; safe to use everywhere because UA doesn't change.
+  const [isIOS, setIsIOS] = useState(false)
+  useEffect(() => { setIsIOS(detectIsIOS()) }, [])
 
   // Hydrate from the profile when it loads. Treat null/undefined as ON
   // (default-allow) — same convention the notify API uses.
@@ -171,7 +185,9 @@ export default function NotificationSettingsPage() {
           toastError('This browser does not support web push.')
           break
         case 'permission_denied':
-          toastError('Permission denied. Re-enable from your browser site settings.')
+          toastError(isIOS
+            ? 'Permission denied. Open iOS Settings → Notifications → BuddyAlly → turn on Allow Notifications, then come back.'
+            : 'Permission denied. Click the lock icon in your browser\'s address bar → Site settings → Notifications → Allow.')
           break
         case 'no_vapid':
           toastError('Push not configured: NEXT_PUBLIC_FIREBASE_VAPID_KEY is missing in this deployment.')
@@ -307,24 +323,43 @@ export default function NotificationSettingsPage() {
           fontSize: 12, fontWeight: 700, background: permBadge.bg, color: permBadge.fg, marginBottom: 12,
         }}>{permBadge.label}</span>
         <div>
+          {/* Button stays clickable when perm === 'granted' — re-tapping
+              re-runs the FCM token registration, which is what you want
+              if the token was purged (revoke→re-enable cycle, v1 leftover,
+              new device, etc.). enablePush() is idempotent: calling it on
+              an already-permitted browser just refreshes the token. */}
           <button
             onClick={requestBrowserPermission}
-            disabled={!push || perm === 'unsupported' || perm === 'granted'}
+            disabled={!push || perm === 'unsupported' || perm === 'denied'}
             style={{
               padding: '10px 18px', borderRadius: 12, border: 'none',
-              background: (!push || perm === 'unsupported' || perm === 'granted') ? '#E5E7EB' : '#3293CB',
-              color: (!push || perm === 'unsupported' || perm === 'granted') ? '#9CA3AF' : '#fff',
-              fontWeight: 700, fontSize: 13, cursor: (!push || perm === 'unsupported' || perm === 'granted') ? 'default' : 'pointer',
+              background: (!push || perm === 'unsupported' || perm === 'denied') ? '#E5E7EB' : '#3293CB',
+              color: (!push || perm === 'unsupported' || perm === 'denied') ? '#9CA3AF' : '#fff',
+              fontWeight: 700, fontSize: 13, cursor: (!push || perm === 'unsupported' || perm === 'denied') ? 'default' : 'pointer',
             }}
           >
-            {!push ? 'Turn push on first' : perm === 'granted' ? 'Already allowed' : perm === 'unsupported' ? 'Browser not supported' : 'Enable browser push'}
+            {!push ? 'Turn push on first'
+              : perm === 'unsupported' ? 'Browser not supported'
+              : perm === 'denied' ? 'Blocked — re-enable above'
+              : perm === 'granted' ? 'Re-register this device'
+              : 'Enable browser push'}
           </button>
         </div>
         {perm === 'denied' && (
           <p style={{ fontSize: 12, color: '#991B1B', marginTop: 10, lineHeight: 1.5 }}>
-            You blocked notifications previously. Click the lock icon in your
-            browser's address bar → Site settings → Notifications → Allow,
-            then refresh.
+            {isIOS ? (
+              <>
+                You blocked notifications previously. Open <b>iOS Settings →
+                Notifications → BuddyAlly</b> and turn on <b>Allow
+                Notifications</b>, then come back to this page.
+              </>
+            ) : (
+              <>
+                You blocked notifications previously. Click the lock icon in
+                your browser's address bar → <b>Site settings → Notifications
+                → Allow</b>, then refresh.
+              </>
+            )}
           </p>
         )}
       </section>
