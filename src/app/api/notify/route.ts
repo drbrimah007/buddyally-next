@@ -129,17 +129,21 @@ async function sendFcm(opts: {
     badgeCount = 1
   }
 
+  // Resolve the deep-link once so it goes EVERYWHERE the click handler
+  // could read from — `data.url` (what the SW reads in notificationclick),
+  // `webpush.fcmOptions.link` (FCM's standard browser-tab opener), and
+  // the in-payload `data` block (so the SW can fall back).
+  const targetUrl = link || '/dashboard/alerts'
+
   try {
     const res = await admin.messaging().sendEachForMulticast({
       tokens: targets,
       notification: { title, body },
-      // Ship the badge count in `data` so the SW can read it on background
-      // pushes and call self.registration.showNotification(... { badge })
-      // / navigator.setAppBadge() — iOS PWAs only honor badge updates when
-      // they come through the SW's notification action, not the FCM
-      // notification block directly.
-      data: { ...(data || {}), badge: String(badgeCount) },
-      webpush: { fcmOptions: { link: link || '/dashboard/alerts' } },
+      // Ship the badge count + url in `data` so the SW can read both on
+      // background pushes. iOS PWAs only honor these when they come through
+      // the SW's notification action (not the FCM notification block).
+      data: { ...(data || {}), badge: String(badgeCount), url: targetUrl },
+      webpush: { fcmOptions: { link: targetUrl } },
       // APNs path for native iOS app delivery (won't apply to web push but
       // doesn't hurt — Firebase ignores when irrelevant).
       apns: { payload: { aps: { badge: badgeCount } } },
@@ -212,6 +216,34 @@ function escapeHtml(s: string) {
   return (s || '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
+// Generic email template for Shape B (typed) notifications — covers
+// DMs, alerts, activity pings, requests. Keeps a consistent visual to
+// the code-message template but lighter, with a single CTA back to the
+// alerts feed since we don't always have a deep-link in the typed body.
+function typedNotificationEmailHtml(p: { firstName: string; title: string; body: string; type: string; urgent: boolean }) {
+  const headerColor = p.urgent ? '#DC2626' : '#0284C7'
+  const greeting = p.firstName ? `Hi ${escapeHtml(p.firstName)},` : 'Hi,'
+  return `<!doctype html><html><body style="margin:0;padding:0;background:#F9FAFB;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#111827">
+  <div style="max-width:560px;margin:0 auto;padding:24px 16px">
+    <div style="background:#fff;border:1px solid #E5E7EB;border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.06)">
+      <div style="background:${headerColor};color:#fff;padding:18px 22px;font-weight:700;font-size:16px">
+        ${p.urgent ? '🚨 URGENT — ' : ''}${escapeHtml(p.title)}
+      </div>
+      <div style="padding:22px">
+        <p style="margin:0 0 14px;color:#4B5563;font-size:14px">${greeting}</p>
+        <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:14px;font-size:15px;line-height:1.6;white-space:pre-wrap">${escapeHtml(p.body)}</div>
+        <p style="margin:22px 0 0">
+          <a href="https://buddyally.com/dashboard/alerts" style="display:inline-block;background:#3293CB;color:#fff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:10px;font-size:14px">Open BuddyAlly</a>
+        </p>
+      </div>
+    </div>
+    <p style="text-align:center;color:#9CA3AF;font-size:12px;margin-top:16px">
+      You're receiving this because email notifications are on for your BuddyAlly account.
+      Manage in <a href="https://buddyally.com/dashboard/notification-settings" style="color:#9CA3AF">Notification Settings</a>.
+    </p>
+  </div></body></html>`
 }
 
 function codeMessageEmailHtml(p: CodeMessageBody) {
@@ -338,9 +370,41 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Insert failed', detail: insErr.message }, { status: 500 })
     }
 
-    // Master push toggle gate. The in-app row is always written so the bell
-    // still lights up; only the *push* fanout is suppressed.
+    // Master flags gate both push and email fanouts. The in-app row is
+    // always written so the bell still lights up — we only suppress the
+    // outbound channels per the user's toggles.
     const master = await masterFlags(user_id)
+
+    // Email fanout (Shape B): every typed notification also goes to the
+    // user's account email if email_enabled. The previous behavior only
+    // emailed for code-message shape, leaving DMs / activity pings /
+    // alerts / requests with no email channel at all. We look up the
+    // account email via service role; email is best-effort, so failures
+    // are reported but don't block the push response.
+    let emailRes: any = { email: 'skipped_disabled_by_owner' }
+    if (master.email) {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('email, first_name')
+        .eq('id', user_id)
+        .maybeSingle()
+      if (prof?.email) {
+        emailRes = await sendEmailViaResend({
+          to: prof.email,
+          subject: title,
+          html: typedNotificationEmailHtml({
+            firstName: prof.first_name || '',
+            title,
+            body,
+            type,
+            urgent: !!urgent,
+          }),
+        })
+      } else {
+        emailRes = { email: 'skipped_no_email' }
+      }
+    }
+
     const pushRes = master.push
       ? await sendFcm({
           supabase,
@@ -355,7 +419,8 @@ export async function POST(req: Request) {
           },
         })
       : { push: 'skipped_disabled_by_owner' as const }
-    return NextResponse.json({ ok: true, ...pushRes })
+
+    return NextResponse.json({ ok: true, ...pushRes, ...emailRes })
   }
 
   return NextResponse.json(

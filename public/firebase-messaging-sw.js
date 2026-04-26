@@ -75,15 +75,30 @@ if (config.apiKey && config.projectId && config.appId) {
   console.warn('[firebase-messaging-sw] Firebase config missing in registration query; push disabled.')
 }
 
-// Tap → focus an existing tab on the deep-link URL, or open a new one.
+// Tap → navigate the deep-link URL.
+//
+// Old behavior just focused any tab whose URL happened to "include" the
+// target — which meant clicking a Messages notification while a Codes
+// tab was open would just focus Codes (because both URLs share the
+// /dashboard/ prefix). Fix: actively navigate the focused client to the
+// real target before focusing, and only fall back to openWindow if there
+// are no existing windows.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const url = (event.notification.data && event.notification.data.url) || '/'
+  const url = (event.notification.data && event.notification.data.url) || '/dashboard/alerts'
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
-      for (const w of wins) {
-        if (w.url.includes(url) && 'focus' in w) return w.focus()
+      // Prefer an already-focused tab if one exists, else any open window.
+      const target = wins.find((w) => w.focused) || wins[0]
+      if (target) {
+        // navigate() is same-origin only — works for our /dashboard/* paths.
+        if ('navigate' in target) {
+          return target.navigate(url).then((win) => (win || target).focus())
+        }
+        return target.focus()
       }
+      // No tab open — fresh window. iOS PWA standalone mode opens this in
+      // the PWA, not Safari, because the SW belongs to the PWA's scope.
       return clients.openWindow(url)
     })
   )

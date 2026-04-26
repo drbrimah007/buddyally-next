@@ -42,6 +42,10 @@ export default function NotificationSettingsPage() {
   const { success, error: toastError, info } = useToast()
   const [push, setPush] = useState(true)
   const [email, setEmail] = useState(true)
+  // urgentOnly = true → only urgent (e.g. flagged contact-code) pushes
+  // hit the device. Mirrors notify_urgent_only on the profile and is
+  // applied to every fcm_tokens row whenever the user toggles.
+  const [urgentOnly, setUrgentOnly] = useState(false)
   const [perm, setPerm] = useState<PermState>('unknown')
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
@@ -59,7 +63,30 @@ export default function NotificationSettingsPage() {
     const p = profile as any
     setPush(p.notify_push_enabled !== false)
     setEmail(p.notify_email_enabled !== false)
+    setUrgentOnly(p.notify_urgent_only === true)
   }, [profile])
+
+  // Update the urgent-only filter. Persists on the profile (single source
+  // of truth) AND mirrors to every fcm_tokens row for this user so the
+  // /api/notify fanout filter (`urgent_only` per-token) reflects the new
+  // preference everywhere — every browser, every device.
+  async function saveUrgentOnly(next: boolean) {
+    if (!user) return
+    setSaving(true); setUrgentOnly(next)
+    const [profErr, tokErr] = await Promise.all([
+      supabase.from('profiles').update({ notify_urgent_only: next }).eq('id', user.id),
+      supabase.from('fcm_tokens').update({ urgent_only: next }).eq('user_id', user.id),
+    ])
+    setSaving(false)
+    if (profErr.error || tokErr.error) {
+      toastError('Could not save level: ' + (profErr.error?.message || tokErr.error?.message))
+      // Roll back optimistic state if it actually failed.
+      setUrgentOnly(!next)
+    } else {
+      success(next ? 'Now sending urgent-only pushes' : 'Sending all notifications')
+      await refreshProfile?.()
+    }
+  }
 
   // Read browser permission state — and KEEP IT FRESH. iOS Settings can
   // toggle the permission underneath us; without re-polling, the badge
@@ -168,10 +195,12 @@ export default function NotificationSettingsPage() {
       // Composite unique constraint in the schema is (user_id, token).
       // Re-enabling on the same device produces the same token → upsert
       // collapses cleanly into the existing row instead of duplicating.
+      // New tokens inherit the user's urgent-only preference so a fresh
+      // device immediately respects "Urgent only" without a second toggle.
       const { error } = await supabase
         .from('fcm_tokens')
         .upsert(
-          { user_id: user.id, token: result.token },
+          { user_id: user.id, token: result.token, urgent_only: urgentOnly },
           { onConflict: 'user_id,token' },
         )
       setPerm('granted')
@@ -232,9 +261,18 @@ export default function NotificationSettingsPage() {
       //   'skipped_no_tokens'          → no fcm_tokens row for this user
       //   'skipped_disabled_by_owner'  → master push toggle is off
       //   'fcm_error'                  → admin.messaging() threw
+      // Email outcome is on out.email — separate from out.push.
+      const emailNote =
+        out.email === 'sent' ? ' Email sent ✓'
+        : out.email === 'skipped_disabled_by_owner' ? ' Email skipped (disabled).'
+        : out.email === 'skipped_no_email' ? ' No account email on file.'
+        : out.email === 'skipped_no_resend' ? ' Email backend not configured (RESEND_API_KEY missing).'
+        : out.email === 'resend_error' ? ` Email failed: ${out.detail || out.status || 'unknown'}.`
+        : ''
+
       switch (out.push) {
         case 'sent':
-          success(`Push: ${out.success || 0} delivered, ${out.failure || 0} failed${out.pruned ? `, ${out.pruned} dead tokens removed` : ''}. In-app bell also lit.`)
+          success(`Push: ${out.success || 0} delivered, ${out.failure || 0} failed${out.pruned ? `, ${out.pruned} dead tokens removed` : ''}. In-app bell also lit.${emailNote}`)
           break
         case 'skipped_no_tokens':
           toastError('No devices registered for push. Tap "Enable browser push" first (must be done from each device that should receive notifications).')
@@ -312,6 +350,33 @@ export default function NotificationSettingsPage() {
           These are master switches. Each contact code can also have its own
           push / email toggle on the <Link href="/dashboard/codes" style={{ color: '#3293CB', fontWeight: 700 }}>My Codes</Link> page.
         </p>
+      </section>
+
+      {/* Notification level — All vs Urgent-only filter (v1 parity).
+          Disabled UI when push is off above (it's pointless to filter
+          something that's already silenced entirely). */}
+      <section style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 18, marginBottom: 16, opacity: push ? 1 : 0.5 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>Notification level</h3>
+        <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 12, lineHeight: 1.5 }}>
+          Choose how loud BuddyAlly is. Urgent-only suppresses everyday pings
+          and only delivers flagged messages — useful if you want to stay
+          reachable without the constant stream.
+        </p>
+        <LevelOption
+          label="All notifications"
+          help="Every push: messages, alerts, contact-code pings, requests."
+          checked={!urgentOnly}
+          disabled={!push || saving}
+          onChange={() => saveUrgentOnly(false)}
+        />
+        <div style={{ height: 1, background: '#F3F4F6', margin: '12px 0' }} />
+        <LevelOption
+          label="Only urgent"
+          help="Just emergencies — flagged contact-code messages and the like."
+          checked={urgentOnly}
+          disabled={!push || saving}
+          onChange={() => saveUrgentOnly(true)}
+        />
       </section>
 
       {/* Browser permission */}
@@ -446,6 +511,38 @@ function SetupStatus({ envStatus, isAdmin }: { envStatus: Record<string, { prese
         </p>
       )}
     </section>
+  )
+}
+
+// Single radio-style row for the notification-level picker. Custom render
+// (not <input type=radio>) so the tap target / focus ring matches the
+// rest of the settings styling. Same disabled rules as ToggleRow.
+function LevelOption({
+  label, help, checked, disabled, onChange,
+}: {
+  label: string; help: string; checked: boolean; disabled: boolean; onChange: () => void
+}) {
+  return (
+    <div
+      onClick={() => !disabled && !checked && onChange()}
+      role="radio"
+      aria-checked={checked}
+      style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: disabled ? 'not-allowed' : (checked ? 'default' : 'pointer') }}
+    >
+      <span style={{
+        flexShrink: 0, marginTop: 3,
+        width: 20, height: 20, borderRadius: '50%',
+        border: `2px solid ${checked ? '#3293CB' : '#D1D5DB'}`,
+        background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'border-color 0.15s',
+      }}>
+        {checked && <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#3293CB' }} />}
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>{label}</p>
+        <p style={{ fontSize: 12, color: '#6B7280', margin: '2px 0 0' }}>{help}</p>
+      </div>
+    </div>
   )
 }
 
