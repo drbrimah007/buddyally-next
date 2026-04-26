@@ -13,8 +13,14 @@ import SafetyBanner from '@/components/SafetyBanner'
 
 export default function ActivityPage() {
   const { id } = useParams<{ id: string }>()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const router = useRouter()
+  // Admins (is_admin or 'admin' / 'moderator' badge) get edit/delete on
+  // ANY activity — not just their own — so Founding Publisher / ingested
+  // events can be curated without going through /admin/activities. RLS
+  // already permits this server-side; this just unlocks the buttons.
+  const isAdmin = !!(profile && ((profile as any).is_admin === true
+    || (Array.isArray((profile as any).badges) && (profile as any).badges.some((b: string) => b === 'admin' || b === 'moderator'))))
   const [activity, setActivity] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [joining, setJoining] = useState(false)
@@ -97,6 +103,9 @@ export default function ActivityPage() {
   const unlimited = activity.max_participants == null || activity.max_participants === 0
   const spotsLeft = unlimited ? Infinity : activity.max_participants - participants.length
   const isOwner = user && activity.created_by === user.id
+  // canEdit unlocks the Edit/Cancel UI in the action row. Owners always
+  // qualify; admins also qualify (mod-curation path).
+  const canEdit = !!(isOwner || isAdmin)
   const isJoined = user && participants.some((p: any) => p.user_id === user.id)
   const timing = activity.timing_mode === 'flexible'
     ? activity.availability_label || 'Flexible'
@@ -353,22 +362,51 @@ export default function ActivityPage() {
               <p style={{ fontWeight: 600, marginBottom: 12 }}>Want to join this activity?</p>
               <Link href="/signup" style={{ display: 'inline-block', background: '#3293CB', color: '#fff', fontWeight: 700, padding: '12px 32px', borderRadius: 14, textDecoration: 'none', fontSize: 15 }}>Sign Up to Join</Link>
             </>
-          ) : isOwner ? (
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => router.push('/dashboard/activities')}
-                style={{ background: '#3293CB', color: '#fff', fontWeight: 700, padding: '12px 24px', borderRadius: 14, border: 'none', cursor: 'pointer', fontSize: 15, boxShadow: '0 4px 12px rgba(50,147,203,0.25)' }}
-              >
-                Manage My Activities
-              </button>
+          ) : canEdit ? (
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
+              {isOwner ? (
+                <button
+                  onClick={() => router.push('/dashboard/activities')}
+                  style={{ background: '#3293CB', color: '#fff', fontWeight: 700, padding: '12px 24px', borderRadius: 14, border: 'none', cursor: 'pointer', fontSize: 15, boxShadow: '0 4px 12px rgba(50,147,203,0.25)' }}
+                >
+                  Manage My Activities
+                </button>
+              ) : (
+                <>
+                  {/* Visible badge so admins know they're acting in mod
+                      capacity, not as the owner. */}
+                  <span style={{ fontSize: 11, fontWeight: 800, padding: '6px 10px', borderRadius: 999, background: '#FEF3C7', color: '#92400E' }}>👮 Admin tools</span>
+                  <button
+                    onClick={() => router.push('/admin/activities')}
+                    style={{ background: '#3293CB', color: '#fff', fontWeight: 700, padding: '12px 24px', borderRadius: 14, border: 'none', cursor: 'pointer', fontSize: 15, boxShadow: '0 4px 12px rgba(50,147,203,0.25)' }}
+                  >
+                    All Activities (Admin)
+                  </button>
+                </>
+              )}
               <button onClick={() => setEditOpen(true)} style={{ background: '#fff', color: '#111827', fontWeight: 600, padding: '12px 24px', borderRadius: 14, border: '1px solid #E5E7EB', cursor: 'pointer', fontSize: 15 }}>Edit</button>
               <button onClick={async () => {
-                if (!confirm('Cancel this activity? Participants will see it marked Cancelled.')) return
+                const verb = isOwner ? 'Cancel' : 'Cancel (admin)'
+                if (!confirm(`${verb} this activity? Participants will see it marked Cancelled.`)) return
                 const { error } = await supabase.from('activities').update({ status: 'cancelled' }).eq('id', id)
                 if (error) { toast(error.message || 'Could not cancel activity.', 'error'); return }
                 toast('Activity cancelled', 'success')
-                router.push('/dashboard/activities')
+                router.push(isOwner ? '/dashboard/activities' : '/admin/activities')
               }} style={{ background: '#FEE2E2', color: '#DC2626', fontWeight: 600, padding: '12px 24px', borderRadius: 14, border: 'none', cursor: 'pointer', fontSize: 15 }}>Cancel Activity</button>
+              {isAdmin && !isOwner && (
+                <button
+                  onClick={async () => {
+                    if (!confirm('DELETE this activity? Cannot be undone. (Admin action)')) return
+                    const { error } = await supabase.from('activities').delete().eq('id', id)
+                    if (error) { toast(error.message || 'Delete failed.', 'error'); return }
+                    toast('Activity deleted', 'success')
+                    router.push('/admin/activities')
+                  }}
+                  style={{ background: '#fff', color: '#DC2626', fontWeight: 600, padding: '12px 24px', borderRadius: 14, border: '1px solid #FECACA', cursor: 'pointer', fontSize: 15 }}
+                >
+                  Delete (Admin)
+                </button>
+              )}
             </div>
           ) : isJoined ? (
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>

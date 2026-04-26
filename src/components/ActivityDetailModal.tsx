@@ -12,8 +12,12 @@ import SafetyBanner from '@/components/SafetyBanner'
 import { contributionBadge } from '@/lib/contribution'
 
 export default function ActivityDetailModal({ activityId, onClose }: { activityId: string; onClose: () => void }) {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const router = useRouter()
+  // Admin gate — admins can Edit/Cancel/Delete any activity. RLS already
+  // permits this server-side; this just unlocks the UI buttons.
+  const isAdmin = !!(profile && ((profile as any).is_admin === true
+    || (Array.isArray((profile as any).badges) && (profile as any).badges.some((b: string) => b === 'admin' || b === 'moderator'))))
   const [activity, setActivity] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [joining, setJoining] = useState(false)
@@ -84,6 +88,7 @@ export default function ActivityDetailModal({ activityId, onClose }: { activityI
   const unlimited = activity.max_participants == null || activity.max_participants === 0
   const spotsLeft = unlimited ? Infinity : activity.max_participants - participants.length
   const isOwner = user && activity.created_by === user.id
+  const canEdit = !!(isOwner || isAdmin)
   const isJoined = user && participants.some((p: any) => p.user_id === user.id)
   const timing = activity.timing_mode === 'flexible'
     ? activity.availability_label || 'Flexible'
@@ -230,23 +235,37 @@ export default function ActivityDetailModal({ activityId, onClose }: { activityI
               </div>
 
               {/* Action buttons */}
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
-                {isOwner ? (
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
+                {canEdit ? (
                   <>
-                    <button
-                      onClick={() => { onClose(); router.push('/dashboard/activities') }}
-                      style={{ background: '#3293CB', color: '#fff', fontWeight: 700, padding: '12px 24px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 14, boxShadow: '0 4px 12px rgba(50,147,203,0.25)', flex: 1, minWidth: 140 }}
-                    >
-                      Manage My Activities
-                    </button>
+                    {isOwner ? (
+                      <button
+                        onClick={() => { onClose(); router.push('/dashboard/activities') }}
+                        style={{ background: '#3293CB', color: '#fff', fontWeight: 700, padding: '12px 24px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 14, boxShadow: '0 4px 12px rgba(50,147,203,0.25)', flex: 1, minWidth: 140 }}
+                      >
+                        Manage My Activities
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: 11, fontWeight: 800, padding: '6px 10px', borderRadius: 999, background: '#FEF3C7', color: '#92400E' }}>👮 Admin tools</span>
+                    )}
                     <button onClick={() => setEditOpen(true)} style={{ background: '#fff', color: '#111827', fontWeight: 600, padding: '12px 20px', borderRadius: 12, border: '1px solid #E5E7EB', cursor: 'pointer', fontSize: 14 }}>Edit</button>
                     <button onClick={async () => {
-                      if (!confirm('Cancel this activity? Participants will see it marked Cancelled.')) return
+                      const verb = isOwner ? 'Cancel' : 'Cancel (admin)'
+                      if (!confirm(`${verb} this activity? Participants will see it marked Cancelled.`)) return
                       const { error } = await supabase.from('activities').update({ status: 'cancelled' }).eq('id', activityId)
                       if (error) { toast(error.message || 'Could not cancel activity.', 'error'); return }
                       toast('Activity cancelled', 'success')
                       onClose()
                     }} style={{ background: '#FEE2E2', color: '#DC2626', fontWeight: 600, padding: '12px 20px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 14 }}>Cancel</button>
+                    {isAdmin && !isOwner && (
+                      <button onClick={async () => {
+                        if (!confirm('DELETE this activity? Cannot be undone. (Admin action)')) return
+                        const { error } = await supabase.from('activities').delete().eq('id', activityId)
+                        if (error) { toast(error.message || 'Delete failed.', 'error'); return }
+                        toast('Activity deleted', 'success')
+                        onClose()
+                      }} style={{ background: '#fff', color: '#DC2626', fontWeight: 600, padding: '12px 20px', borderRadius: 12, border: '1px solid #FECACA', cursor: 'pointer', fontSize: 14 }}>Delete</button>
+                    )}
                   </>
                 ) : isJoined ? (
                   <>
