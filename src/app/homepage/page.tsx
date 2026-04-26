@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SafetyBanner from "@/components/SafetyBanner";
 
 const FEATURED = [
   { title:'City walk & coffee', cat:'Local Activities', loc:'Portland, OR', date:'May 2', spots:'2 spots left', free:true, icon:'☕', host:{ name:'Sarah M.', photo:'S', rating:4.9, reviews:126, color:'#0284C7' }, desc:'Casual morning walk through downtown ending at a local coffee shop.' },
@@ -348,26 +349,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Safety Protocols */}
+      {/* Safety + trust-badges explainer + link to /trust-and-safety —
+          unified via the shared SafetyBanner component so this surface
+          ships the same complete content as Explore / Messages /
+          Groups / Activity Detail. Was previously an inline copy
+          missing the trust-badge section and the "Read full guide" link. */}
       <section style={{ padding: '0 24px 40px' }}>
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
-          <details style={{ border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden' }}>
-            <summary style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 20px', cursor: 'pointer', background: '#F9FAFB', fontSize: 15, fontWeight: 700 }}>
-              🛡 Safety Protocols
-            </summary>
-            <div style={{ padding: 20, fontSize: 14, color: '#4B5563', lineHeight: 1.8 }}>
-              <p style={{ marginBottom: 12, fontWeight: 600, color: '#111827' }}>Before using shared rides, package assistance, or other buddy-based help:</p>
-              <ul style={{ paddingLeft: 20, marginBottom: 14 }}>
-                <li>Do a live video call first</li>
-                <li>Capture a screenshot of the person during the call</li>
-                <li>Ask for a photo of their ID</li>
-                <li>Let a friend or family member know where you are going and who you are meeting</li>
-                <li>Choose public, well-lit meeting locations</li>
-                <li>Never trust a buddy with valuables, sensitive property, or anyone&apos;s life</li>
-              </ul>
-              <p style={{ fontSize: 13, color: '#6B7280', borderTop: '1px solid #E5E7EB', paddingTop: 12 }}>These measures do not guarantee safety, but they may help protect you. If something feels wrong, cancel the interaction.</p>
-            </div>
-          </details>
+          <SafetyBanner />
         </div>
       </section>
 
