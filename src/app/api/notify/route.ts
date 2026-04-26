@@ -106,12 +106,43 @@ async function sendFcm(opts: {
   const targets = tokens.filter((t: any) => (urgent ? true : !t.urgent_only)).map((t: any) => t.token)
   if (targets.length === 0) return { push: 'skipped_all_urgent_only' as const }
 
+  // Compute the recipient's TOTAL unread count across surfaces and ship it
+  // in the push payload so the home-screen icon shows an accurate badge
+  // BEFORE the user opens the app. We add 1 to the notifications count
+  // because the row this push corresponds to was just inserted by the
+  // caller — it'll be visible to the badge query as part of "unread".
+  // Falls back to a sensible default if any subquery errors out.
+  let badgeCount = 0
+  try {
+    const [m, n, c, l] = await Promise.allSettled([
+      supabase.from('messages').select('id', { count: 'exact', head: true }).eq('recipient_id', userId).eq('read', false).is('activity_id', null).is('group_id', null),
+      supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false),
+      supabase.from('connect_messages').select('id', { count: 'exact', head: true }).eq('owner_id', userId).eq('read', false),
+      supabase.from('link_requests').select('id', { count: 'exact', head: true }).eq('recipient_id', userId).eq('status', 'pending'),
+    ])
+    badgeCount =
+      (m.status === 'fulfilled' ? (m.value.count || 0) : 0) +
+      (n.status === 'fulfilled' ? (n.value.count || 0) : 0) +
+      (c.status === 'fulfilled' ? (c.value.count || 0) : 0) +
+      (l.status === 'fulfilled' ? (l.value.count || 0) : 0)
+  } catch {
+    badgeCount = 1
+  }
+
   try {
     const res = await admin.messaging().sendEachForMulticast({
       tokens: targets,
       notification: { title, body },
-      data: data || {},
+      // Ship the badge count in `data` so the SW can read it on background
+      // pushes and call self.registration.showNotification(... { badge })
+      // / navigator.setAppBadge() — iOS PWAs only honor badge updates when
+      // they come through the SW's notification action, not the FCM
+      // notification block directly.
+      data: { ...(data || {}), badge: String(badgeCount) },
       webpush: { fcmOptions: { link: link || '/dashboard/alerts' } },
+      // APNs path for native iOS app delivery (won't apply to web push but
+      // doesn't hurt — Firebase ignores when irrelevant).
+      apns: { payload: { aps: { badge: badgeCount } } },
     })
 
     // Prune dead tokens

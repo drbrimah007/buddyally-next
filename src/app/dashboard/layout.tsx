@@ -7,7 +7,7 @@ import { Fragment, useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import InstallAutoPrompt from '@/components/InstallAutoPrompt'
-import { onBadgesChanged } from '@/lib/badges-bus'
+import { onBadgesChanged, setOsBadge } from '@/lib/badges-bus'
 
 // NAV — restored to the 7 thumb anchors (Codes pinned last on the right
 // so the chain icon is exactly where the user's right thumb expects it),
@@ -34,7 +34,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [badges, setBadges] = useState<Record<string, number>>({ messages: 0, alerts: 0, codes: 0, contacts: 0 })
 
   useEffect(() => {
-    if (!loading && !user) router.replace('/')
+    if (!loading && !user) {
+      // Clear the OS app icon badge — otherwise the red dot lingers on
+      // the home-screen icon after the user signs out.
+      setOsBadge(0)
+      router.replace('/')
+    }
   }, [loading, user, router])
 
   // Load unread badge counts.
@@ -53,12 +58,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         // Contacts badge = pending incoming link-up requests
         supabase.from('link_requests').select('id', { count: 'exact', head: true }).eq('recipient_id', user.id).eq('status', 'pending'),
       ])
-      setBadges({
+      const next = {
         messages: msgResult.status === 'fulfilled' ? (msgResult.value.count || 0) : 0,
         alerts: alertResult.status === 'fulfilled' ? (alertResult.value.count || 0) : 0,
         codes: codeResult.status === 'fulfilled' ? (codeResult.value.count || 0) : 0,
         contacts: contactReqResult.status === 'fulfilled' ? (contactReqResult.value.count || 0) : 0,
-      })
+      }
+      setBadges(next)
+      // Mirror the total to the OS app icon (iOS PWA red dot, Chromium
+      // taskbar, macOS Safari dock badge). No-op where unsupported.
+      setOsBadge(next.messages + next.alerts + next.codes + next.contacts)
     } catch {}
   }, [user])
 

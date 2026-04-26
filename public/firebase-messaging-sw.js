@@ -46,6 +46,18 @@ if (config.apiKey && config.projectId && config.appId) {
     const body = notif.body || data.body || 'You have a new notification'
     const url = data.url || (data.type === 'code_message' ? '/dashboard/codes' : '/dashboard/alerts')
 
+    // Server ships an unread total in data.badge — apply it to the home
+    // screen icon. Web App Badging API works in iOS 16.4+ PWAs and modern
+    // Chromium/Safari. Wrapped in try because some SW contexts don't
+    // expose navigator.setAppBadge until permission is fully ready.
+    const badgeCount = parseInt(data.badge || '0', 10)
+    if (!Number.isNaN(badgeCount) && 'setAppBadge' in self.navigator) {
+      try {
+        if (badgeCount > 0) self.navigator.setAppBadge(badgeCount)
+        else self.navigator.clearAppBadge && self.navigator.clearAppBadge()
+      } catch (e) { /* swallow — badge is non-critical */ }
+    }
+
     return self.registration.showNotification(title, {
       body,
       icon: '/icon-192.png',
