@@ -107,16 +107,17 @@ export default function NotificationSettingsPage() {
     let lastSeen: PermState = Notification.permission as PermState
     setPerm(lastSeen)
 
-    async function syncFromOs() {
+    function syncFromOs() {
       const next = (Notification.permission as PermState) || 'default'
       if (next !== lastSeen) {
-        // If the user revoked at OS level, scrub the dead token from the DB
-        // for this device. (Other devices for the same user are unaffected
-        // because we only have THIS browser's notion of permission here.)
-        if (lastSeen === 'granted' && next !== 'granted' && user) {
-          await supabase.from('fcm_tokens').delete().eq('user_id', user.id)
-          info('Browser permission was revoked — push token cleared.')
-        }
+        // We DON'T delete fcm_tokens here — even on a real OS-level
+        // revoke. Reason: this code can't tell which token belongs to
+        // THIS device, and deleting all tokens kills push for every
+        // other browser/phone the user has registered. The dead token
+        // for this device gets pruned naturally by /api/notify when its
+        // next push attempt returns a registration-token-not-registered
+        // error. (Plus iOS PWAs can briefly report 'default' on cold
+        // start before the SW activates — that misfired the cleanup.)
         lastSeen = next
         setPerm(next)
       }
@@ -157,25 +158,25 @@ export default function NotificationSettingsPage() {
     if (!user) return
     const newPush = next.push ?? push
     const newEmail = next.email ?? email
-    const turningPushOff = next.push === false
     setSaving(true)
     setPush(newPush); setEmail(newEmail) // optimistic
+    // We DON'T delete fcm_tokens here even when push is being turned off:
+    //   1. The master flag (notify_push_enabled) already gates the entire
+    //      push fanout in /api/notify — no push can reach the device when
+    //      it's false, so the tokens are dormant-but-safe.
+    //   2. Deleting tokens means the user has to Re-register on every
+    //      device after toggling back on. Surprising and annoying.
+    //   3. Dead tokens (e.g. permission actually revoked on a device) get
+    //      pruned naturally by the FCM error-pruning in /api/notify.
     const { error } = await supabase
       .from('profiles')
       .update({ notify_push_enabled: newPush, notify_email_enabled: newEmail })
       .eq('id', user.id)
-    if (!error && turningPushOff) {
-      // Belt-and-suspenders: turning push OFF should also drop this user's
-      // FCM tokens so even a buggy fanout that ignores notify_push_enabled
-      // can't reach the device. The user re-registers cleanly when they
-      // tap "Enable browser push" again.
-      await supabase.from('fcm_tokens').delete().eq('user_id', user.id)
-    }
     setSaving(false)
     if (error) {
       toastError('Could not save: ' + error.message + ' (your DB may need notify_* columns added — see ADMIN block below)')
     } else {
-      success(turningPushOff ? 'Push turned off — devices unsubscribed' : 'Saved')
+      success('Saved')
       await refreshProfile?.()
     }
   }
