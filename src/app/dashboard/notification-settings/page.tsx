@@ -34,6 +34,9 @@ export default function NotificationSettingsPage() {
   const [perm, setPerm] = useState<PermState>('unknown')
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
+  // /api/diag tells us which env vars the deployment can actually see.
+  // Used to render a real status block instead of a hardcoded "do this" notice.
+  const [envStatus, setEnvStatus] = useState<Record<string, { present: boolean; length: number }> | null>(null)
 
   // Hydrate from the profile when it loads. Treat null/undefined as ON
   // (default-allow) — same convention the notify API uses.
@@ -49,6 +52,14 @@ export default function NotificationSettingsPage() {
     if (typeof window === 'undefined') return
     if (!('Notification' in window)) { setPerm('unsupported'); return }
     setPerm(Notification.permission as PermState)
+  }, [])
+
+  // Fetch env-var presence from /api/diag so the setup status box reflects
+  // reality. Boolean presence only — values are never returned.
+  useEffect(() => {
+    fetch('/api/diag').then(r => r.json()).then(d => {
+      if (d?.env_present) setEnvStatus(d.env_present)
+    }).catch(() => {})
   }, [])
 
   async function saveToggles(next: { push?: boolean; email?: boolean }) {
@@ -249,19 +260,65 @@ export default function NotificationSettingsPage() {
         </button>
       </section>
 
-      {/* Admin / setup status — only the items that still require a human. */}
-      <section style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 16, padding: 16 }}>
-        <h3 style={{ fontSize: 13, fontWeight: 800, marginBottom: 6, color: '#92400E' }}>Admin · Two env vars left</h3>
-        <p style={{ fontSize: 12, color: '#78350F', marginBottom: 8, lineHeight: 1.6 }}>
-          Schema, deps, and service worker are in place. To finish push end-to-end add these in Vercel → Project → Settings → Environment Variables, then redeploy:
-        </p>
-        <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: '#78350F', lineHeight: 1.7 }}>
-          <li><b>FIREBASE_SERVICE_ACCOUNT_JSON</b> — the buddy-526fc service account JSON, stringified. Firebase Console → Project Settings → Service accounts → Generate new private key.</li>
-          <li><b>NEXT_PUBLIC_FIREBASE_VAPID_KEY</b> — Firebase Console → Project Settings → Cloud Messaging → Web Configuration → Web Push certificates → Generate key pair.</li>
-          <li><i>Optional</i> <b>RESEND_API_KEY</b> + <b>NOTIFY_EMAIL_FROM</b> for email delivery.</li>
-        </ul>
-      </section>
+      {/* Admin / setup status — driven by /api/diag so it reflects reality
+          rather than restating a hardcoded checklist. Only renders for
+          admins, and only renders the *missing* requirements. If everything
+          is present, the box flips green and disappears for non-admins. */}
+      <SetupStatus envStatus={envStatus} isAdmin={(profile as any)?.is_admin === true} />
     </div>
+  )
+}
+
+// Required vars for push to work end-to-end. Email is optional (degrades
+// gracefully if missing — see /api/notify).
+const REQUIRED_PUSH_KEYS = [
+  'NEXT_PUBLIC_FIREBASE_API_KEY',
+  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+  'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
+  'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+  'NEXT_PUBLIC_FIREBASE_APP_ID',
+  'NEXT_PUBLIC_FIREBASE_VAPID_KEY',
+  'FIREBASE_SERVICE_ACCOUNT_JSON',
+] as const
+const OPTIONAL_PUSH_KEYS = ['RESEND_API_KEY'] as const
+
+function SetupStatus({ envStatus, isAdmin }: { envStatus: Record<string, { present: boolean; length: number }> | null; isAdmin: boolean }) {
+  if (!envStatus) return null
+  const missing = REQUIRED_PUSH_KEYS.filter(k => !envStatus[k]?.present)
+  const allGood = missing.length === 0
+
+  // Non-admins: hide entirely once setup is complete; show a tiny note while pending.
+  if (!isAdmin && allGood) return null
+
+  if (allGood) {
+    return (
+      <section style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 16, padding: 16 }}>
+        <h3 style={{ fontSize: 13, fontWeight: 800, marginBottom: 4, color: '#166534' }}>✓ Push fully configured</h3>
+        <p style={{ fontSize: 12, color: '#14532D', margin: 0, lineHeight: 1.6 }}>
+          All Firebase env vars present in the production deployment. Click "Enable browser push" above and then "Send test notification" to verify end-to-end delivery on this device.
+        </p>
+      </section>
+    )
+  }
+
+  return (
+    <section style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 16, padding: 16 }}>
+      <h3 style={{ fontSize: 13, fontWeight: 800, marginBottom: 6, color: '#92400E' }}>
+        Admin · {missing.length} env var{missing.length === 1 ? '' : 's'} missing
+      </h3>
+      <p style={{ fontSize: 12, color: '#78350F', marginBottom: 8, lineHeight: 1.6 }}>
+        Add the following in Vercel → Project Settings → Environment Variables (scope: Production, Preview, Development), then redeploy:
+      </p>
+      <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: '#78350F', lineHeight: 1.7 }}>
+        {missing.map(k => <li key={k}><code>{k}</code></li>)}
+      </ul>
+      {OPTIONAL_PUSH_KEYS.some(k => !envStatus[k]?.present) && (
+        <p style={{ fontSize: 11, color: '#92400E', marginTop: 8, lineHeight: 1.6 }}>
+          <i>Optional:</i> {OPTIONAL_PUSH_KEYS.filter(k => !envStatus[k]?.present).join(', ')} for email delivery.
+        </p>
+      )}
+    </section>
   )
 }
 
