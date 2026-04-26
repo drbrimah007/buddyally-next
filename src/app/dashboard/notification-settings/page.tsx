@@ -165,11 +165,14 @@ export default function NotificationSettingsPage() {
       // Persist the token. Upsert by token so a re-enable on the same
       // browser doesn't insert duplicates. RLS policy must allow users
       // to write their own row.
+      // Composite unique constraint in the schema is (user_id, token).
+      // Re-enabling on the same device produces the same token → upsert
+      // collapses cleanly into the existing row instead of duplicating.
       const { error } = await supabase
         .from('fcm_tokens')
         .upsert(
           { user_id: user.id, token: result.token },
-          { onConflict: 'token' },
+          { onConflict: 'user_id,token' },
         )
       setPerm('granted')
       if (error) {
