@@ -7,6 +7,9 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ToastProvider'
+import Paginator from '@/components/Paginator'
+
+const REVIEWS_PAGE_SIZE = 5
 
 type Review = {
   id: string
@@ -42,8 +45,10 @@ export default function Reviews({ reviewedId, activityId }: { reviewedId: string
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [page, setPage] = useState(0)
 
   useEffect(() => { load() }, [reviewedId])
+  useEffect(() => { setPage(0) }, [reviewedId])
 
   async function load() {
     setLoading(true)
@@ -52,7 +57,7 @@ export default function Reviews({ reviewedId, activityId }: { reviewedId: string
       .select('*, reviewer:profiles!reviewer_id(first_name, last_name, avatar_url)')
       .eq('reviewed_id', reviewedId)
       .order('created_at', { ascending: false })
-      .limit(50)
+      .limit(200)
     setReviews((data as any) || [])
     setLoading(false)
   }
@@ -107,26 +112,43 @@ export default function Reviews({ reviewedId, activityId }: { reviewedId: string
         <p style={{ color: '#6B7280', fontSize: 13 }}>Loading reviews…</p>
       ) : reviews.length === 0 ? (
         <p style={{ color: '#6B7280', fontSize: 13 }}>No reviews yet.</p>
-      ) : (
-        reviews.map(r => {
-          const name = `${r.reviewer?.first_name || ''} ${r.reviewer?.last_name || ''}`.trim() || 'User'
-          return (
-            <div key={r.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 14, marginBottom: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#4B5563', overflow: 'hidden' }}>
-                  {r.reviewer?.avatar_url ? <img src={r.reviewer.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : name[0]}
+      ) : (() => {
+        const totalPages = Math.max(1, Math.ceil(reviews.length / REVIEWS_PAGE_SIZE))
+        const clampedPage = Math.min(page, totalPages - 1)
+        const pageItems = reviews.slice(clampedPage * REVIEWS_PAGE_SIZE, (clampedPage + 1) * REVIEWS_PAGE_SIZE)
+        return (
+          <>
+            {reviews.length > REVIEWS_PAGE_SIZE && (
+              <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>
+                Showing {(clampedPage * REVIEWS_PAGE_SIZE + 1).toLocaleString()}–{(clampedPage * REVIEWS_PAGE_SIZE + pageItems.length).toLocaleString()} of {reviews.length.toLocaleString()}
+              </p>
+            )}
+            {pageItems.map(r => {
+              const name = `${r.reviewer?.first_name || ''} ${r.reviewer?.last_name || ''}`.trim() || 'User'
+              return (
+                <div key={r.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 14, marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#4B5563', overflow: 'hidden' }}>
+                      {r.reviewer?.avatar_url ? <img src={r.reviewer.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : name[0]}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{name}</p>
+                      <p style={{ fontSize: 11, color: '#6B7280' }}>{new Date(r.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <Stars value={r.rating} size={14} />
+                  </div>
+                  {r.comment && <p style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.5, marginTop: 6 }}>{r.comment}</p>}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{name}</p>
-                  <p style={{ fontSize: 11, color: '#6B7280' }}>{new Date(r.created_at).toLocaleDateString()}</p>
-                </div>
-                <Stars value={r.rating} size={14} />
+              )
+            })}
+            {totalPages > 1 && (
+              <div style={{ marginTop: 12 }}>
+                <Paginator page={clampedPage} totalPages={totalPages} onChange={setPage} />
               </div>
-              {r.comment && <p style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.5, marginTop: 6 }}>{r.comment}</p>}
-            </div>
-          )
-        })
-      )}
+            )}
+          </>
+        )
+      })()}
     </div>
   )
 }

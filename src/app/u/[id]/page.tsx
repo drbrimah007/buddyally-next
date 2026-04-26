@@ -9,6 +9,9 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ToastProvider'
 import Reviews, { Stars } from '@/components/Reviews'
+import Paginator from '@/components/Paginator'
+
+const HOSTED_PAGE_SIZE = 8
 import FollowButton from '@/components/FollowButton'
 import ShareButton from '@/components/ShareButton'
 import TrustBadges from '@/components/TrustBadges'
@@ -22,6 +25,7 @@ export default function UserProfilePage() {
 
   const [profile, setProfile] = useState<any>(null)
   const [activities, setActivities] = useState<any[]>([])
+  const [hostedPage, setHostedPage] = useState(0)
   const [loading, setLoading] = useState(true)
   // Relationship state drives the Link-up button label:
   //   null        → not loaded yet
@@ -44,7 +48,9 @@ export default function UserProfilePage() {
       // Includes account_type so we can render the FoundingBadge transparently
       // for seed accounts (founding_publisher / founding_member).
       supabase.from('profile_public').select('id, first_name, last_name, bio, avatar_url, city, home_display_name, interests, rating_avg, rating_count, verified_email, verified_phone, verified_selfie, socials, buddy_verified_at, id_verified_at, is_invited_member, account_type').eq('id', id).single(),
-      supabase.from('activities').select('id, title, category, cover_image_url, location_display, date, status').eq('created_by', id).order('created_at', { ascending: false }).limit(10),
+      // Bumped 10 → 60 so the paginator below has multiple pages of
+      // hosted activities to flip through (was hard-capped at 10).
+      supabase.from('activities').select('id, title, category, cover_image_url, location_display, date, status').eq('created_by', id).order('created_at', { ascending: false }).limit(60),
     ])
     setProfile(pRes.data)
     setActivities(aRes.data || [])
@@ -221,22 +227,33 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      {/* Activities */}
-      {activities.length > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Hosted Activities ({activities.length})</h3>
-          {activities.map(a => (
-            <Link key={a.id} href={`/a/${a.id}`} style={{ display: 'flex', gap: 12, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 12, marginBottom: 8, textDecoration: 'none', alignItems: 'center' }}>
-              {a.cover_image_url && <img src={a.cover_image_url} alt="" style={{ width: 56, height: 56, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 14, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</p>
-                <p style={{ fontSize: 12, color: '#6B7280' }}>{a.category}{a.location_display ? ` · ${a.location_display}` : ''}</p>
+      {/* Activities — paginated so long-tenured publishers (50+ events)
+          don't push everything else off-screen. */}
+      {activities.length > 0 && (() => {
+        const totalPages = Math.max(1, Math.ceil(activities.length / HOSTED_PAGE_SIZE))
+        const clampedPage = Math.min(hostedPage, totalPages - 1)
+        const pageItems = activities.slice(clampedPage * HOSTED_PAGE_SIZE, (clampedPage + 1) * HOSTED_PAGE_SIZE)
+        return (
+          <div style={{ marginBottom: 20 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Hosted Activities ({activities.length})</h3>
+            {pageItems.map(a => (
+              <Link key={a.id} href={`/a/${a.id}`} style={{ display: 'flex', gap: 12, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, padding: 12, marginBottom: 8, textDecoration: 'none', alignItems: 'center' }}>
+                {a.cover_image_url && <img src={a.cover_image_url} alt="" style={{ width: 56, height: 56, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</p>
+                  <p style={{ fontSize: 12, color: '#6B7280' }}>{a.category}{a.location_display ? ` · ${a.location_display}` : ''}</p>
+                </div>
+                {a.status && <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 10, background: a.status === 'open' ? '#DCFCE7' : '#F3F4F6', color: a.status === 'open' ? '#166534' : '#6B7280' }}>{a.status}</span>}
+              </Link>
+            ))}
+            {totalPages > 1 && (
+              <div style={{ marginTop: 10 }}>
+                <Paginator page={clampedPage} totalPages={totalPages} onChange={setHostedPage} />
               </div>
-              {a.status && <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 10, background: a.status === 'open' ? '#DCFCE7' : '#F3F4F6', color: a.status === 'open' ? '#166534' : '#6B7280' }}>{a.status}</span>}
-            </Link>
-          ))}
-        </div>
-      )}
+            )}
+          </div>
+        )
+      })()}
 
       {/* Reviews */}
       <Reviews reviewedId={id} />

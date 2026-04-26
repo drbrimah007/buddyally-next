@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ToastProvider'
+import Paginator from '@/components/Paginator'
+
+const PAGE_SIZE = 20
 
 type Report = {
   id: string
@@ -27,6 +30,8 @@ export default function AdminReportsPage() {
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<'open' | 'all'>('open')
+  const [page, setPage] = useState(0)
+  useEffect(() => { setPage(0) }, [statusFilter])
 
   useEffect(() => { load() }, [statusFilter])
 
@@ -83,8 +88,16 @@ export default function AdminReportsPage() {
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 16, padding: 40, textAlign: 'center', color: '#6B7280' }}>
           No reports {statusFilter === 'open' ? 'open' : 'on record'}.
         </div>
-      ) : (
-        reports.map(r => (
+      ) : (() => {
+        const totalPages = Math.max(1, Math.ceil(reports.length / PAGE_SIZE))
+        const clampedPage = Math.min(page, totalPages - 1)
+        const pageReports = reports.slice(clampedPage * PAGE_SIZE, (clampedPage + 1) * PAGE_SIZE)
+        return (
+        <>
+        <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>
+          Showing {(clampedPage * PAGE_SIZE + 1).toLocaleString()}–{(clampedPage * PAGE_SIZE + pageReports.length).toLocaleString()} of {reports.length.toLocaleString()}
+        </p>
+        {pageReports.map(r => (
           <div key={r.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, padding: 16, marginBottom: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
               <div>
@@ -120,8 +133,13 @@ export default function AdminReportsPage() {
               )}
             </div>
           </div>
-        ))
-      )}
+        ))}
+        <div style={{ marginTop: 14 }}>
+          <Paginator page={clampedPage} totalPages={totalPages} onChange={setPage} />
+        </div>
+        </>
+        )
+      })()}
     </div>
   )
 }

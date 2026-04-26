@@ -17,6 +17,9 @@ import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import CreateActivityModal from '@/components/CreateActivityModal'
+import Paginator from '@/components/Paginator'
+
+const PAGE_SIZE = 25
 
 type Row = {
   id: string
@@ -42,6 +45,11 @@ export default function AdminActivities() {
   const [filter, setFilter] = useState<Filter>('all')
   const [editing, setEditing] = useState<any | null>(null)
   const [error, setError] = useState('')
+  const [page, setPage] = useState(0)
+
+  // Reset to page 1 whenever the filter set changes — otherwise the
+  // page number stays stale and shows an empty page after filtering.
+  useEffect(() => { setPage(0) }, [search, filter])
 
   // Mod gate — both client-side check (fast) and server RLS (real).
   useEffect(() => {
@@ -139,9 +147,19 @@ export default function AdminActivities() {
         <p style={{ color: '#6B7280' }}>Loading…</p>
       ) : filtered.length === 0 ? (
         <p style={{ color: '#6B7280' }}>No activities match.</p>
-      ) : (
+      ) : (() => {
+        const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+        const clampedPage = Math.min(page, totalPages - 1)
+        const pageItems = filtered.slice(clampedPage * PAGE_SIZE, (clampedPage + 1) * PAGE_SIZE)
+        const startCount = clampedPage * PAGE_SIZE + 1
+        const endCount = clampedPage * PAGE_SIZE + pageItems.length
+        return (
+        <>
+        <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>
+          Showing {startCount.toLocaleString()}–{endCount.toLocaleString()} of {filtered.length.toLocaleString()}
+        </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {filtered.map((r) => {
+          {pageItems.map((r) => {
             const hostName = `${r.host?.first_name || ''} ${r.host?.last_name || ''}`.trim() || '—'
             const accountTag = r.host?.account_type === 'founding_publisher'
               ? { label: '📣 Publisher', bg: '#FEF3C7', fg: '#92400E' }
@@ -197,7 +215,12 @@ export default function AdminActivities() {
             )
           })}
         </div>
-      )}
+        <div style={{ marginTop: 14 }}>
+          <Paginator page={clampedPage} totalPages={totalPages} onChange={setPage} />
+        </div>
+        </>
+        )
+      })()}
 
       {editing && (
         <CreateActivityModal

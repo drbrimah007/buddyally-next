@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ToastProvider'
+import Paginator from '@/components/Paginator'
+
+const PAGE_SIZE = 25
 
 type U = {
   id: string
@@ -27,6 +30,8 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<U[]>([])
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
+  const [page, setPage] = useState(0)
+  useEffect(() => { setPage(0) }, [q])
 
   useEffect(() => {
     const t = setTimeout(load, 200)
@@ -70,9 +75,17 @@ export default function AdminUsersPage() {
         <p style={{ color: '#6B7280' }}>Loading…</p>
       ) : users.length === 0 ? (
         <p style={{ color: '#6B7280' }}>No users found.</p>
-      ) : (
+      ) : (() => {
+        const totalPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE))
+        const clampedPage = Math.min(page, totalPages - 1)
+        const pageUsers = users.slice(clampedPage * PAGE_SIZE, (clampedPage + 1) * PAGE_SIZE)
+        return (
+        <>
+        <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>
+          Showing {(clampedPage * PAGE_SIZE + 1).toLocaleString()}–{(clampedPage * PAGE_SIZE + pageUsers.length).toLocaleString()} of {users.length.toLocaleString()}
+        </p>
         <div style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 14, overflow: 'hidden' }}>
-          {users.map((u, idx) => {
+          {pageUsers.map((u, idx) => {
             const name = `${u.first_name || ''} ${u.last_name || ''}`.trim() || '—'
             const banned = (u.badges || []).includes('banned')
             return (
@@ -97,7 +110,12 @@ export default function AdminUsersPage() {
             )
           })}
         </div>
-      )}
+        <div style={{ marginTop: 14 }}>
+          <Paginator page={clampedPage} totalPages={totalPages} onChange={setPage} />
+        </div>
+        </>
+        )
+      })()}
     </div>
   )
 }

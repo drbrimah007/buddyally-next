@@ -16,6 +16,9 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
+import Paginator from '@/components/Paginator'
+
+const PAGE_SIZE = 25
 
 type Row = {
   code: string
@@ -31,6 +34,8 @@ export default function AdminShortLinks() {
   const [rows, setRows] = useState<Row[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(0)
+  useEffect(() => { setPage(0) }, [search])
 
   // Mod gate
   useEffect(() => {
@@ -108,23 +113,36 @@ export default function AdminShortLinks() {
         <p style={muted}>Loading…</p>
       ) : filtered.length === 0 ? (
         <p style={muted}>No links match.</p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {filtered.map((r) => (
-            <a
-              key={r.code}
-              href={`/s/${r.code}`}
-              target="_blank"
-              rel="noreferrer"
-              style={rowStyle}
-            >
-              <code style={codeStyle}>/s/{r.code}</code>
-              <span style={urlStyle} title={r.url}>{r.url.replace(/^https?:\/\//, '')}</span>
-              <span style={hitsStyle}>{(r.hit_count || 0).toLocaleString()}</span>
-            </a>
-          ))}
-        </div>
-      )}
+      ) : (() => {
+        const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+        const clampedPage = Math.min(page, totalPages - 1)
+        const pageItems = filtered.slice(clampedPage * PAGE_SIZE, (clampedPage + 1) * PAGE_SIZE)
+        return (
+          <>
+            <p style={{ ...muted, fontSize: 12, marginBottom: 8 }}>
+              Showing {(clampedPage * PAGE_SIZE + 1).toLocaleString()}–{(clampedPage * PAGE_SIZE + pageItems.length).toLocaleString()} of {filtered.length.toLocaleString()}
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {pageItems.map((r) => (
+                <a
+                  key={r.code}
+                  href={`/s/${r.code}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={rowStyle}
+                >
+                  <code style={codeStyle}>/s/{r.code}</code>
+                  <span style={urlStyle} title={r.url}>{r.url.replace(/^https?:\/\//, '')}</span>
+                  <span style={hitsStyle}>{(r.hit_count || 0).toLocaleString()}</span>
+                </a>
+              ))}
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <Paginator page={clampedPage} totalPages={totalPages} onChange={setPage} />
+            </div>
+          </>
+        )
+      })()}
 
       <p style={{ ...muted, marginTop: 24, fontSize: 12 }}>
         Wider traffic data (page views, referrers, countries, device, Web Vitals)
