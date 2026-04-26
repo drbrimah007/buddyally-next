@@ -66,17 +66,25 @@ export default function NotificationSettingsPage() {
     if (!user) return
     const newPush = next.push ?? push
     const newEmail = next.email ?? email
+    const turningPushOff = next.push === false
     setSaving(true)
     setPush(newPush); setEmail(newEmail) // optimistic
     const { error } = await supabase
       .from('profiles')
       .update({ notify_push_enabled: newPush, notify_email_enabled: newEmail })
       .eq('id', user.id)
+    if (!error && turningPushOff) {
+      // Belt-and-suspenders: turning push OFF should also drop this user's
+      // FCM tokens so even a buggy fanout that ignores notify_push_enabled
+      // can't reach the device. The user re-registers cleanly when they
+      // tap "Enable browser push" again.
+      await supabase.from('fcm_tokens').delete().eq('user_id', user.id)
+    }
     setSaving(false)
     if (error) {
       toastError('Could not save: ' + error.message + ' (your DB may need notify_* columns added — see ADMIN block below)')
     } else {
-      success('Saved')
+      success(turningPushOff ? 'Push turned off — devices unsubscribed' : 'Saved')
       await refreshProfile?.()
     }
   }
@@ -158,7 +166,13 @@ export default function NotificationSettingsPage() {
 
   if (!user) return null
 
+  // Master push toggle overrides the OS-level permission display. If the
+  // user has push turned OFF in their settings, the badge says "off in your
+  // settings" regardless of whether the browser still has permission. This
+  // matches what actually happens (no push fans out) and avoids the "I
+  // turned it off, why does it still say allowed?" confusion.
   const permBadge = (() => {
+    if (!push) return { label: 'Push is off in your settings (toggle above)', bg: '#F3F4F6', fg: '#374151' }
     switch (perm) {
       case 'granted':     return { label: '✓ Allowed in this browser',     bg: '#F0FDF4', fg: '#166534' }
       case 'denied':      return { label: '✕ Blocked in this browser',     bg: '#FEF2F2', fg: '#991B1B' }
@@ -220,15 +234,15 @@ export default function NotificationSettingsPage() {
         <div>
           <button
             onClick={requestBrowserPermission}
-            disabled={perm === 'unsupported' || perm === 'granted'}
+            disabled={!push || perm === 'unsupported' || perm === 'granted'}
             style={{
               padding: '10px 18px', borderRadius: 12, border: 'none',
-              background: (perm === 'unsupported' || perm === 'granted') ? '#E5E7EB' : '#3293CB',
-              color: (perm === 'unsupported' || perm === 'granted') ? '#9CA3AF' : '#fff',
-              fontWeight: 700, fontSize: 13, cursor: (perm === 'unsupported' || perm === 'granted') ? 'default' : 'pointer',
+              background: (!push || perm === 'unsupported' || perm === 'granted') ? '#E5E7EB' : '#3293CB',
+              color: (!push || perm === 'unsupported' || perm === 'granted') ? '#9CA3AF' : '#fff',
+              fontWeight: 700, fontSize: 13, cursor: (!push || perm === 'unsupported' || perm === 'granted') ? 'default' : 'pointer',
             }}
           >
-            {perm === 'granted' ? 'Already allowed' : perm === 'unsupported' ? 'Browser not supported' : 'Enable browser push'}
+            {!push ? 'Turn push on first' : perm === 'granted' ? 'Already allowed' : perm === 'unsupported' ? 'Browser not supported' : 'Enable browser push'}
           </button>
         </div>
         {perm === 'denied' && (
