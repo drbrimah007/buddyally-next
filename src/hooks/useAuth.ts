@@ -54,6 +54,25 @@ export function useAuth() {
     // The shape is fine at runtime (these are the legit profile columns),
     // we just need to tell TS to trust it.
     const { data } = await supabase.from('profiles').select(SAFE_COLUMNS).eq('id', userId).single()
+
+    // Sync auth.users.email_confirmed_at → profiles.verified_email.
+    //
+    // Two separate fields tracking the same thing: Supabase Auth flips
+    // email_confirmed_at when the user clicks the signup confirmation
+    // link, but our `verified_email` column stays false until something
+    // updates it. The profile page reads `verified_email` to decide
+    // whether to nag the user — without this sync, anyone who confirms
+    // through the link still gets prompted to verify a second time via
+    // the in-app 6-digit code flow. Belt-and-suspenders: we one-shot
+    // update the column the moment we notice the discrepancy on load.
+    if (data && !(data as any).verified_email) {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (authUser?.email_confirmed_at) {
+        await supabase.from('profiles').update({ verified_email: true }).eq('id', userId)
+        ;(data as any).verified_email = true
+      }
+    }
+
     setProfile(data as any)
     setLoading(false)
   }

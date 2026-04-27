@@ -1,10 +1,11 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { searchPlaces as searchPlacesApi, pickPlace, renderPlaceLabel } from '@/lib/geo'
 
 const CATEGORIES = ['Travel','Local Activities','Sports / Play','Learning','Help / Support','Events','Outdoor','Gaming','Wellness','Ride Share','Dog Walk','Babysit','Party','Pray','Others']
 
@@ -33,6 +34,52 @@ function SignupForm() {
   const [loading, setLoading] = useState(false)
   const [confirmSent, setConfirmSent] = useState(false)
 
+  // Home-area picker state — same pattern as the profile edit modal so
+  // signup captures lat/lng up front (otherwise Explore radius filtering
+  // doesn't work for the new user until they go edit their profile).
+  // We REQUIRE a pick from the list — free-text alone won't pass.
+  const [homeResults, setHomeResults] = useState<any[]>([])
+  const [showHomeResults, setShowHomeResults] = useState(false)
+  const [homeCoords, setHomeCoords] = useState<{ lat: number; lng: number; stateCode: string; countryCode?: string } | null>(null)
+  const homeBoxRef = useRef<HTMLDivElement>(null)
+  const homeSearchTimer = useRef<any>(null)
+
+  // Click-outside closes the suggestions dropdown.
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (homeBoxRef.current && !homeBoxRef.current.contains(e.target as Node)) setShowHomeResults(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [])
+
+  function searchHome(val: string) {
+    setForm(p => ({ ...p, city: val }))
+    // Typing invalidates a previous selection — user must re-pick from
+    // the list to get coords back. Mirrors profile edit behavior.
+    setHomeCoords(null)
+    if (homeSearchTimer.current) clearTimeout(homeSearchTimer.current)
+    if (!val || val.length < 2) { setHomeResults([]); setShowHomeResults(false); return }
+    homeSearchTimer.current = setTimeout(async () => {
+      const data = await searchPlacesApi(val, 8)
+      setHomeResults(data)
+      setShowHomeResults(data.length > 0)
+    }, 300)
+  }
+
+  function selectHomePlace(place: any) {
+    const pick = pickPlace(place)
+    setForm(p => ({ ...p, city: pick.display }))
+    setHomeCoords({
+      lat: pick.lat,
+      lng: pick.lng,
+      stateCode: pick.stateCode,
+      countryCode: (place?.address?.country_code || '').toLowerCase() || undefined,
+    })
+    setHomeResults([])
+    setShowHomeResults(false)
+  }
+
   // ?invite=ABC123 from a shared invite URL → skip the chooser and pre-fill
   // the invite code field so the user only has to tap Continue.
   useEffect(() => {
@@ -59,6 +106,8 @@ function SignupForm() {
     if (form.password.length < 6) return setError('Password must be at least 6 characters.')
     if (form.password !== form.password2) return setError('Passwords do not match.')
     if (interests.length === 0) return setError('Please select at least one interest.')
+    if (!form.city) return setError('Please pick your home area from the list.')
+    if (!homeCoords) return setError('Pick your home area from the suggestions so we can show nearby activities.')
 
     setLoading(true)
     const result = await signUpWithEmail(form.email, form.password, {
@@ -70,13 +119,19 @@ function SignupForm() {
     if (result.user) {
       await new Promise(r => setTimeout(r, 500))
       // Drop the legacy 'New Member' badge — spec §10 says fresh users
-      // wear no label until they earn one.
+      // wear no label until they earn one. We also write the home
+      // coordinates so Explore radius filtering works on day one without
+      // a follow-up profile edit.
       await supabase.from('profiles').update({
         first_name: form.firstName,
         last_name: form.lastName,
         phone: form.phone,
         city: form.city,
         home_display_name: form.city,
+        home_lat: homeCoords.lat,
+        home_lng: homeCoords.lng,
+        home_state_code: homeCoords.stateCode || null,
+        home_country_code: homeCoords.countryCode || null,
         interests,
       }).eq('id', result.user.id)
 
@@ -252,8 +307,41 @@ function SignupForm() {
             <input type="password" value={form.password2} onChange={e => update('password2', e.target.value)} style={inputStyle} placeholder="Re-enter password" required />
           </div>
           <div>
-            <label style={labelStyle}>Home Area</label>
-            <input type="text" value={form.city} onChange={e => update('city', e.target.value)} style={inputStyle} placeholder="Brooklyn, NY" />
+            <label style={labelStyle}>Home Area *</label>
+            <div ref={homeBoxRef} style={{ position: 'relative', zIndex: 50 }}>
+              <input
+                type="text"
+                value={form.city}
+                onChange={e => searchHome(e.target.value)}
+                onFocus={() => homeResults.length > 0 && setShowHomeResults(true)}
+                style={inputStyle}
+                placeholder="Search a city, neighborhood, or borough…"
+                autoComplete="off"
+                required
+              />
+              {showHomeResults && homeResults.length > 0 && (
+                <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: '#fff', border: '1px solid #E5E7EB', borderRadius: 12, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 9999, maxHeight: 240, overflowY: 'auto' }}>
+                  {homeResults.map((p: any, i: number) => {
+                    const lbl = renderPlaceLabel(p)
+                    return (
+                      <div key={i} onClick={() => selectHomePlace(p)} style={{ padding: '10px 14px', fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #f3f4f6', color: '#111827' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
+                        onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
+                        <div style={{ fontWeight: 600 }}>{lbl.primary}</div>
+                        {lbl.secondary && <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>{lbl.secondary}</div>}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+            {homeCoords ? (
+              <p style={{ fontSize: 12, color: '#059669', marginTop: 6, fontWeight: 600 }}>✓ {form.city} pinned — we&apos;ll show activities nearby.</p>
+            ) : form.city ? (
+              <p style={{ fontSize: 12, color: '#DC2626', marginTop: 6 }}>Pick a suggestion to lock your area on the map.</p>
+            ) : (
+              <p style={{ fontSize: 12, color: '#6B7280', marginTop: 6 }}>Type at least 2 letters and pick from the list.</p>
+            )}
           </div>
           <div>
             <label style={{ ...labelStyle, marginBottom: 8 }}>Interests *</label>
