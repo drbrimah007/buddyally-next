@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.buddyally.app",
+      "sha256_cert_fingerprints": [
+        "58:B6:0B:72:CA:8B:55:4A:0B:14:D7:33:98:2A:42:35:5B:5E:76:CE:2B:A4:B3:F0:E8:5A:1F:49:92:6A:7B:35"
+      ]
+    }
+  }
+]
