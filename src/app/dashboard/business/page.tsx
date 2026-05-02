@@ -33,6 +33,16 @@ import {
   type SectionConfig,
 } from '@/lib/business'
 import { searchPlaces as searchPlacesApi, pickPlace, renderPlaceLabel } from '@/lib/geo'
+import ImageUploader from '@/components/business/ImageUploader'
+
+type PaymentLink = { label: string; url: string; type?: string }
+type ContactMethods = {
+  whatsapp?: string
+  instagram?: string
+  email?: string
+  phone?: string
+  web?: string
+}
 
 const TEMPLATES: { id: BusinessTemplate; label: string; vibe: string }[] = [
   { id: 'marketplace-bold', label: 'Marketplace Bold', vibe: 'Dark, large product grid' },
@@ -61,6 +71,10 @@ type Biz = {
   name: string
   tagline: string
   bio: string
+  cover_image_url: string
+  logo_url: string
+  contact_methods: ContactMethods
+  default_payment_links: PaymentLink[]
   categories: string[]
   home_display_name: string
   home_lat: number | null
@@ -84,6 +98,10 @@ export default function DashboardBusinessPage() {
     name: '',
     tagline: '',
     bio: '',
+    cover_image_url: '',
+    logo_url: '',
+    contact_methods: {},
+    default_payment_links: [],
     categories: [],
     home_display_name: '',
     home_lat: null,
@@ -154,6 +172,10 @@ export default function DashboardBusinessPage() {
           name: data.name,
           tagline: data.tagline || '',
           bio: data.bio || '',
+          cover_image_url: data.cover_image_url || '',
+          logo_url: data.logo_url || '',
+          contact_methods: (data.contact_methods as ContactMethods) || {},
+          default_payment_links: Array.isArray(data.default_payment_links) ? (data.default_payment_links as PaymentLink[]) : [],
           categories: Array.isArray(data.categories) ? data.categories : [],
           home_display_name: data.home_display_name || '',
           home_lat: data.home_lat ?? null,
@@ -210,6 +232,10 @@ export default function DashboardBusinessPage() {
       name: form.name,
       tagline: form.tagline,
       bio: form.bio,
+      cover_image_url: form.cover_image_url,
+      logo_url: form.logo_url,
+      contact_methods: form.contact_methods,
+      default_payment_links: form.default_payment_links,
       categories: form.categories,
       home_display_name: form.home_display_name || null,
       home_lat: form.home_lat,
@@ -242,6 +268,10 @@ export default function DashboardBusinessPage() {
         name: data.name,
         tagline: data.tagline || '',
         bio: data.bio || '',
+        cover_image_url: data.cover_image_url || '',
+        logo_url: data.logo_url || '',
+        contact_methods: (data.contact_methods as ContactMethods) || {},
+        default_payment_links: Array.isArray(data.default_payment_links) ? (data.default_payment_links as PaymentLink[]) : [],
         categories: Array.isArray(data.categories) ? data.categories : [],
         home_display_name: data.home_display_name || '',
         home_lat: data.home_lat ?? null,
@@ -302,6 +332,11 @@ export default function DashboardBusinessPage() {
         </div>
       )}
 
+      {/* QR code — once published, gives owners a one-tap shareable */}
+      {biz && biz.status === 'published' && (
+        <BusinessQRCard slug={biz.slug} name={biz.name} />
+      )}
+
       {/* Slug */}
       <Field label="URL slug *" hint={`Public URL: buddyally.com/${form.slug || 'your-slug'}`}>
         <input
@@ -327,6 +362,90 @@ export default function DashboardBusinessPage() {
       <Field label="About" hint="A few sentences about what you do.">
         <textarea value={form.bio} onChange={(e) => updateField('bio', e.target.value)} maxLength={1500} rows={5} style={{ ...input, resize: 'vertical' }} />
       </Field>
+
+      {/* Cover image */}
+      <Field label="Cover image" hint="Wide banner shown on your business page header. JPEG/PNG, auto-compressed.">
+        <ImageUploader
+          value={form.cover_image_url}
+          onChange={(url) => updateField('cover_image_url', url)}
+          purpose="cover"
+          aspect="16/9"
+          maxHeight={180}
+        />
+      </Field>
+
+      {/* Logo */}
+      <Field label="Logo" hint="Square icon shown in the header and search results.">
+        <ImageUploader
+          value={form.logo_url}
+          onChange={(url) => updateField('logo_url', url)}
+          purpose="logo"
+          aspect="1/1"
+          maxHeight={120}
+        />
+      </Field>
+
+      {/* Contact methods — drives the auto-rendered Contact section on
+          the public page. Empty fields hide their button. WhatsApp uses
+          wa.me/<digits>; we'll strip non-digits at render. */}
+      <Field label="Contact methods" hint="Buttons for visitors to reach you. Leave any blank to hide.">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+          <ContactInput
+            label="WhatsApp number"
+            placeholder="+234..."
+            value={form.contact_methods.whatsapp || ''}
+            onChange={(v) => updateField('contact_methods', { ...form.contact_methods, whatsapp: v })}
+          />
+          <ContactInput
+            label="Instagram handle"
+            placeholder="yinkaflakes"
+            value={form.contact_methods.instagram || ''}
+            onChange={(v) => updateField('contact_methods', { ...form.contact_methods, instagram: v.replace(/^@/, '') })}
+          />
+          <ContactInput
+            label="Email"
+            placeholder="hello@…"
+            value={form.contact_methods.email || ''}
+            onChange={(v) => updateField('contact_methods', { ...form.contact_methods, email: v })}
+          />
+          <ContactInput
+            label="Phone"
+            placeholder="+234..."
+            value={form.contact_methods.phone || ''}
+            onChange={(v) => updateField('contact_methods', { ...form.contact_methods, phone: v })}
+          />
+          <ContactInput
+            label="Website"
+            placeholder="https://..."
+            value={form.contact_methods.web || ''}
+            onChange={(v) => updateField('contact_methods', { ...form.contact_methods, web: v })}
+          />
+        </div>
+      </Field>
+
+      {/* Default payment links — inherited by every ware unless that ware
+          overrides. List of {label, url}. We don't validate the URL here
+          beyond requiring non-empty — sellers may use payment-system
+          links we don't know about (Flutterwave, Paystack, Wise, Stripe,
+          PayPal, Cash App, even bank-transfer instruction pages). */}
+      <Field label="Default payment / order links" hint="Buttons shown on each ware. Add your WhatsApp Pay, Stripe, PayPal — whatever you accept.">
+        <PaymentLinksEditor
+          links={form.default_payment_links}
+          onChange={(next) => updateField('default_payment_links', next)}
+        />
+      </Field>
+
+      {/* Wares link — separate route, see /dashboard/business/wares */}
+      {biz && (
+        <Field label="Wares (products & services)" hint={`Add what you sell. ${biz ? '' : 'Save your business first to unlock the wares editor.'}`}>
+          <Link
+            href="/dashboard/business/wares"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 18px', borderRadius: 12, background: '#3293cb', color: '#fff', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}
+          >
+            Manage wares →
+          </Link>
+        </Field>
+      )}
 
       {/* Template */}
       <Field label="Template">
@@ -473,6 +592,133 @@ export default function DashboardBusinessPage() {
       <p style={{ color: '#9ca3af', fontSize: 12, marginTop: 24 }}>
         Stage 1: name, theme, color, status. Coming next: section drag-and-drop, live preview, wares editor, image uploads.
       </p>
+    </div>
+  )
+}
+
+// Cute QR card — shows a download-able / share-able QR code for the
+// public business URL. Uses qrserver.com (zero deps, free, no API key)
+// to render a 280×280 PNG. Wrapped in a brand-blue rounded card with
+// the slug label and a "Copy URL" / "Save image" pair beneath.
+function BusinessQRCard({ slug, name }: { slug: string; name: string }) {
+  const url = `https://buddyally.com/${slug}`
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=12&color=111827&bgcolor=ffffff&data=${encodeURIComponent(url)}`
+  const [copied, setCopied] = useState(false)
+
+  function copyUrl() {
+    navigator.clipboard?.writeText(url).then(() => {
+      setCopied(true); setTimeout(() => setCopied(false), 1500)
+    }).catch(() => {})
+  }
+
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg, #eaf6fc 0%, #f0f9ff 100%)',
+      border: '1px solid #bfdbfe',
+      borderRadius: 18,
+      padding: 18,
+      marginBottom: 22,
+      display: 'flex',
+      gap: 16,
+      alignItems: 'center',
+    }}>
+      <div style={{
+        background: '#fff',
+        borderRadius: 14,
+        padding: 8,
+        boxShadow: '0 4px 14px rgba(50,147,203,0.15)',
+        flexShrink: 0,
+      }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={qrSrc} alt={`QR for ${name}`} width={120} height={120} style={{ display: 'block', borderRadius: 8 }} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: 11, fontWeight: 800, color: '#197bb8', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>Share your storefront</p>
+        <p style={{ fontSize: 18, fontWeight: 900, color: '#0652b7', margin: '4px 0 6px', letterSpacing: '-0.02em' }}>buddyally.com/{slug}</p>
+        <p style={{ fontSize: 12, color: '#475569', margin: '0 0 10px', lineHeight: 1.5 }}>
+          Print on flyers, paste in your IG bio, drop in WhatsApp status. Anyone scans → lands on your live page.
+        </p>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={copyUrl} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: '#3293cb', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+            {copied ? '✓ Copied' : 'Copy URL'}
+          </button>
+          <a
+            href={qrSrc}
+            download={`buddyally-${slug}-qr.png`}
+            style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid #bfdbfe', background: '#fff', color: '#0652b7', fontWeight: 700, fontSize: 12, textDecoration: 'none' }}
+          >
+            Download QR
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// One field of the Contact methods block. Plain controlled input — no
+// validation here so sellers can enter local-format phone numbers.
+function ContactInput({
+  label, placeholder, value, onChange,
+}: { label: string; placeholder: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label style={{ fontSize: 12, fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 4 }}>{label}</label>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={{ width: '100%', padding: '8px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, color: '#111827' }}
+      />
+    </div>
+  )
+}
+
+// Editable list of {label, url} payment links. Add/remove rows; rows
+// reorder by index (top = primary, used as the ware "Buy" CTA when no
+// per-ware override is set).
+function PaymentLinksEditor({
+  links,
+  onChange,
+}: {
+  links: { label: string; url: string; type?: string }[]
+  onChange: (next: { label: string; url: string; type?: string }[]) => void
+}) {
+  function update(i: number, patch: Partial<{ label: string; url: string }>) {
+    onChange(links.map((l, idx) => idx === i ? { ...l, ...patch } : l))
+  }
+  function add() { onChange([...links, { label: '', url: '' }]) }
+  function remove(i: number) { onChange(links.filter((_, idx) => idx !== i)) }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {links.map((l, i) => (
+        <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            value={l.label}
+            onChange={(e) => update(i, { label: e.target.value })}
+            placeholder="Label (e.g. WhatsApp Pay)"
+            style={{ flex: '0 0 180px', padding: '8px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13 }}
+          />
+          <input
+            value={l.url}
+            onChange={(e) => update(i, { url: e.target.value })}
+            placeholder="https://..."
+            style={{ flex: 1, padding: '8px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13 }}
+          />
+          <button
+            type="button"
+            onClick={() => remove(i)}
+            style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
+          >Remove</button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={add}
+        style={{ padding: '10px 14px', borderRadius: 10, border: '1.5px dashed #e5e7eb', background: '#fff', color: '#6b7280', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+      >
+        + Add payment link
+      </button>
     </div>
   )
 }
