@@ -362,8 +362,8 @@ export default function BizallyPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {pageRows.map((b) => {
             const meta = availabilityMeta(b.availability_state)
-            const distance = userLoc.lat != null && b.home_lat != null
-              ? haversineMiles(userLoc, { lat: b.home_lat, lng: b.home_lng })
+            const distance = effectiveLoc.lat != null && b.home_lat != null
+              ? haversineMiles(effectiveLoc, { lat: b.home_lat, lng: b.home_lng })
               : null
             const live = isLive(b.availability_state)
             return (
