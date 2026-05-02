@@ -62,31 +62,36 @@
       background:var(--paper);
       position:sticky;top:0;z-index:50;
     }
-    .logo{display:flex;align-items:center;gap:14px}
-    /* Real PNG mark (icon + wordmark stacked) — wrapper just sizes it */
+    .logo{display:flex;align-items:center;gap:16px}
+    /* Real PNG mark (icon + wordmark stacked). User trimmed the source
+       to 50% so we double the rendered height to compensate. */
     .logo-mark{
-      height:48px;
+      height:96px;
       display:flex;align-items:center;
       flex-shrink:0;
     }
-    .logo-mark img{height:100%;width:auto;display:block}
+    .logo-mark img{height:100%;width:auto;display:block;object-fit:contain}
     /* Slogan rides next to the mark — tiny brand voice */
     .logo-slogan{
       font-family:'JetBrains Mono',monospace;
-      font-size:11px;
+      font-size:12px;
       letter-spacing:.18em;
       text-transform:uppercase;
       color:var(--muted);
-      line-height:1.3;
+      line-height:1.4;
       border-left:1px solid var(--line);
-      padding-left:14px;
+      padding-left:16px;
     }
-    .logo-slogan b{color:var(--ink);font-weight:700}
-    /* Footer logo runs larger for presence */
-    footer .logo-mark{height:64px}
+    .logo-slogan b{color:var(--ink);font-weight:700;font-size:13px}
+    /* Sticky nav grows to fit the bigger mark */
+    .nav{min-height:120px}
+    /* Footer logo runs even larger for presence */
+    footer .logo-mark{height:128px}
     @media(max-width:640px){
       .logo-slogan{display:none}
-      .logo-mark{height:42px}
+      .logo-mark{height:64px}
+      .nav{min-height:80px}
+      footer .logo-mark{height:96px}
     }
     .links{display:flex;gap:28px;align-items:center}
     .links a{
