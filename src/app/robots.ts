@@ -20,11 +20,14 @@ export default function robots(): MetadataRoute.Robots {
           '/admin',
           '/admin/',
           '/api/',
-          // Business module — pages opt INTO indexing per business via the
-          // business_is_indexable() RPC; the per-page <meta robots> handles
-          // the actual signal. We disallow the prefix here to protect crawl
-          // budget on the long tail of draft / unverified businesses.
+          // /b/<slug> is the legacy URL — kept for old links via permanent
+          // redirect — disallow so crawlers don't index the redirect chain.
           '/b/',
+          // Business pages now live at top-level /<slug>. Indexing is
+          // controlled per-page via <meta robots="noindex"> until the
+          // owner opts in AND business_is_indexable() returns true. We
+          // can't use a robots.txt prefix rule here because top-level
+          // collides with marketing pages we DO want indexed.
         ],
       },
     ],

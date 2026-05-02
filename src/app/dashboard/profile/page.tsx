@@ -550,6 +550,12 @@ export default function ProfilePage() {
           {/* Notification settings — restored from v1. Master push/email
               switches and a one-click test send. */}
           <a href="/dashboard/notification-settings" style={manageLink}>Notifications</a>
+          {/* Business page — feature-flagged via NEXT_PUBLIC_FEATURE_BUSINESS.
+              The flag is read at module load time so this whole link tree-
+              shakes out of the bundle when the feature is off. */}
+          {(process.env.NEXT_PUBLIC_FEATURE_BUSINESS || '').trim() === '1' && (
+            <a href="/dashboard/business" style={{ ...manageLink, color: '#0652B7', borderColor: '#BFDBFE', background: '#EFF6FF' }}>My Business</a>
+          )}
           <a href="/trust-and-safety" style={manageLink}>Trust &amp; Safety</a>
           {/* Contact / help — prominent here per spec. The /contact page is
               the explainer for getting in touch with the BuddyAlly team. */}

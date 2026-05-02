@@ -85,25 +85,45 @@ export const COLOR_PRESETS: Record<Exclude<ColorPreset, 'custom'>, {
 
 // ── Slug validation ─────────────────────────────────────────────────
 
-// Reserved at the application level (route collisions, brand protection,
-// common-confusion words). Even if the DB slug regex would allow them,
-// validateSlug() rejects these to keep URLs predictable.
+// Reserved at the application level. Top-level slugs share URL space
+// with every existing app route — collision protection is critical.
+//
+// Rule of thumb: if it's a thing on buddyally.com, it's reserved. Plus
+// brand protection, common-confusion words, and impersonation risks.
+//
+// Note: contact codes (uppercase 4-8) cannot collide with business slugs
+// (lowercase 5+) by case alone, so we don't need to reserve those.
 const RESERVED_SLUGS = new Set([
-  // Existing top-level routes — keep this in sync with /src/app/*
+  // Existing app routes — every folder under /src/app/* with a top-level
+  // path. KEEP IN SYNC if you add new top-level pages.
   'admin', 'api', 'dashboard', 'login', 'signup', 'splash',
-  'home', 'home-v1', 'homepage',
+  'home', 'homepage', 'home-v1',
   'trust-and-safety', 'privacy', 'terms', 'contact',
-  'a', 'b', 'c', 's', 'u',
   'lagos', 'abuja', 'atlanta', 'child-safety',
-  'explore', '_next',
-  // BuddyAlly brand
-  'buddy', 'ally', 'buddyally', 'founders', 'founding', 'official',
-  // Common reserved
-  'www', 'mail', 'ftp', 'support', 'help', 'docs', 'blog', 'about',
-  'pricing', 'features', 'team', 'careers', 'jobs', 'press',
+  'explore', 'feed', 'activities', 'groups', 'allies', 'codes', 'messages',
+  'profile', 'alerts', 'business', 'businesses', 'shop', 'shops',
+  // BuddyAlly brand & official-looking
+  'buddy', 'ally', 'buddyally', 'buddy-ally',
+  'founders', 'founding', 'official', 'staff', 'team',
+  // Trust/safety impersonation
+  'safety', 'verified', 'verify', 'moderator', 'mod', 'admin-team',
+  // Web infrastructure / commonly-typed
+  'www', 'mail', 'email', 'ftp', 'support', 'help', 'helpdesk',
+  'docs', 'blog', 'about', 'press', 'media',
+  'pricing', 'price', 'plans', 'features', 'careers', 'jobs',
   'security', 'legal', 'cookies', 'sitemap', 'robots',
-  // Trust/safety adjacent (don't let users impersonate)
-  'safety', 'verified', 'verify', 'moderator', 'mod',
+  // Auth/account
+  'auth', 'register', 'logout', 'sign-in', 'sign-up', 'sign-out',
+  'password', 'reset', 'forgot', 'invite', 'invites',
+  // Money/risk-adjacent (block impersonation of payment flows)
+  'pay', 'payment', 'payments', 'checkout', 'wallet', 'bank',
+  'crypto', 'btc', 'eth', 'usdt', 'donate', 'tips',
+  // Generic confusing/abuse-prone
+  'null', 'undefined', 'true', 'false', 'none', 'system', 'root',
+  'test', 'demo', 'sample', 'preview', 'staging',
+  'new', 'edit', 'create', 'delete', 'remove',
+  'me', 'you', 'us', 'them', 'mine',
+  'index', 'main', 'default', 'home-page',
 ])
 
 export type SlugError =
@@ -112,10 +132,17 @@ export type SlugError =
   | 'starts_or_ends_with_hyphen' | 'consecutive_hyphens'
   | 'reserved'
 
+// Min length is 5 — short enough to be memorable ("kemis"), long enough
+// that the namespace doesn't exhaust as the platform grows AND so contact
+// codes (4-8 uppercase) and business slugs (5+ lowercase) don't visually
+// collide. The DB CHECK is more permissive (3+); this app-level rule is
+// the stricter one we surface to users.
+const MIN_SLUG_LENGTH = 5
+
 export function validateSlug(slug: string): SlugError | null {
   if (typeof slug !== 'string') return 'invalid_chars'
   const s = slug.trim().toLowerCase()
-  if (s.length < 3) return 'too_short'
+  if (s.length < MIN_SLUG_LENGTH) return 'too_short'
   if (s.length > 30) return 'too_long'
   if (!/^[a-z0-9-]+$/.test(s)) return 'invalid_chars'
   if (!/[a-z]/.test(s)) return 'no_letter'
@@ -127,16 +154,19 @@ export function validateSlug(slug: string): SlugError | null {
 
 export function slugErrorMessage(err: SlugError): string {
   switch (err) {
-    case 'too_short': return 'Slug must be at least 3 characters.'
+    case 'too_short': return `Slug must be at least ${MIN_SLUG_LENGTH} characters.`
     case 'too_long': return 'Slug must be 30 characters or fewer.'
     case 'invalid_chars': return 'Use only lowercase letters, numbers, and hyphens.'
     case 'no_letter': return 'Slug must contain at least one letter.'
     case 'starts_or_ends_with_hyphen': return 'Slug can\'t start or end with a hyphen.'
     case 'consecutive_hyphens': return 'No double hyphens allowed.'
-    case 'reserved': return 'That slug is reserved. Try another.'
+    case 'reserved': return 'That word is reserved. Try a different slug.'
   }
 }
 
+// Top-level URL — buddyally.com/<slug>. The dispatcher at /[code]/page.tsx
+// resolves it to either a business page or a contact-code page based on
+// case + DB lookup.
 export function businessUrl(slug: string): string {
-  return `/b/${slug}`
+  return `/${slug}`
 }

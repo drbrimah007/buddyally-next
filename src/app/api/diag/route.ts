@@ -28,6 +28,8 @@ const KEYS = [
   'NEXT_PUBLIC_FIREBASE_VAPID_KEY',
   // Email
   'RESEND_API_KEY',
+  // Feature flags
+  'NEXT_PUBLIC_FEATURE_BUSINESS',
 ] as const
 
 export async function GET() {
