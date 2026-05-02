@@ -13,15 +13,17 @@
 // /dashboard sidebar link is also gated; without the flag the route is
 // reachable by direct URL but not advertised anywhere.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ToastProvider'
 import {
   BUSINESS_FEATURE_ENABLED,
+  BUSINESS_CATEGORIES,
   COLOR_PRESETS,
   DEFAULT_THEME,
+  MAX_CATEGORIES,
   validateSlug,
   slugErrorMessage,
   businessUrl,
@@ -29,6 +31,7 @@ import {
   type BusinessTemplate,
   type ColorPreset,
 } from '@/lib/business'
+import { searchPlaces as searchPlacesApi, pickPlace, renderPlaceLabel } from '@/lib/geo'
 
 const TEMPLATES: { id: BusinessTemplate; label: string; vibe: string }[] = [
   { id: 'marketplace-bold', label: 'Marketplace Bold', vibe: 'Dark, large product grid' },
@@ -57,6 +60,12 @@ type Biz = {
   name: string
   tagline: string
   bio: string
+  categories: string[]
+  home_display_name: string
+  home_lat: number | null
+  home_lng: number | null
+  home_country_code: string
+  home_state_code: string
   status: 'draft' | 'published' | 'suspended'
   theme: BusinessTheme
   allow_indexing: boolean
@@ -74,12 +83,59 @@ export default function DashboardBusinessPage() {
     name: '',
     tagline: '',
     bio: '',
+    categories: [],
+    home_display_name: '',
+    home_lat: null,
+    home_lng: null,
+    home_country_code: '',
+    home_state_code: '',
     status: 'draft',
     theme: DEFAULT_THEME,
     allow_indexing: false,
   })
   const [slugError, setSlugError] = useState<string>('')
   const [saving, setSaving] = useState(false)
+  // Location picker — same UX pattern as the profile edit modal.
+  const [locResults, setLocResults] = useState<any[]>([])
+  const [showLocResults, setShowLocResults] = useState(false)
+  const locBoxRef = useRef<HTMLDivElement>(null)
+  const locTimer = useRef<any>(null)
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (locBoxRef.current && !locBoxRef.current.contains(e.target as Node)) setShowLocResults(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [])
+  function searchLoc(val: string) {
+    setForm((f) => ({ ...f, home_display_name: val, home_lat: null, home_lng: null }))
+    if (locTimer.current) clearTimeout(locTimer.current)
+    if (!val || val.length < 2) { setLocResults([]); setShowLocResults(false); return }
+    locTimer.current = setTimeout(async () => {
+      const data = await searchPlacesApi(val, 8)
+      setLocResults(data); setShowLocResults(data.length > 0)
+    }, 300)
+  }
+  function selectLocPlace(place: any) {
+    const pick = pickPlace(place)
+    setForm((f) => ({
+      ...f,
+      home_display_name: pick.display,
+      home_lat: pick.lat,
+      home_lng: pick.lng,
+      home_state_code: pick.stateCode,
+      home_country_code: (place?.address?.country_code || '').toLowerCase() || '',
+    }))
+    setLocResults([]); setShowLocResults(false)
+  }
+  function toggleCategory(id: string) {
+    setForm((f) => {
+      const has = f.categories.includes(id)
+      if (has) return { ...f, categories: f.categories.filter((c) => c !== id) }
+      if (f.categories.length >= MAX_CATEGORIES) return f
+      return { ...f, categories: [...f.categories, id] }
+    })
+  }
 
   // Load existing business (if any) for this user
   useEffect(() => {
@@ -97,6 +153,12 @@ export default function DashboardBusinessPage() {
           name: data.name,
           tagline: data.tagline || '',
           bio: data.bio || '',
+          categories: Array.isArray(data.categories) ? data.categories : [],
+          home_display_name: data.home_display_name || '',
+          home_lat: data.home_lat ?? null,
+          home_lng: data.home_lng ?? null,
+          home_country_code: data.home_country_code || '',
+          home_state_code: data.home_state_code || '',
           status: data.status,
           theme: (data.theme as BusinessTheme) || DEFAULT_THEME,
           allow_indexing: !!data.allow_indexing,
@@ -142,13 +204,22 @@ export default function DashboardBusinessPage() {
     if (!form.slug || !form.name) { toastError('Slug and name are required.'); return }
     if (slugError) { toastError(slugError); return }
     setSaving(true)
+    const writePayload = {
+      slug: form.slug,
+      name: form.name,
+      tagline: form.tagline,
+      bio: form.bio,
+      categories: form.categories,
+      home_display_name: form.home_display_name || null,
+      home_lat: form.home_lat,
+      home_lng: form.home_lng,
+      home_country_code: form.home_country_code || null,
+      home_state_code: form.home_state_code || null,
+      theme: form.theme,
+    }
     if (biz) {
       const { error } = await supabase.from('business_profiles').update({
-        slug: form.slug,
-        name: form.name,
-        tagline: form.tagline,
-        bio: form.bio,
-        theme: form.theme,
+        ...writePayload,
         status: form.status,
       }).eq('id', biz.id)
       setSaving(false)
@@ -158,11 +229,7 @@ export default function DashboardBusinessPage() {
     } else {
       const { data, error } = await supabase.from('business_profiles').insert({
         user_id: user.id,
-        slug: form.slug,
-        name: form.name,
-        tagline: form.tagline,
-        bio: form.bio,
-        theme: form.theme,
+        ...writePayload,
         status: 'draft',
       }).select().single()
       setSaving(false)
@@ -174,6 +241,12 @@ export default function DashboardBusinessPage() {
         name: data.name,
         tagline: data.tagline || '',
         bio: data.bio || '',
+        categories: Array.isArray(data.categories) ? data.categories : [],
+        home_display_name: data.home_display_name || '',
+        home_lat: data.home_lat ?? null,
+        home_lng: data.home_lng ?? null,
+        home_country_code: data.home_country_code || '',
+        home_state_code: data.home_state_code || '',
         status: data.status,
         theme: (data.theme as BusinessTheme) || DEFAULT_THEME,
         allow_indexing: !!data.allow_indexing,
@@ -229,7 +302,7 @@ export default function DashboardBusinessPage() {
       )}
 
       {/* Slug */}
-      <Field label="URL slug *" hint={`Public URL: buddyally.com/b/${form.slug || 'your-slug'}`}>
+      <Field label="URL slug *" hint={`Public URL: buddyally.com/${form.slug || 'your-slug'}`}>
         <input
           value={form.slug}
           onChange={(e) => updateField('slug', e.target.value.toLowerCase())}
@@ -307,6 +380,83 @@ export default function DashboardBusinessPage() {
         </div>
       </Field>
 
+      {/* Categories — chip selector, max MAX_CATEGORIES picks */}
+      <Field label={`Categories (pick up to ${MAX_CATEGORIES})`} hint="Used by the public directory and "near you" search.">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {BUSINESS_CATEGORIES.map((c) => {
+            const selected = form.categories.includes(c.id)
+            const disabled = !selected && form.categories.length >= MAX_CATEGORIES
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => toggleCategory(c.id)}
+                disabled={disabled}
+                style={{
+                  padding: '8px 14px', borderRadius: 999,
+                  border: `1.5px solid ${selected ? '#3293cb' : '#e5e7eb'}`,
+                  background: selected ? '#eff6ff' : '#fff',
+                  color: selected ? '#0652b7' : '#111827',
+                  fontSize: 13, fontWeight: 700,
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  opacity: disabled ? 0.4 : 1,
+                }}
+              >
+                {c.emoji} {c.label}
+              </button>
+            )
+          })}
+        </div>
+      </Field>
+
+      {/* Location — same picker pattern as profile edit, must come from list */}
+      <Field label="Business location" hint="Pick a real city / area so your business appears in 'near you' searches. Leave blank if you're online-only.">
+        <div ref={locBoxRef} style={{ position: 'relative' }}>
+          <input
+            value={form.home_display_name}
+            onChange={(e) => searchLoc(e.target.value)}
+            onFocus={() => locResults.length > 0 && setShowLocResults(true)}
+            placeholder="Search a city, neighborhood, or borough…"
+            style={input}
+            autoComplete="off"
+          />
+          {showLocResults && locResults.length > 0 && (
+            <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, boxShadow: '0 10px 25px -3px rgba(0,0,0,0.15)', zIndex: 30, maxHeight: 240, overflowY: 'auto' }}>
+              {locResults.map((p: any, i: number) => {
+                const lbl = renderPlaceLabel(p)
+                return (
+                  <div
+                    key={i}
+                    onClick={() => selectLocPlace(p)}
+                    style={{ padding: '10px 14px', fontSize: 13, cursor: 'pointer', borderBottom: '1px solid #f3f4f6', color: '#111827' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f9fafb')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
+                  >
+                    <div style={{ fontWeight: 600 }}>{lbl.primary}</div>
+                    {lbl.secondary && <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{lbl.secondary}</div>}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+        {form.home_lat != null && form.home_lng != null
+          ? <p style={{ fontSize: 12, color: '#059669', marginTop: 6, fontWeight: 600 }}>✓ Pinned for distance search.</p>
+          : form.home_display_name
+            ? <p style={{ fontSize: 12, color: '#dc2626', marginTop: 6 }}>Pick a suggestion above to enable "near you" filtering.</p>
+            : null}
+      </Field>
+
+      {/* Section builder — drag to reorder, toggle on/off. Native HTML5
+          drag (no library) — the dragged section index updates form state
+          and the public renderer iterates theme.sections in order. */}
+      <Field label="Page sections" hint="Drag the handle to reorder. Toggle to show/hide on your public page.">
+        <SectionBuilder
+          sections={form.theme.sections}
+          onChange={(next) => updateTheme({ sections: next })}
+        />
+      </Field>
+
       {/* Save */}
       <div style={{ display: 'flex', gap: 10, marginTop: 28 }}>
         <button onClick={save} disabled={saving || !!slugError} style={{ ...btnPrimary, opacity: saving || slugError ? 0.6 : 1 }}>
@@ -324,6 +474,118 @@ export default function DashboardBusinessPage() {
       </p>
     </div>
   )
+}
+
+// Section drag-and-drop reorder + on/off toggle.
+//
+// Uses native HTML5 drag — no library, ~0 KB extra bundle. Each section
+// row carries a draggable handle on the left. dragStart records the
+// source index; dragOver computes the target index and reorders form
+// state on drop. Touch-friendly fallback: also exposes ▲/▼ arrows for
+// devices without drag support (mobile mostly).
+function SectionBuilder({
+  sections,
+  onChange,
+}: {
+  sections: { id: string; on: boolean; variant?: string }[]
+  onChange: (next: { id: string; on: boolean; variant?: string }[]) => void
+}) {
+  const [dragIdx, setDragIdx] = useState<number | null>(null)
+
+  function reorder(from: number, to: number) {
+    if (from === to || from < 0 || to < 0 || from >= sections.length || to >= sections.length) return
+    const next = [...sections]
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+    onChange(next)
+  }
+  function toggle(idx: number) {
+    const next = sections.map((s, i) => (i === idx ? { ...s, on: !s.on } : s))
+    onChange(next)
+  }
+  function move(idx: number, delta: -1 | 1) {
+    reorder(idx, idx + delta)
+  }
+
+  const labels: Record<string, { label: string; help: string }> = {
+    hero:         { label: 'Hero',         help: 'Logo, business name, tagline.' },
+    wares:        { label: 'Wares grid',   help: 'Your products/services.' },
+    about:        { label: 'About',        help: 'Long-form bio.' },
+    contact:      { label: 'Contact',      help: 'WhatsApp, IG, email buttons.' },
+    testimonials: { label: 'Testimonials', help: 'Customer reviews. (Coming soon.)' },
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {sections.map((s, i) => {
+        const meta = labels[s.id] || { label: s.id, help: '' }
+        const isDragOver = dragIdx !== null && dragIdx !== i
+        return (
+          <div
+            key={s.id}
+            draggable
+            onDragStart={(e) => {
+              setDragIdx(i)
+              e.dataTransfer.effectAllowed = 'move'
+            }}
+            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
+            onDrop={(e) => {
+              e.preventDefault()
+              if (dragIdx !== null) reorder(dragIdx, i)
+              setDragIdx(null)
+            }}
+            onDragEnd={() => setDragIdx(null)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 12px', background: '#fff',
+              border: `1.5px solid ${isDragOver ? '#3293cb' : '#e5e7eb'}`,
+              borderRadius: 12,
+              opacity: dragIdx === i ? 0.4 : 1,
+              cursor: 'grab',
+            }}
+          >
+            {/* Drag handle */}
+            <span aria-hidden style={{ color: '#9ca3af', fontSize: 18, lineHeight: 1, cursor: 'grab', userSelect: 'none' }}>⠿</span>
+
+            {/* Label */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>{meta.label}</p>
+              <p style={{ fontSize: 12, color: '#6b7280', margin: '2px 0 0' }}>{meta.help}</p>
+            </div>
+
+            {/* Mobile-friendly up/down (drag is desktop-mostly) */}
+            <button type="button" onClick={() => move(i, -1)} disabled={i === 0} style={arrowBtn} aria-label="Move up">▲</button>
+            <button type="button" onClick={() => move(i, +1)} disabled={i === sections.length - 1} style={arrowBtn} aria-label="Move down">▼</button>
+
+            {/* On/off toggle */}
+            <button
+              type="button"
+              onClick={() => toggle(i)}
+              aria-pressed={s.on}
+              style={{
+                width: 40, height: 22, borderRadius: 999, border: 'none',
+                background: s.on ? '#3293cb' : '#d1d5db',
+                position: 'relative', cursor: 'pointer', flexShrink: 0,
+                transition: 'background 0.15s',
+              }}
+            >
+              <span style={{
+                position: 'absolute', top: 2, left: s.on ? 20 : 2,
+                width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'left 0.15s',
+              }} />
+            </button>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+const arrowBtn: React.CSSProperties = {
+  width: 24, height: 24, padding: 0, borderRadius: 6,
+  border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280',
+  fontSize: 9, cursor: 'pointer', flexShrink: 0,
 }
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {

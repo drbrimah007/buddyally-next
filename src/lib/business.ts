@@ -170,3 +170,56 @@ export function slugErrorMessage(err: SlugError): string {
 export function businessUrl(slug: string): string {
   return `/${slug}`
 }
+
+// ── Categories ───────────────────────────────────────────────────────
+// Curated, finite list — easier to merchandise, search, and translate
+// than free-text. Owners can pick up to MAX_CATEGORIES per business.
+// Adding a category here is non-breaking; removing one orphans the data
+// (existing rows keep the value, but the UI won't offer it as a choice).
+
+export const BUSINESS_CATEGORIES = [
+  { id: 'food',       label: 'Food & Drink',          emoji: '🍽️' },
+  { id: 'fashion',    label: 'Fashion & Apparel',     emoji: '👗' },
+  { id: 'beauty',     label: 'Beauty & Wellness',     emoji: '💄' },
+  { id: 'health',     label: 'Health & Fitness',      emoji: '💪' },
+  { id: 'services',   label: 'Services',              emoji: '🛠️' },
+  { id: 'tech',       label: 'Tech & Digital',        emoji: '💻' },
+  { id: 'art',        label: 'Art & Design',          emoji: '🎨' },
+  { id: 'home',       label: 'Home & Living',         emoji: '🏠' },
+  { id: 'education',  label: 'Education & Coaching',  emoji: '📚' },
+  { id: 'events',     label: 'Events & Entertainment',emoji: '🎉' },
+  { id: 'media',      label: 'Photography & Media',   emoji: '📸' },
+  { id: 'auto',       label: 'Auto & Transport',      emoji: '🚗' },
+  { id: 'realestate', label: 'Real Estate',           emoji: '🏘️' },
+  { id: 'other',      label: 'Other',                 emoji: '✨' },
+] as const
+
+export type BusinessCategory = typeof BUSINESS_CATEGORIES[number]['id']
+
+export const MAX_CATEGORIES = 3
+
+export function categoryLabel(id: string): string {
+  const c = BUSINESS_CATEGORIES.find((x) => x.id === id)
+  return c ? `${c.emoji} ${c.label}` : id
+}
+
+// ── Distance helper (haversine, miles) ───────────────────────────────
+// Used by the public directory to sort and filter "businesses near you".
+// Returns Infinity if either point is missing — caller treats that as
+// "exclude from distance-filtered results".
+export function haversineMiles(
+  a: { lat: number | null | undefined; lng: number | null | undefined },
+  b: { lat: number | null | undefined; lng: number | null | undefined },
+): number {
+  if (a.lat == null || a.lng == null || b.lat == null || b.lng == null) return Infinity
+  const R = 3959 // earth radius in miles
+  const toRad = (d: number) => (d * Math.PI) / 180
+  const dLat = toRad(b.lat - a.lat)
+  const dLng = toRad(b.lng - a.lng)
+  const lat1 = toRad(a.lat)
+  const lat2 = toRad(b.lat)
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2)
+  return 2 * R * Math.asin(Math.sqrt(h))
+}
