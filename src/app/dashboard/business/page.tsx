@@ -381,7 +381,7 @@ export default function DashboardBusinessPage() {
       </Field>
 
       {/* Categories — chip selector, max MAX_CATEGORIES picks */}
-      <Field label={`Categories (pick up to ${MAX_CATEGORIES})`} hint="Used by the public directory and "near you" search.">
+      <Field label={`Categories (pick up to ${MAX_CATEGORIES})`} hint={`Used by the public directory and "near you" search.`}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {BUSINESS_CATEGORIES.map((c) => {
             const selected = form.categories.includes(c.id)
@@ -443,7 +443,7 @@ export default function DashboardBusinessPage() {
         {form.home_lat != null && form.home_lng != null
           ? <p style={{ fontSize: 12, color: '#059669', marginTop: 6, fontWeight: 600 }}>✓ Pinned for distance search.</p>
           : form.home_display_name
-            ? <p style={{ fontSize: 12, color: '#dc2626', marginTop: 6 }}>Pick a suggestion above to enable "near you" filtering.</p>
+            ? <p style={{ fontSize: 12, color: '#dc2626', marginTop: 6 }}>Pick a suggestion above to enable &ldquo;near you&rdquo; filtering.</p>
             : null}
       </Field>
 
