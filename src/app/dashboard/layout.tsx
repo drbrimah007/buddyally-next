@@ -23,6 +23,13 @@ const NAV_ITEMS = [
   { href: '/dashboard/groups',    label: 'Groups',     badgeKey: null,       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
   { href: '/dashboard/messages',  label: 'Messages',   badgeKey: 'messages', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> },
   { href: '/dashboard/contacts',  label: 'Allies',     badgeKey: 'contacts', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg> },
+  // Bizally — businesses participating in real-world flow. Sits between
+  // Allies (people) and Codes (contact). Storefront icon = shop awning.
+  // Feature-flagged via NEXT_PUBLIC_FEATURE_BUSINESS so the slot disappears
+  // when the module is off.
+  ...((process.env.NEXT_PUBLIC_FEATURE_BUSINESS || '').trim() === '1'
+    ? [{ href: '/bizally', label: 'Bizally', badgeKey: null, icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l1-5h16l1 5"/><path d="M3 9v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9"/><path d="M9 21V12h6v9"/></svg> }]
+    : []),
   // Codes pinned LAST → chain icon lives at the right edge by user request.
   { href: '/dashboard/codes',     label: 'Codes',      badgeKey: 'codes',    icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> },
 ]

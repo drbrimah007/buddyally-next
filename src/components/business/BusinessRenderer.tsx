@@ -7,7 +7,7 @@
 // what to fall through to — 404, contact-code dispatcher, etc.).
 
 import { createServiceRoleClient } from '@/lib/supabase-server'
-import { COLOR_PRESETS, type BusinessTheme } from '@/lib/business'
+import { COLOR_PRESETS, FONT_PRESETS, availabilityMeta, isLive, type BusinessTheme } from '@/lib/business'
 
 export type LoadedBusiness = {
   biz: any
@@ -44,12 +44,16 @@ export default function BusinessRenderer({ data }: { data: LoadedBusiness }) {
     ? COLOR_PRESETS[theme.colors.preset as Exclude<typeof theme.colors.preset, 'custom'>]
     : { primary: theme.colors.primary || '#3293cb', accent: theme.colors.accent || '#bce0f4', bg: theme.colors.bg || '#fff', text: theme.colors.text || '#111', muted: '#6b7280' }
 
+  const fontKey = (theme.font || 'sans') as keyof typeof FONT_PRESETS
+  const fontPreset = FONT_PRESETS[fontKey] || FONT_PRESETS.sans
+
   const cssVars: React.CSSProperties = {
     ['--ba-bus-primary' as any]: palette.primary,
     ['--ba-bus-accent' as any]: palette.accent,
     ['--ba-bus-bg' as any]: palette.bg,
     ['--ba-bus-text' as any]: palette.text,
     ['--ba-bus-muted' as any]: palette.muted,
+    fontFamily: fontPreset.cssStack,
   }
 
   // Render each section in the order the owner picked. Skip ones turned
@@ -63,20 +67,66 @@ export default function BusinessRenderer({ data }: { data: LoadedBusiness }) {
         { id: 'contact', on: true } as const,
       ]
 
+  const publicUrl = `https://buddyally.com/${biz.slug}`
+
   return (
-    <div style={{ ...cssVars, background: 'var(--ba-bus-bg)', color: 'var(--ba-bus-text)', minHeight: '100vh', fontFamily: "'Inter', -apple-system, sans-serif" }}>
+    <div style={{ ...cssVars, background: 'var(--ba-bus-bg)', color: 'var(--ba-bus-text)', minHeight: '100vh' }}>
+      {/* Inject the picked font from Google Fonts. Single-link load, doesn't
+          block initial paint because we use font-display:swap in the URL. */}
+      {/* eslint-disable-next-line @next/next/no-css-tags */}
+      <link rel="stylesheet" href={fontPreset.href} />
+      {/* Pulse keyframes for the live-status dot. Kept here so the
+          renderer is self-contained — no global stylesheet edits. */}
+      <style>{`@keyframes baBusPulse { 0%{box-shadow:0 0 0 0 rgba(255,255,255,0.7);} 70%{box-shadow:0 0 0 10px rgba(255,255,255,0);} 100%{box-shadow:0 0 0 0 rgba(255,255,255,0);} }`}</style>
       {sections.filter((s) => s.on).map((s) => {
         switch (s.id) {
           case 'hero':
             return (
-              <header key="hero" style={{ padding: '60px 24px 30px', textAlign: 'center', maxWidth: 980, margin: '0 auto' }}>
-                {biz.logo_url && (
-                  <img src={biz.logo_url} alt="" style={{ width: 80, height: 80, borderRadius: 16, objectFit: 'cover', marginBottom: 16 }} />
+              <header key="hero" style={{ position: 'relative' }}>
+                {/* Cover banner — fills width, fixed aspect, gradient over for legibility */}
+                {biz.cover_image_url && (
+                  <div style={{
+                    width: '100%', aspectRatio: '21/9', maxHeight: 380,
+                    background: `linear-gradient(180deg, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.35) 100%), url(${biz.cover_image_url}) center / cover no-repeat`,
+                  }} />
                 )}
-                <h1 style={{ fontSize: 'clamp(36px, 6vw, 64px)', fontWeight: 950, letterSpacing: '-0.04em', margin: 0 }}>{biz.name}</h1>
-                {biz.tagline && (
-                  <p style={{ fontSize: 18, color: 'var(--ba-bus-muted)', marginTop: 12, maxWidth: 620, marginInline: 'auto' }}>{biz.tagline}</p>
-                )}
+                <div style={{ padding: biz.cover_image_url ? '24px 24px 30px' : '60px 24px 30px', textAlign: 'center', maxWidth: 980, margin: '0 auto', marginTop: biz.cover_image_url && biz.logo_url ? -50 : 0, position: 'relative' }}>
+                  {biz.logo_url && (
+                    <img src={biz.logo_url} alt="" style={{
+                      width: 96, height: 96, borderRadius: 20, objectFit: 'cover',
+                      marginBottom: 16, border: '4px solid var(--ba-bus-bg)',
+                      boxShadow: '0 6px 24px rgba(0,0,0,0.18)',
+                      background: '#fff',
+                    }} />
+                  )}
+                  <h1 style={{ fontSize: 'clamp(36px, 6vw, 64px)', fontWeight: 950, letterSpacing: '-0.04em', margin: 0 }}>{biz.name}</h1>
+                  {biz.tagline && (
+                    <p style={{ fontSize: 18, color: 'var(--ba-bus-muted)', marginTop: 12, maxWidth: 620, marginInline: 'auto' }}>{biz.tagline}</p>
+                  )}
+                  {/* Live status — the Bizally signal. Pulsing dot when on. */}
+                  {isLive(biz.availability_state) && (() => {
+                    const m = availabilityMeta(biz.availability_state)
+                    return (
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 8,
+                        marginTop: 18,
+                        padding: '8px 14px', borderRadius: 999,
+                        background: m.color, color: '#fff',
+                        fontSize: 13, fontWeight: 800, letterSpacing: '-0.01em',
+                      }}>
+                        <span aria-hidden style={{
+                          width: 8, height: 8, borderRadius: '50%', background: '#fff',
+                          boxShadow: '0 0 0 0 rgba(255,255,255,0.7)',
+                          animation: 'baBusPulse 1.6s infinite',
+                        }} />
+                        {m.label}
+                        {biz.status_message && (
+                          <span style={{ fontWeight: 600, opacity: 0.95 }}>· {biz.status_message}</span>
+                        )}
+                      </div>
+                    )
+                  })()}
+                </div>
               </header>
             )
           case 'wares':
@@ -116,23 +166,52 @@ export default function BusinessRenderer({ data }: { data: LoadedBusiness }) {
             )
           case 'contact': {
             const cm: Record<string, string> = (biz.contact_methods || {}) as any
-            const buttons: { label: string; url: string }[] = []
-            if (cm.whatsapp)  buttons.push({ label: 'WhatsApp',  url: `https://wa.me/${cm.whatsapp.replace(/[^0-9]/g, '')}` })
-            if (cm.instagram) buttons.push({ label: 'Instagram', url: `https://instagram.com/${cm.instagram.replace(/^@/, '')}` })
-            if (cm.email)     buttons.push({ label: 'Email',     url: `mailto:${cm.email}` })
-            if (cm.phone)     buttons.push({ label: 'Call',      url: `tel:${cm.phone}` })
-            if (cm.web)       buttons.push({ label: 'Website',   url: cm.web })
-            if (buttons.length === 0) return null
+            const buttons: { label: string; emoji: string; url: string }[] = []
+            if (cm.whatsapp)  buttons.push({ label: 'WhatsApp',  emoji: '💬', url: `https://wa.me/${cm.whatsapp.replace(/[^0-9]/g, '')}` })
+            if (cm.instagram) buttons.push({ label: 'Instagram', emoji: '📷', url: `https://instagram.com/${cm.instagram.replace(/^@/, '')}` })
+            if (cm.email)     buttons.push({ label: 'Email',     emoji: '✉️', url: `mailto:${cm.email}` })
+            if (cm.phone)     buttons.push({ label: 'Call',      emoji: '📞', url: `tel:${cm.phone}` })
+            if (cm.web)       buttons.push({ label: 'Website',   emoji: '🔗', url: cm.web })
+            // Always render the section if there's a slug — QR card is part of it
+            const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&color=${palette.text.replace('#', '')}&bgcolor=ffffff&data=${encodeURIComponent(publicUrl)}`
             return (
-              <section key="contact" style={{ padding: '40px 24px', maxWidth: 720, margin: '0 auto', textAlign: 'center' }}>
-                <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 16px' }}>Contact</h2>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
-                  {buttons.map((b) => (
-                    <a key={b.label} href={b.url} target="_blank" rel="noopener noreferrer nofollow"
-                      style={{ padding: '12px 20px', borderRadius: 10, background: 'var(--ba-bus-primary)', color: '#fff', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
-                      {b.label}
-                    </a>
-                  ))}
+              <section key="contact" style={{ padding: '36px 20px', maxWidth: 720, margin: '0 auto', textAlign: 'center' }}>
+                <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 16px' }}>Contact &amp; share</h2>
+                {buttons.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 24 }}>
+                    {buttons.map((b) => (
+                      <a key={b.label} href={b.url} target="_blank" rel="noopener noreferrer nofollow"
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          padding: '7px 13px', borderRadius: 999,
+                          background: 'var(--ba-bus-primary)', color: '#fff',
+                          fontWeight: 700, fontSize: 13,
+                          textDecoration: 'none',
+                        }}>
+                        <span aria-hidden style={{ fontSize: 13 }}>{b.emoji}</span> {b.label}
+                      </a>
+                    ))}
+                  </div>
+                )}
+                {/* QR card — share the page itself */}
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 14,
+                  padding: 14,
+                  background: 'rgba(0,0,0,0.04)',
+                  border: '1px solid rgba(0,0,0,0.08)',
+                  borderRadius: 16,
+                  maxWidth: 520, width: '100%',
+                  textAlign: 'left',
+                }}>
+                  <div style={{ background: '#fff', borderRadius: 10, padding: 6, flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={qrSrc} alt={`Scan to open ${biz.name}`} width={84} height={84} style={{ display: 'block', borderRadius: 6 }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--ba-bus-primary)', margin: 0, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Scan to share</p>
+                    <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--ba-bus-text)', margin: '2px 0', wordBreak: 'break-all' }}>buddyally.com/{biz.slug}</p>
+                    <p style={{ fontSize: 11, color: 'var(--ba-bus-muted)', margin: 0, lineHeight: 1.4 }}>Save the QR or share the link.</p>
+                  </div>
                 </div>
               </section>
             )
@@ -144,7 +223,7 @@ export default function BusinessRenderer({ data }: { data: LoadedBusiness }) {
 
       <footer style={{ padding: '40px 24px 80px', textAlign: 'center', borderTop: '1px solid rgba(0,0,0,0.08)', marginTop: 60, fontSize: 12, color: 'var(--ba-bus-muted)' }}>
         <p>
-          Listed on <a href="/" style={{ color: 'var(--ba-bus-primary)', textDecoration: 'none', fontWeight: 700 }}>BuddyAlly</a>.
+          Listed on <a href="/" target="_blank" rel="noopener" style={{ color: 'var(--ba-bus-primary)', textDecoration: 'none', fontWeight: 700 }}>BuddyAlly</a>.
           Payments and order fulfillment are handled by the seller directly. BuddyAlly facilitates discovery only and is not party to any transaction.
         </p>
       </footer>

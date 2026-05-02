@@ -9,8 +9,9 @@
 // Owners only — RLS in business_wares.business_wares_owner_all enforces
 // that only the owner of the parent business_profile can write.
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ToastProvider'
@@ -39,10 +40,21 @@ const EMPTY_DRAFT: Omit<Ware, 'id' | 'business_id' | 'sort_order'> = {
 }
 
 export default function WaresPage() {
+  return (
+    <Suspense fallback={<p style={{ color: '#6b7280' }}>Loading…</p>}>
+      <WaresPageInner />
+    </Suspense>
+  )
+}
+
+function WaresPageInner() {
   const { user } = useAuth()
   const { success, error: toastError } = useToast()
+  const searchParams = useSearchParams()
+  const requestedBizId = searchParams.get('b')
 
   const [bizId, setBizId] = useState<string | null>(null)
+  const [bizName, setBizName] = useState<string>('')
   const [wares, setWares] = useState<Ware[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | 'new' | null>(null)
@@ -52,13 +64,18 @@ export default function WaresPage() {
   useEffect(() => {
     if (!user) return
     ;(async () => {
-      const { data: biz } = await supabase
+      // Pick the requested business by ?b=<id>, OR fall back to the
+      // user's most recent business if no param. Verify the user owns
+      // it (RLS will reject the query anyway, but UX is nicer).
+      let bizQ = supabase
         .from('business_profiles')
-        .select('id')
+        .select('id, name')
         .eq('user_id', user.id)
-        .maybeSingle()
+      if (requestedBizId) bizQ = bizQ.eq('id', requestedBizId)
+      const { data: bizList } = await bizQ.order('created_at', { ascending: false }).limit(1)
+      const biz = bizList && bizList.length > 0 ? bizList[0] : null
       if (!biz) { setLoading(false); return }
-      setBizId(biz.id)
+      setBizId(biz.id); setBizName(biz.name)
       const { data: w } = await supabase
         .from('business_wares')
         .select('*')
@@ -67,7 +84,7 @@ export default function WaresPage() {
       setWares((w as Ware[]) || [])
       setLoading(false)
     })()
-  }, [user])
+  }, [user, requestedBizId])
 
   function startNew() {
     setDraft(EMPTY_DRAFT)
@@ -159,9 +176,11 @@ export default function WaresPage() {
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '20px 4px 80px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-        <Link href="/dashboard/business" style={{ color: '#3293cb', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>← Business</Link>
+        <Link href={bizId ? `/dashboard/business?id=${bizId}` : '/dashboard/business'} style={{ color: '#3293cb', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>← Back</Link>
       </div>
-      <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em', marginBottom: 4 }}>Wares</h1>
+      <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em', marginBottom: 4 }}>
+        Wares {bizName && <span style={{ color: '#6b7280', fontWeight: 600 }}>· {bizName}</span>}
+      </h1>
       <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 22 }}>
         Add the products and services you sell. Each ware shows on your public business page with a
         Buy / Inquire button that links to the payment URL you set (or the business default).

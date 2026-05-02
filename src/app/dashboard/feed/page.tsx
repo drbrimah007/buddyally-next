@@ -13,11 +13,23 @@ import { useAuth } from '@/hooks/useAuth'
 import Paginator from '@/components/Paginator'
 import PostComposer from '@/components/PostComposer'
 import SuggestedFollows from '@/components/SuggestedFollows'
+import {
+  BIZALLY_ACCENT,
+  BIZALLY_ACCENT_BG,
+  BIZALLY_ACCENT_FG,
+  BUSINESS_FEATURE_ENABLED,
+  availabilityMeta,
+  isLive,
+} from '@/lib/business'
 
 type FeedItem =
   | { kind: 'activity'; ts: string; data: any }
   | { kind: 'post'; ts: string; data: any }
   | { kind: 'saved_match'; ts: string; data: any; savedSearchName: string }
+  // Bizally — businesses participating in real-world flow. Ts is
+  // status_updated_at so newly-broadcast businesses surface alongside
+  // fresh activities/posts. Cards open the public storefront.
+  | { kind: 'business'; ts: string; data: any }
 
 const PAGE_SIZE = 20
 
@@ -83,7 +95,7 @@ export default function FeedPage() {
 
       // Parallel queries, bounded to recent 60 days for the following-based feeds.
       const since = new Date(Date.now() - 60 * 24 * 3600 * 1000).toISOString()
-      const [actRes, postRes, savedRes, myPostsRes] = await Promise.all([
+      const [actRes, postRes, savedRes, myPostsRes, bizRes] = await Promise.all([
         ids.length
           ? supabase
               .from('activities')
@@ -117,6 +129,19 @@ export default function FeedPage() {
           .is('deleted_at', null)
           .order('created_at', { ascending: false })
           .limit(5),
+        // Bizally — currently-active businesses. Mixed into the feed by
+        // status_updated_at so recently-broadcast businesses surface
+        // alongside fresh activities/posts. Cap at 30 so they don't
+        // dominate. Feature-flagged + skipped entirely when off.
+        BUSINESS_FEATURE_ENABLED
+          ? supabase
+              .from('business_profiles')
+              .select('id, slug, name, tagline, logo_url, cover_image_url, home_display_name, availability_state, status_message, status_updated_at, status_expires_at')
+              .eq('status', 'published')
+              .neq('availability_state', 'closed')
+              .order('status_updated_at', { ascending: false })
+              .limit(30)
+          : Promise.resolve({ data: [] }),
       ])
       setMyPosts((myPostsRes.data as any[]) || [])
 
@@ -150,10 +175,19 @@ export default function FeedPage() {
         })
       )
 
-      // Merge + sort DESC by timestamp
+      // Filter out expired live statuses client-side (DB cron / scheduled
+      // job will eventually flip them; for now we just hide them).
+      const nowMs = Date.now()
+      const liveBiz = (bizRes.data || []).filter((b: any) =>
+        !b.status_expires_at || new Date(b.status_expires_at).getTime() > nowMs
+      )
+
+      // Merge + sort DESC by timestamp. Bizally cards interleave naturally
+      // with activities/posts/saved-matches by recency.
       const merged: FeedItem[] = [
         ...(actRes.data || []).map((a: any) => ({ kind: 'activity' as const, ts: a.created_at, data: a })),
         ...(postRes.data || []).map((p: any) => ({ kind: 'post' as const, ts: p.created_at, data: p })),
+        ...liveBiz.map((b: any) => ({ kind: 'business' as const, ts: b.status_updated_at, data: b })),
         ...savedMatches,
       ].sort((x, y) => +new Date(y.ts) - +new Date(x.ts))
 
@@ -281,6 +315,71 @@ function FeedCard({
 }) {
   if (item.kind === 'post') {
     return <PostCard post={item.data} ts={item.ts} currentUserId={currentUserId} onChanged={onPostChanged} />
+  }
+
+  // Bizally — live businesses get their own card style. Amber accent,
+  // pulsing dot, status_message as the lead. Cards open the public
+  // storefront in a new tab so the user doesn't lose their feed scroll.
+  if (item.kind === 'business') {
+    const b = item.data
+    const meta = availabilityMeta(b.availability_state)
+    return (
+      <Link href={`/${b.slug}`} target="_blank" rel="noopener" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <article style={{
+          background: '#fff',
+          border: '1px solid #E5E7EB',
+          borderLeft: `4px solid ${BIZALLY_ACCENT}`,
+          borderRadius: 16,
+          padding: 14,
+          display: 'flex',
+          gap: 12,
+          alignItems: 'flex-start',
+        }}>
+          {b.logo_url ? (
+            <img src={b.logo_url} alt="" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+          ) : (
+            <div style={{ width: 44, height: 44, borderRadius: 10, background: BIZALLY_ACCENT_BG, color: BIZALLY_ACCENT_FG, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, flexShrink: 0 }}>
+              {b.name?.[0]?.toUpperCase() || 'B'}
+            </div>
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+              <span style={{
+                fontSize: 9, fontWeight: 900, letterSpacing: '0.12em',
+                color: BIZALLY_ACCENT_FG, background: BIZALLY_ACCENT_BG,
+                padding: '2px 7px', borderRadius: 4,
+              }}>
+                BUSINESS
+              </span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                {b.name}
+              </span>
+              <span style={{ fontSize: 11, color: '#9CA3AF', marginLeft: 'auto' }}>{relTime(item.ts)}</span>
+            </div>
+            {isLive(b.availability_state) && (
+              <p style={{ fontSize: 13, fontWeight: 700, color: meta.color, margin: '0 0 4px' }}>
+                <span aria-hidden>{meta.emoji}</span> {meta.label}
+              </p>
+            )}
+            {b.status_message && (
+              <p style={{ fontSize: 13, color: '#374151', margin: '0 0 4px', lineHeight: 1.5 }}>
+                {b.status_message}
+              </p>
+            )}
+            {!b.status_message && b.tagline && (
+              <p style={{ fontSize: 13, color: '#6B7280', margin: 0, lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
+                {b.tagline}
+              </p>
+            )}
+            {b.home_display_name && (
+              <p style={{ fontSize: 11, color: '#9CA3AF', margin: '4px 0 0' }}>
+                📍 {String(b.home_display_name).split(',')[0]}
+              </p>
+            )}
+          </div>
+        </article>
+      </Link>
+    )
   }
 
   // activity or saved_match — same card shape, different badge

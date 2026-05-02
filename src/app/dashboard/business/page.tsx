@@ -13,23 +13,30 @@
 // /dashboard sidebar link is also gated; without the flag the route is
 // reachable by direct URL but not advertised anywhere.
 
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ToastProvider'
 import {
+  AVAILABILITY_STATES,
   BUSINESS_FEATURE_ENABLED,
   BUSINESS_CATEGORIES,
+  BIZALLY_ACCENT,
   COLOR_PRESETS,
   DEFAULT_THEME,
+  FONT_PRESETS,
   MAX_CATEGORIES,
+  availabilityMeta,
   validateSlug,
   slugErrorMessage,
   businessUrl,
+  type AvailabilityState,
   type BusinessTheme,
   type BusinessTemplate,
   type ColorPreset,
+  type FontFamily,
   type SectionConfig,
 } from '@/lib/business'
 import { searchPlaces as searchPlacesApi, pickPlace, renderPlaceLabel } from '@/lib/geo'
@@ -81,17 +88,33 @@ type Biz = {
   home_lng: number | null
   home_country_code: string
   home_state_code: string
+  availability_state: AvailabilityState
+  status_message: string
+  status_expires_at: string | null
   status: 'draft' | 'published' | 'suspended'
   theme: BusinessTheme
   allow_indexing: boolean
 }
 
 export default function DashboardBusinessPage() {
+  return (
+    <Suspense fallback={<p style={{ color: '#6b7280' }}>Loading…</p>}>
+      <DashboardBusinessPageInner />
+    </Suspense>
+  )
+}
+
+function DashboardBusinessPageInner() {
   const { user } = useAuth()
   const { success, error: toastError } = useToast()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const requestedId = searchParams.get('id')
 
   const [loading, setLoading] = useState(true)
+  const [allMyBusinesses, setAllMyBusinesses] = useState<{ id: string; name: string; status: string }[]>([])
   const [biz, setBiz] = useState<Biz | null>(null)
+  const [dirty, setDirty] = useState(false)
   const [form, setForm] = useState<Biz>({
     id: '',
     slug: '',
@@ -108,6 +131,9 @@ export default function DashboardBusinessPage() {
     home_lng: null,
     home_country_code: '',
     home_state_code: '',
+    availability_state: 'closed' as AvailabilityState,
+    status_message: '',
+    status_expires_at: null,
     status: 'draft',
     theme: DEFAULT_THEME,
     allow_indexing: false,
@@ -156,13 +182,30 @@ export default function DashboardBusinessPage() {
     })
   }
 
-  // Load existing business (if any) for this user
+  // Load all of this user's businesses (for the switcher) plus the
+  // currently-selected one. Selected = ?id=<uuid> if present, else
+  // the most recent one. ?id=new clears form for create flow.
   useEffect(() => {
     if (!user) return
     ;(async () => {
+      const { data: list } = await supabase
+        .from('business_profiles')
+        .select('id, name, status')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+      setAllMyBusinesses((list as any) || [])
+
+      if (requestedId === 'new') {
+        setBiz(null); setLoading(false); return
+      }
+
+      const targetId = requestedId || (list && list.length > 0 ? list[0].id : null)
+      if (!targetId) { setLoading(false); return }
+
       const { data } = await supabase
         .from('business_profiles')
         .select('*')
+        .eq('id', targetId)
         .eq('user_id', user.id)
         .maybeSingle()
       if (data) {
@@ -182,19 +225,39 @@ export default function DashboardBusinessPage() {
           home_lng: data.home_lng ?? null,
           home_country_code: data.home_country_code || '',
           home_state_code: data.home_state_code || '',
+          availability_state: (data.availability_state as AvailabilityState) || 'closed',
+          status_message: data.status_message || '',
+          status_expires_at: data.status_expires_at || null,
           status: data.status,
           theme: (data.theme as BusinessTheme) || DEFAULT_THEME,
           allow_indexing: !!data.allow_indexing,
         }
         setBiz(loaded)
         setForm(loaded)
+        setDirty(false)
       }
       setLoading(false)
     })()
-  }, [user])
+  }, [user, requestedId])
 
   function updateField<K extends keyof Biz>(key: K, value: Biz[K]) {
     setForm((f) => ({ ...f, [key]: value }))
+    setDirty(true)
+  }
+
+  // Browser-level beforeunload warning (covers tab close, refresh).
+  useEffect(() => {
+    if (!dirty) return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [dirty])
+
+  // Wrapper for the "Manage wares" link — confirms unsaved changes
+  // before navigating away.
+  function handleNavToWares() {
+    if (dirty && !confirm('You have unsaved changes. Save them first, or discard and continue to wares?')) return
+    if (biz) router.push(`/dashboard/business/wares?b=${biz.id}`)
   }
   function updateTheme(patch: Partial<BusinessTheme>) {
     setForm((f) => ({ ...f, theme: { ...f.theme, ...patch } }))
@@ -242,6 +305,9 @@ export default function DashboardBusinessPage() {
       home_lng: form.home_lng,
       home_country_code: form.home_country_code || null,
       home_state_code: form.home_state_code || null,
+      availability_state: form.availability_state,
+      status_message: form.status_message || null,
+      status_expires_at: form.status_expires_at,
       theme: form.theme,
     }
     if (biz) {
@@ -253,6 +319,7 @@ export default function DashboardBusinessPage() {
       if (error) { toastError('Save failed: ' + error.message); return }
       success('Saved.')
       setBiz({ ...biz, ...form, id: biz.id })
+      setDirty(false)
     } else {
       const { data, error } = await supabase.from('business_profiles').insert({
         user_id: user.id,
@@ -282,7 +349,12 @@ export default function DashboardBusinessPage() {
         theme: (data.theme as BusinessTheme) || DEFAULT_THEME,
         allow_indexing: !!data.allow_indexing,
       }
-      setBiz(loaded); setForm(loaded)
+      setBiz(loaded); setForm(loaded); setDirty(false)
+      // After create, jump URL to ?id=<newId> so the switcher reflects it
+      router.replace(`/dashboard/business?id=${loaded.id}`)
+      // Refresh switcher list
+      const { data: list } = await supabase.from('business_profiles').select('id, name, status').eq('user_id', user.id).order('created_at', { ascending: false })
+      setAllMyBusinesses((list as any) || [])
     }
   }
 
@@ -310,13 +382,50 @@ export default function DashboardBusinessPage() {
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '20px 4px 80px' }}>
       <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em', marginBottom: 6 }}>
-        {biz ? 'Your business page' : 'Create your business page'}
+        {biz ? 'Edit business page' : 'Create business page'}
       </h1>
-      <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 22 }}>
+      <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 18 }}>
         Set up a public storefront for your wares, services, or work. Payments
-        happen on your own channels (WhatsApp, payment links, etc.) — BuddyAlly
-        just helps people find you.
+        happen on your own channels — BuddyAlly just helps people find you.
       </p>
+
+      {/* Switcher — pick from existing or create another */}
+      {allMyBusinesses.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 22 }}>
+          {allMyBusinesses.map((b) => {
+            const active = biz?.id === b.id
+            return (
+              <Link
+                key={b.id}
+                href={`/dashboard/business?id=${b.id}`}
+                onClick={(e) => { if (dirty && !confirm('You have unsaved changes. Discard and switch?')) e.preventDefault() }}
+                style={{
+                  padding: '6px 12px', borderRadius: 999,
+                  border: `1.5px solid ${active ? '#3293cb' : '#e5e7eb'}`,
+                  background: active ? '#eff6ff' : '#fff',
+                  color: active ? '#0652b7' : '#111827',
+                  fontSize: 12, fontWeight: 700, textDecoration: 'none',
+                  whiteSpace: 'nowrap', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis',
+                }}
+              >
+                {b.name} <span style={{ fontSize: 10, opacity: 0.6 }}>· {b.status === 'published' ? '●' : '◌'}</span>
+              </Link>
+            )
+          })}
+          <Link
+            href="/dashboard/business?id=new"
+            onClick={(e) => { if (dirty && !confirm('You have unsaved changes. Discard and create new?')) e.preventDefault() }}
+            style={{
+              padding: '6px 12px', borderRadius: 999,
+              border: '1.5px dashed #9ca3af',
+              background: '#fff', color: '#374151',
+              fontSize: 12, fontWeight: 700, textDecoration: 'none',
+            }}
+          >
+            + New business
+          </Link>
+        </div>
+      )}
 
       {biz && (
         <div style={pill}>
@@ -335,6 +444,23 @@ export default function DashboardBusinessPage() {
       {/* QR code — once published, gives owners a one-tap shareable */}
       {biz && biz.status === 'published' && (
         <BusinessQRCard slug={biz.slug} name={biz.name} />
+      )}
+
+      {/* LIVE STATUS — heart of Bizally. Owner broadcasts what's
+          happening RIGHT NOW. Drives placement in the live feed and
+          colors the public page badge. Quick-toggle pills + a free
+          message + an optional auto-revert time. */}
+      {biz && (
+        <LiveStatusBlock
+          state={form.availability_state}
+          message={form.status_message}
+          expiresAt={form.status_expires_at}
+          onChange={(patch) => {
+            if ('state' in patch) updateField('availability_state', patch.state!)
+            if ('message' in patch) updateField('status_message', patch.message ?? '')
+            if ('expiresAt' in patch) updateField('status_expires_at', patch.expiresAt ?? null)
+          }}
+        />
       )}
 
       {/* Slug */}
@@ -392,7 +518,7 @@ export default function DashboardBusinessPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
           <ContactInput
             label="WhatsApp number"
-            placeholder="+234..."
+            placeholder="Your WhatsApp number"
             value={form.contact_methods.whatsapp || ''}
             onChange={(v) => updateField('contact_methods', { ...form.contact_methods, whatsapp: v })}
           />
@@ -410,7 +536,7 @@ export default function DashboardBusinessPage() {
           />
           <ContactInput
             label="Phone"
-            placeholder="+234..."
+            placeholder="Phone number"
             value={form.contact_methods.phone || ''}
             onChange={(v) => updateField('contact_methods', { ...form.contact_methods, phone: v })}
           />
@@ -435,15 +561,16 @@ export default function DashboardBusinessPage() {
         />
       </Field>
 
-      {/* Wares link — separate route, see /dashboard/business/wares */}
+      {/* Wares link — separate route. Confirms unsaved changes first. */}
       {biz && (
-        <Field label="Wares (products & services)" hint={`Add what you sell. ${biz ? '' : 'Save your business first to unlock the wares editor.'}`}>
-          <Link
-            href="/dashboard/business/wares"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 18px', borderRadius: 12, background: '#3293cb', color: '#fff', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}
+        <Field label="Wares (products & services)" hint="Add what you sell.">
+          <button
+            type="button"
+            onClick={handleNavToWares}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 18px', borderRadius: 12, border: 'none', background: '#3293cb', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
           >
             Manage wares →
-          </Link>
+          </button>
         </Field>
       )}
 
@@ -567,6 +694,32 @@ export default function DashboardBusinessPage() {
             : null}
       </Field>
 
+      {/* Font picker — affects every text element on the public page */}
+      <Field label="Font">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8 }}>
+          {(Object.keys(FONT_PRESETS) as FontFamily[]).map((f) => {
+            const fp = FONT_PRESETS[f]
+            const selected = (form.theme.font || 'sans') === f
+            return (
+              <button
+                key={f}
+                type="button"
+                onClick={() => updateTheme({ font: f })}
+                style={{
+                  padding: 12, borderRadius: 10, cursor: 'pointer',
+                  border: `2px solid ${selected ? '#3293cb' : '#e5e7eb'}`,
+                  background: selected ? '#eff6ff' : '#fff',
+                  textAlign: 'left',
+                }}
+              >
+                <p style={{ fontSize: 18, fontWeight: 700, margin: 0, fontFamily: fp.cssStack, color: '#111827' }}>Aa</p>
+                <p style={{ fontSize: 11, fontWeight: 700, color: selected ? '#0652b7' : '#6b7280', margin: '2px 0 0' }}>{fp.label}</p>
+              </button>
+            )
+          })}
+        </div>
+      </Field>
+
       {/* Section builder — drag to reorder, toggle on/off. Native HTML5
           drag (no library) — the dragged section index updates form state
           and the public renderer iterates theme.sections in order. */}
@@ -592,6 +745,134 @@ export default function DashboardBusinessPage() {
       <p style={{ color: '#9ca3af', fontSize: 12, marginTop: 24 }}>
         Stage 1: name, theme, color, status. Coming next: section drag-and-drop, live preview, wares editor, image uploads.
       </p>
+    </div>
+  )
+}
+
+// Live status block — Bizally's defining UI element.
+//
+// State pills (Open now / Available today / Taking requests / Closed)
+// are the primary control. Below that, a free-text message ("Open
+// until 5pm", "Taking 2 more orders today") that visitors actually
+// read. Optional auto-revert lets sellers say "I'm open for the next
+// 2 hours" without remembering to flip back to Closed.
+//
+// All edits push immediately to parent form state — this block is
+// "live" but state still saves through the regular Save button to
+// stay consistent with the rest of the editor.
+function LiveStatusBlock({
+  state, message, expiresAt, onChange,
+}: {
+  state: AvailabilityState
+  message: string
+  expiresAt: string | null
+  onChange: (patch: { state?: AvailabilityState; message?: string; expiresAt?: string | null }) => void
+}) {
+  const meta = availabilityMeta(state)
+  const live = state !== 'closed'
+
+  function setExpiresInHours(h: number | null) {
+    if (h == null) { onChange({ expiresAt: null }); return }
+    const d = new Date(Date.now() + h * 3_600_000)
+    onChange({ expiresAt: d.toISOString() })
+  }
+
+  return (
+    <div style={{
+      background: live ? `linear-gradient(135deg, ${meta.color}10 0%, ${meta.color}06 100%)` : '#f9fafb',
+      border: `2px solid ${live ? meta.color : '#e5e7eb'}`,
+      borderRadius: 18,
+      padding: 16,
+      marginBottom: 22,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <span style={{ fontSize: 18 }}>{meta.emoji}</span>
+        <h3 style={{ fontSize: 14, fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.01em' }}>Live status</h3>
+        <span style={{ fontSize: 10, fontWeight: 800, color: meta.color, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          {meta.chip}
+        </span>
+      </div>
+
+      {/* State pills */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+        {AVAILABILITY_STATES.map((s) => {
+          const active = s.id === state
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => onChange({ state: s.id })}
+              style={{
+                padding: '7px 12px', borderRadius: 999,
+                border: `1.5px solid ${active ? s.color : '#e5e7eb'}`,
+                background: active ? s.color : '#fff',
+                color: active ? '#fff' : '#111827',
+                fontSize: 12, fontWeight: 800, cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              <span aria-hidden>{s.emoji}</span> {s.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Status message */}
+      <input
+        value={message}
+        onChange={(e) => onChange({ message: e.target.value })}
+        placeholder={
+          state === 'open' ? 'e.g. "Open until 5pm · Outdoor seating open"' :
+          state === 'available_today' ? 'e.g. "3 spots open this afternoon"' :
+          state === 'taking_requests' ? 'e.g. "Taking small jobs through Friday"' :
+          'Status hidden when closed'
+        }
+        maxLength={120}
+        disabled={!live}
+        style={{
+          width: '100%', padding: '10px 12px',
+          border: '1.5px solid #e5e7eb', borderRadius: 10,
+          fontSize: 14, color: '#111827',
+          opacity: live ? 1 : 0.5,
+          marginBottom: 10,
+        }}
+      />
+
+      {/* Auto-revert pills */}
+      {live && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, marginRight: 4 }}>Auto-close in:</span>
+          {[
+            { h: 1, label: '1 hr' },
+            { h: 4, label: '4 hrs' },
+            { h: 8, label: 'End of day' },
+            { h: null, label: 'Never' },
+          ].map((opt) => {
+            const active = opt.h == null ? !expiresAt : expiresAt && Math.abs(new Date(expiresAt).getTime() - Date.now() - opt.h * 3_600_000) < 60_000
+            return (
+              <button
+                key={opt.label}
+                type="button"
+                onClick={() => setExpiresInHours(opt.h)}
+                style={{
+                  padding: '4px 10px', borderRadius: 999,
+                  border: `1px solid ${active ? '#3293cb' : '#e5e7eb'}`,
+                  background: active ? '#eff6ff' : '#fff',
+                  color: active ? '#0652b7' : '#374151',
+                  fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                {opt.label}
+              </button>
+            )
+          })}
+          {expiresAt && (
+            <span style={{ fontSize: 11, color: '#6b7280', marginLeft: 4 }}>
+              → flips to Closed at {new Date(expiresAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   )
 }

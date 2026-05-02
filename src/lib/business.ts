@@ -43,6 +43,14 @@ export type SectionConfig = {
   variant?: string
 }
 
+export type FontFamily =
+  | 'sans'        // Inter / system sans — clean, default
+  | 'serif'       // Playfair / Georgia — editorial
+  | 'mono'        // JetBrains Mono / Menlo — technical, dev-style
+  | 'cursive'     // Caveat — handwritten, casual
+  | 'display'     // Anton — bold compact, marketing
+  | 'rounded'     // Quicksand — friendly, soft
+
 export type BusinessTheme = {
   template: BusinessTemplate
   colors: {
@@ -52,7 +60,20 @@ export type BusinessTheme = {
     bg?: string
     text?: string
   }
+  font?: FontFamily
   sections: SectionConfig[]
+}
+
+// Maps each FontFamily to a Google-Fonts CDN URL + a CSS font-stack.
+// We load via standard <link href=...> not next/font so the public page
+// can stay static-renderable without the font subset bundling step.
+export const FONT_PRESETS: Record<FontFamily, { label: string; cssStack: string; href: string }> = {
+  sans:     { label: 'Sans (default)', cssStack: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap' },
+  serif:    { label: 'Serif',          cssStack: "'Playfair Display', Georgia, 'Times New Roman', serif", href: 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&display=swap' },
+  mono:     { label: 'Monospace',      cssStack: "'JetBrains Mono', Menlo, Consolas, monospace", href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&display=swap' },
+  cursive:  { label: 'Cursive',        cssStack: "'Caveat', 'Comic Sans MS', cursive", href: 'https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap' },
+  display:  { label: 'Display (bold)', cssStack: "'Anton', 'Impact', sans-serif", href: 'https://fonts.googleapis.com/css2?family=Anton&display=swap' },
+  rounded:  { label: 'Rounded',        cssStack: "'Quicksand', system-ui, sans-serif", href: 'https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap' },
 }
 
 export const DEFAULT_THEME: BusinessTheme = {
@@ -102,6 +123,7 @@ const RESERVED_SLUGS = new Set([
   'lagos', 'abuja', 'atlanta', 'child-safety',
   'explore', 'feed', 'activities', 'groups', 'allies', 'codes', 'messages',
   'profile', 'alerts', 'business', 'businesses', 'shop', 'shops',
+  'bizally', 'biz', 'bizly',
   // BuddyAlly brand & official-looking
   'buddy', 'ally', 'buddyally', 'buddy-ally',
   'founders', 'founding', 'official', 'staff', 'team',
@@ -170,6 +192,34 @@ export function slugErrorMessage(err: SlugError): string {
 export function businessUrl(slug: string): string {
   return `/${slug}`
 }
+
+// ── Live presence (Bizally reframe) ──────────────────────────────────
+// Businesses broadcast availability state — the directory is a feed of
+// "who's active right now," not a static listing. Categories still
+// exist below for organization, but UI surfaces availability first.
+
+export type AvailabilityState = 'open' | 'available_today' | 'taking_requests' | 'closed'
+
+export const AVAILABILITY_STATES: { id: AvailabilityState; label: string; chip: string; emoji: string; color: string }[] = [
+  { id: 'open',             label: 'Open now',         chip: 'OPEN NOW',         emoji: '🟢', color: '#16a34a' },
+  { id: 'available_today',  label: 'Available today',  chip: 'AVAILABLE TODAY',  emoji: '🟡', color: '#ca8a04' },
+  { id: 'taking_requests',  label: 'Taking requests',  chip: 'TAKING REQUESTS',  emoji: '🟠', color: '#ea580c' },
+  { id: 'closed',           label: 'Closed',           chip: 'CLOSED',           emoji: '⚫', color: '#6b7280' },
+]
+
+export function availabilityMeta(state: AvailabilityState | string | null | undefined) {
+  return AVAILABILITY_STATES.find((s) => s.id === state) || AVAILABILITY_STATES[3]
+}
+
+export function isLive(state: string | null | undefined): boolean {
+  return state === 'open' || state === 'available_today' || state === 'taking_requests'
+}
+
+// Bizally amber/gold accent — distinguishes BUSINESS from rides/events/help
+// in mixed feeds. Used as a left-border or pill background in cards.
+export const BIZALLY_ACCENT = '#d97706' // amber-600
+export const BIZALLY_ACCENT_BG = '#fef3c7' // amber-100
+export const BIZALLY_ACCENT_FG = '#92400e' // amber-800
 
 // ── Categories ───────────────────────────────────────────────────────
 // Curated, finite list — easier to merchandise, search, and translate
