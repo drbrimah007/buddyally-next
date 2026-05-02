@@ -313,8 +313,9 @@ function DraftCard({
           onChange={(url) => setDraft({ ...draft, image_url: url })}
           purpose="ware"
           label={isLink ? 'Image (optional)' : 'Image'}
-          aspect="1/1"
-          maxHeight={140}
+          square
+          squareSize={140}
+          squareRounded="md"
         />
 
         {/* Title — required in both */}

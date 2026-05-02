@@ -47,6 +47,9 @@ export default function ImageUploader({
   label,
   aspect = '16/9',
   maxHeight = 180,
+  square,
+  squareSize = 96,
+  squareRounded = 'lg',
 }: {
   value: string
   onChange: (url: string) => void
@@ -54,6 +57,12 @@ export default function ImageUploader({
   label?: string
   aspect?: string
   maxHeight?: number
+  /** Render preview as a fixed-size square (true) instead of a flexible banner. */
+  square?: boolean
+  /** Pixel size of the square preview — defaults to 96px (logo display size). */
+  squareSize?: number
+  /** Corner rounding when square: 'circle' | 'lg' (20px) | 'md' (12px) | 'sm' (8px). */
+  squareRounded?: 'circle' | 'lg' | 'md' | 'sm'
 }) {
   const { user } = useAuth()
   const { error: toastError, success } = useToast()
@@ -84,29 +93,53 @@ export default function ImageUploader({
     }
   }
 
+  // Square mode renders a fixed-size preview matching the actual display
+  // size on the public page. Logos in particular were stretching wide
+  // because flex:1 + aspectRatio doesn't behave like a true 1:1 box.
+  const radius = squareRounded === 'circle' ? '50%'
+    : squareRounded === 'lg' ? 20
+    : squareRounded === 'md' ? 12 : 8
+
   return (
     <div>
       {label && <label style={lbl}>{label}</label>}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        {/* Preview */}
-        <div style={{
-          flex: 1,
-          aspectRatio: aspect,
-          maxHeight,
-          background: '#f3f4f6',
-          border: '1.5px dashed #e5e7eb',
-          borderRadius: 12,
-          overflow: 'hidden',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#9ca3af', fontSize: 12,
-        }}>
-          {value
-            ? <img src={value} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : 'No image yet'}
-        </div>
+        {/* Preview — square mode renders at actual display size */}
+        {square ? (
+          <div style={{
+            width: squareSize, height: squareSize, flexShrink: 0,
+            background: value ? '#fff' : '#f3f4f6',
+            border: '1.5px dashed #e5e7eb',
+            borderRadius: radius,
+            overflow: 'hidden',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#9ca3af', fontSize: 11, fontWeight: 600,
+            boxShadow: value ? '0 4px 14px rgba(0,0,0,0.10)' : 'none',
+          }}>
+            {value
+              ? <img src={value} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : 'No image'}
+          </div>
+        ) : (
+          <div style={{
+            flex: 1,
+            aspectRatio: aspect,
+            maxHeight,
+            background: '#f3f4f6',
+            border: '1.5px dashed #e5e7eb',
+            borderRadius: 12,
+            overflow: 'hidden',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#9ca3af', fontSize: 12,
+          }}>
+            {value
+              ? <img src={value} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : 'No image yet'}
+          </div>
+        )}
 
-        {/* Buttons */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {/* Buttons + helper text */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: square ? 1 : 'initial' }}>
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
@@ -119,6 +152,11 @@ export default function ImageUploader({
             <button type="button" onClick={() => onChange('')} style={btnSecondary}>
               Remove
             </button>
+          )}
+          {square && (
+            <p style={{ fontSize: 11, color: '#6b7280', margin: '4px 0 0', lineHeight: 1.4 }}>
+              Shown at <b>{squareSize}×{squareSize}px</b> on your page. Square images crop best — we auto-fit center.
+            </p>
           )}
         </div>
       </div>

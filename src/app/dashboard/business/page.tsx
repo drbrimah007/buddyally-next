@@ -503,14 +503,16 @@ function DashboardBusinessPageInner() {
         />
       </Field>
 
-      {/* Logo */}
-      <Field label="Logo" hint="Square icon shown in the header and search results.">
+      {/* Logo — square preview at exact display size (96px) so what you
+          see in the editor is what visitors see on the public page. */}
+      <Field label="Logo" hint="Square icon shown in the header and in search results.">
         <ImageUploader
           value={form.logo_url}
           onChange={(url) => updateField('logo_url', url)}
           purpose="logo"
-          aspect="1/1"
-          maxHeight={120}
+          square
+          squareSize={96}
+          squareRounded="lg"
         />
       </Field>
 

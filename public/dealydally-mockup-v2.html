@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DealyDally — Shop brands that pay you back</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --ink:#141414;
+      --paper:#fbfaf6;
+      --paper-2:#f3f0e7;
+      --muted:#6b6660;
+      --line:#e6e1d4;
+      --orange-1:#f5a623;
+      --orange-2:#ff5e1a;
+      --orange-deep:#e74400;
+      --grad: linear-gradient(135deg,#f5a623 0%,#ff5e1a 60%,#e74400 100%);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family:'Manrope',system-ui,sans-serif;
+      color:var(--ink);
+      background:var(--paper);
+      -webkit-font-smoothing:antialiased;
+      font-feature-settings:"ss01","cv11";
+    }
+    a{color:inherit;text-decoration:none}
+
+    /* ───── Announcement bar ───── */
+    .announce{
+      background:var(--ink);
+      color:#fff;
+      font-family:'JetBrains Mono',monospace;
+      font-size:12px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      padding:10px 0;
+      overflow:hidden;
+      position:relative;
+    }
+    .announce-track{
+      display:flex;
+      gap:60px;
+      white-space:nowrap;
+      animation:scroll 35s linear infinite;
+      width:max-content;
+    }
+    .announce span::before{content:"◆ ";color:var(--orange-1)}
+    @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+    /* ───── Nav ───── */
+    .nav{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:18px 6vw;
+      border-bottom:1px solid var(--line);
+      background:var(--paper);
+      position:sticky;top:0;z-index:50;
+    }
+    .logo{display:flex;align-items:center;gap:12px}
+    .logo strong{
+      font-family:'Anton',sans-serif;
+      font-weight:400;
+      font-size:24px;
+      letter-spacing:.02em;
+    }
+    .logo-mark{
+      width:32px;height:32px;
+      background:var(--grad);
+      border-radius:8px;
+      display:flex;align-items:center;justify-content:center;
+      color:#fff;
+      font-family:'Anton',sans-serif;
+      font-size:18px;
+    }
+    .links{display:flex;gap:28px;align-items:center}
+    .links a{
+      font-weight:600;
+      font-size:14px;
+      color:var(--ink);
+      position:relative;
+      padding:6px 0;
+    }
+    .links a::after{
+      content:"";
+      position:absolute;left:0;bottom:0;
+      width:0;height:2px;
+      background:var(--grad);
+      transition:width .25s ease;
+    }
+    .links a:hover::after{width:100%}
+    .nav-cta{
+      background:var(--ink);
+      color:#fff;
+      padding:10px 18px;
+      border-radius:999px;
+      font-weight:700;
+      font-size:13px;
+      letter-spacing:.02em;
+      transition:transform .2s ease;
+    }
+    .nav-cta:hover{transform:translateY(-1px)}
+
+    /* ───── Hero ───── */
+    .hero{
+      max-width:1240px;
+      margin:auto;
+      padding:90px 6vw 60px;
+      position:relative;
+    }
+    .hero-eyebrow{
+      font-family:'JetBrains Mono',monospace;
+      font-size:12px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      color:var(--orange-deep);
+      margin-bottom:24px;
+      display:flex;align-items:center;gap:10px;
+    }
+    .hero-eyebrow::before{
+      content:"";
+      width:32px;height:2px;
+      background:var(--grad);
+    }
+    .hero h1{
+      font-family:'Anton',sans-serif;
+      font-weight:400;
+      font-size:clamp(56px,9vw,128px);
+      line-height:.92;
+      letter-spacing:-.01em;
+      margin:0 0 28px;
+      text-transform:uppercase;
+    }
+    .hero h1 .accent{
+      background:var(--grad);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      font-style:italic;
+    }
+    .hero h1 .strike{
+      position:relative;
+      color:var(--muted);
+      opacity:.55;
+    }
+    .hero h1 .strike::after{
+      content:"";
+      position:absolute;
+      left:-2%;right:-2%;top:52%;
+      height:8px;
+      background:var(--grad);
+      transform:rotate(-3deg);
+    }
+    .hero-sub{
+      font-size:20px;
+      color:var(--muted);
+      max-width:640px;
+      line-height:1.5;
+      margin:0 0 36px;
+    }
+    .hero-actions{display:flex;gap:14px;flex-wrap:wrap}
+    .btn-primary{
+      background:var(--grad);
+      color:#fff;
+      padding:16px 28px;
+      border-radius:999px;
+      font-weight:700;
+      font-size:15px;
+      border:none;
+      cursor:pointer;
+      box-shadow:0 6px 20px rgba(231,68,0,.25);
+      transition:transform .2s ease, box-shadow .2s ease;
+    }
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(231,68,0,.35)}
+    .btn-ghost{
+      background:transparent;
+      color:var(--ink);
+      padding:16px 28px;
+      border-radius:999px;
+      font-weight:700;
+      font-size:15px;
+      border:1.5px solid var(--ink);
+      cursor:pointer;
+    }
+
+    /* Stats strip */
+    .hero-stats{
+      display:flex;
+      gap:48px;
+      margin-top:64px;
+      padding-top:36px;
+      border-top:1px solid var(--line);
+      flex-wrap:wrap;
+    }
+    .stat .num{
+      font-family:'Anton',sans-serif;
+      font-size:48px;
+      line-height:1;
+      letter-spacing:-.01em;
+    }
+    .stat .num .grad{
+      background:var(--grad);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+    .stat .label{
+      font-size:13px;
+      color:var(--muted);
+      margin-top:6px;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      font-weight:600;
+    }
+
+    /* ───── How it works strip ───── */
+    .how{
+      max-width:1240px;
+      margin:0 auto;
+      padding:0 6vw 20px;
+    }
+    .how-inner{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:18px;
+    }
+    .how-step{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      padding:22px 24px;
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:16px;
+      position:relative;
+    }
+    .how-step .step-num{
+      font-family:'Anton',sans-serif;
+      font-size:36px;
+      line-height:1;
+      background:var(--grad);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      flex:0 0 auto;
+    }
+    .how-step .step-text strong{
+      font-size:15px;
+      font-weight:800;
+      letter-spacing:-.005em;
+      display:block;
+      margin-bottom:2px;
+    }
+    .how-step .step-text span{
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.4;
+    }
+    .how-arrow{
+      position:absolute;
+      right:-18px;
+      top:50%;
+      transform:translateY(-50%);
+      width:28px;height:28px;
+      background:var(--paper);
+      border:1px solid var(--line);
+      border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-size:12px;
+      color:var(--orange-deep);
+      z-index:2;
+    }
+    .how-step:last-child .how-arrow{display:none}
+
+    /* ───── Section heading ───── */
+    .section-head{
+      max-width:1240px;
+      margin:80px auto 28px;
+      padding:0 6vw;
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:24px;
+      flex-wrap:wrap;
+    }
+    .section-head h2{
+      font-family:'Anton',sans-serif;
+      font-weight:400;
+      font-size:clamp(36px,5vw,64px);
+      line-height:1;
+      letter-spacing:-.005em;
+      margin:0;
+      text-transform:uppercase;
+    }
+    .section-head .meta{
+      font-family:'JetBrains Mono',monospace;
+      font-size:12px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+
+    /* ───── Product grid ───── */
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:18px;
+      max-width:1240px;
+      margin:0 auto 80px;
+      padding:0 6vw;
+    }
+    .product{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:18px;
+      overflow:hidden;
+      transition:transform .25s ease, box-shadow .25s ease;
+      display:flex;flex-direction:column;
+      position:relative;
+    }
+    .product:hover{transform:translateY(-4px);box-shadow:0 18px 40px -12px rgba(20,20,20,.12)}
+    .product-img{
+      position:relative;
+      aspect-ratio:1/1;
+      background:var(--paper-2);
+      overflow:hidden;
+    }
+    .product-img img{
+      width:100%;height:100%;
+      object-fit:cover;
+      transition:transform .5s ease;
+    }
+    .product:hover .product-img img{transform:scale(1.05)}
+
+    /* Reward badge — now visually tied to the share button */
+    .reward-badge{
+      position:absolute;
+      top:12px;left:12px;
+      background:var(--ink);
+      color:#fff;
+      padding:7px 11px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:.04em;
+      display:flex;align-items:center;gap:6px;
+      transition:transform .25s ease, box-shadow .25s ease;
+    }
+    .reward-badge::before{
+      content:"";
+      width:6px;height:6px;border-radius:50%;
+      background:var(--grad);
+      animation:pulse 2.5s ease-in-out infinite;
+    }
+    @keyframes pulse{
+      0%,100%{opacity:1;transform:scale(1)}
+      50%{opacity:.5;transform:scale(1.4)}
+    }
+    .product:hover .reward-badge{
+      transform:translateY(-2px);
+      box-shadow:0 6px 14px rgba(231,68,0,.35);
+    }
+
+    .product-body{padding:16px;display:flex;flex-direction:column;flex:1}
+    .product-cat{
+      font-family:'JetBrains Mono',monospace;
+      font-size:10px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+    .product h4{
+      margin:0 0 12px;
+      font-size:16px;
+      font-weight:700;
+      letter-spacing:-.005em;
+      line-height:1.25;
+    }
+    .price-row{
+      display:flex;align-items:baseline;
+      gap:8px;
+      margin-bottom:14px;
+      margin-top:auto;
+    }
+    .price{
+      font-family:'Anton',sans-serif;
+      font-size:28px;
+      letter-spacing:.005em;
+    }
+    .price-was{
+      font-size:13px;
+      color:var(--muted);
+      text-decoration:line-through;
+    }
+    .actions{display:flex;gap:8px}
+    .actions button{
+      padding:11px 14px;
+      border:none;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:700;
+      font-size:13px;
+      letter-spacing:.02em;
+      transition:transform .15s ease, background .2s ease;
+      font-family:inherit;
+    }
+    .actions button:hover{transform:translateY(-1px)}
+    .cart{
+      background:var(--ink);
+      color:#fff;
+      flex:1;
+    }
+    /* Share button now communicates the earnings — the core fix */
+    .share{
+      background:#fff;
+      border:1.5px solid var(--ink);
+      color:var(--ink);
+      flex:0 0 auto;
+      display:flex;align-items:center;gap:6px;
+      padding:11px 14px;
+      position:relative;
+    }
+    .share .share-icon{
+      width:14px;height:14px;
+      display:inline-flex;align-items:center;justify-content:center;
+      font-size:13px;
+    }
+    .share .share-pct{
+      font-family:'JetBrains Mono',monospace;
+      font-weight:600;
+      font-size:12px;
+      background:var(--grad);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+    .product:hover .share{
+      background:var(--ink);
+      color:#fff;
+      border-color:var(--ink);
+    }
+
+    /* Tiny helper line under price */
+    .share-hint{
+      font-size:11px;
+      color:var(--muted);
+      margin-top:-8px;
+      margin-bottom:12px;
+      font-family:'JetBrains Mono',monospace;
+      letter-spacing:.05em;
+    }
+    .share-hint b{
+      color:var(--orange-deep);
+      font-weight:700;
+    }
+
+    /* ───── Brand banner ───── */
+    .brand-banner{
+      max-width:1240px;
+      margin:60px auto 100px;
+      padding:0 6vw;
+    }
+    .brand-banner-inner{
+      background:var(--ink);
+      color:#fff;
+      border-radius:24px;
+      padding:64px 56px;
+      position:relative;
+      overflow:hidden;
+      display:grid;
+      grid-template-columns:1.4fr 1fr;
+      gap:48px;
+      align-items:center;
+    }
+    .brand-banner-inner::before{
+      content:"";
+      position:absolute;
+      right:-120px;top:-120px;
+      width:480px;height:480px;
+      background:var(--grad);
+      filter:blur(80px);
+      opacity:.35;
+      border-radius:50%;
+    }
+    .brand-banner-inner > *{position:relative;z-index:1}
+    .brand-banner .tag{
+      font-family:'JetBrains Mono',monospace;
+      font-size:11px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      color:var(--orange-1);
+      margin-bottom:18px;
+    }
+    .brand-banner h2{
+      font-family:'Anton',sans-serif;
+      font-weight:400;
+      font-size:clamp(40px,5vw,72px);
+      line-height:.95;
+      margin:0 0 18px;
+      text-transform:uppercase;
+      letter-spacing:-.005em;
+    }
+    .brand-banner h2 .grad{
+      background:var(--grad);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+    .brand-banner p{
+      font-size:17px;
+      line-height:1.55;
+      color:#bdb6ad;
+      max-width:520px;
+      margin:0 0 28px;
+    }
+    .brand-cta{
+      background:#fff;
+      color:var(--ink);
+      padding:14px 26px;
+      border-radius:999px;
+      font-weight:700;
+      font-size:14px;
+      display:inline-flex;align-items:center;gap:8px;
+      transition:transform .2s ease;
+    }
+    .brand-cta:hover{transform:translateY(-2px)}
+    .brand-arrow{
+      width:18px;height:18px;
+      background:var(--grad);
+      border-radius:50%;
+      display:inline-flex;align-items:center;justify-content:center;
+      color:#fff;font-size:11px;
+    }
+
+    .compare{display:flex;flex-direction:column;gap:14px}
+    .compare-row{
+      display:flex;align-items:center;gap:14px;
+      padding:14px 18px;
+      border-radius:12px;
+      font-size:14px;
+    }
+    .compare-row.old{
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+      color:#8a857d;
+    }
+    .compare-row.old .label{text-decoration:line-through}
+    .compare-row.new{
+      background:var(--grad);
+      color:#fff;
+      font-weight:700;
+    }
+    .compare-row .icon{
+      width:24px;height:24px;
+      display:flex;align-items:center;justify-content:center;
+      flex-shrink:0;
+    }
+    .compare-row .label{flex:1}
+    .compare-row .pct{
+      font-family:'JetBrains Mono',monospace;
+      font-weight:600;
+    }
+
+    /* ───── Footer ───── */
+    footer{
+      border-top:1px solid var(--line);
+      padding:48px 6vw 36px;
+    }
+    .foot{
+      max-width:1240px;
+      margin:auto;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:32px;
+      flex-wrap:wrap;
+    }
+    .foot .col{display:flex;flex-direction:column;gap:8px}
+    .foot .col strong{
+      font-family:'JetBrains Mono',monospace;
+      font-size:11px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color:var(--muted);
+      margin-bottom:8px;
+      font-weight:500;
+    }
+    .foot .col a{font-size:14px;color:var(--ink);font-weight:600}
+    .foot-bottom{
+      max-width:1240px;
+      margin:36px auto 0;
+      padding-top:24px;
+      border-top:1px solid var(--line);
+      display:flex;justify-content:space-between;
+      font-size:12px;color:var(--muted);
+      flex-wrap:wrap;gap:12px;
+    }
+
+    @media(max-width:900px){
+      .grid{grid-template-columns:1fr 1fr}
+      .brand-banner-inner{grid-template-columns:1fr;padding:44px 32px}
+      .links{display:none}
+      .hero{padding:60px 6vw 40px}
+      .how-inner{grid-template-columns:1fr}
+      .how-arrow{display:none !important}
+    }
+    @media(max-width:520px){
+      .grid{grid-template-columns:1fr 1fr;gap:12px}
+      .hero-stats{gap:24px}
+      .stat .num{font-size:36px}
+    }
+
+    /* ───── Share modal (hidden by default) ───── */
+    .share-modal-bg{
+      position:fixed;inset:0;
+      background:rgba(20,20,20,.55);
+      backdrop-filter:blur(6px);
+      -webkit-backdrop-filter:blur(6px);
+      display:none;
+      align-items:center;justify-content:center;
+      z-index:100;
+      padding:24px;
+    }
+    .share-modal-bg.open{display:flex}
+    .share-modal{
+      background:var(--paper);
+      border-radius:20px;
+      max-width:440px;width:100%;
+      padding:32px;
+      position:relative;
+      box-shadow:0 30px 80px rgba(0,0,0,.3);
+    }
+    .share-modal .close{
+      position:absolute;top:16px;right:16px;
+      background:transparent;border:none;
+      font-size:22px;cursor:pointer;color:var(--muted);
+    }
+    .share-modal .modal-eyebrow{
+      font-family:'JetBrains Mono',monospace;
+      font-size:11px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color:var(--orange-deep);
+      margin-bottom:8px;
+    }
+    .share-modal h3{
+      font-family:'Anton',sans-serif;
+      font-weight:400;
+      font-size:32px;
+      line-height:1;
+      margin:0 0 8px;
+      text-transform:uppercase;
+    }
+    .share-modal h3 .grad{
+      background:var(--grad);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+    .share-modal p{
+      font-size:14px;
+      color:var(--muted);
+      line-height:1.5;
+      margin:0 0 20px;
+    }
+    .share-link-row{
+      display:flex;
+      gap:8px;
+      margin-bottom:18px;
+    }
+    .share-link-row input{
+      flex:1;
+      padding:12px 14px;
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:#fff;
+      font-family:'JetBrains Mono',monospace;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .share-link-row button{
+      padding:12px 18px;
+      background:var(--ink);
+      color:#fff;
+      border:none;
+      border-radius:10px;
+      font-weight:700;
+      font-size:13px;
+      cursor:pointer;
+    }
+    .share-channels{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:8px;
+      margin-bottom:20px;
+    }
+    .share-channels .ch{
+      padding:14px 0;
+      border:1px solid var(--line);
+      border-radius:10px;
+      text-align:center;
+      font-size:11px;
+      font-weight:700;
+      cursor:pointer;
+      background:#fff;
+      transition:transform .15s ease;
+    }
+    .share-channels .ch:hover{transform:translateY(-2px)}
+    .modal-earn{
+      padding:14px 18px;
+      background:var(--ink);
+      color:#fff;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      gap:14px;
+    }
+    .modal-earn .pct{
+      font-family:'Anton',sans-serif;
+      font-size:32px;
+      background:var(--grad);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+    .modal-earn span{font-size:13px;color:#bdb6ad;line-height:1.4}
+  </style>
+</head>
+<body>
+
+<!-- Announcement ticker -->
+<div class="announce">
+  <div class="announce-track">
+    <span>Shop. Share. Earn back.</span>
+    <span>0% platform fees</span>
+    <span>Brands reward shoppers, not algorithms</span>
+    <span>Free shipping on $40+</span>
+    <span>Shop. Share. Earn back.</span>
+    <span>0% platform fees</span>
+    <span>Brands reward shoppers, not algorithms</span>
+    <span>Free shipping on $40+</span>
+  </div>
+</div>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="logo">
+    <div class="logo-mark">D</div>
+    <strong>DEALYDALLY</strong>
+  </div>
+  <div class="links">
+    <a href="#">Shop</a>
+    <a href="#">How it works</a>
+    <a href="#">Brands</a>
+    <a href="#">Rewards</a>
+    <a href="#" class="nav-cta">Sign in</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-eyebrow">A new kind of marketplace</div>
+  <h1>
+    Shop brands<br />
+    that <span class="accent">pay you back.</span>
+  </h1>
+  <p class="hero-sub">
+    Buy what you love. Share it with a friend. Earn up to 20% back on every order.
+    Brands reward you instead of paying ads — that's it.
+  </p>
+  <div class="hero-actions">
+    <button class="btn-primary">Start shopping →</button>
+    <button class="btn-ghost">For brands</button>
+  </div>
+
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="num"><span class="grad">0%</span></div>
+      <div class="label">Platform fees</div>
+    </div>
+    <div class="stat">
+      <div class="num"><span class="grad">15%</span></div>
+      <div class="label">Avg. shopper reward</div>
+    </div>
+    <div class="stat">
+      <div class="num">240+</div>
+      <div class="label">Brands onboarded</div>
+    </div>
+    <div class="stat">
+      <div class="num">$2.1M</div>
+      <div class="label">Returned to shoppers</div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works strip -->
+<div class="how">
+  <div class="how-inner">
+    <div class="how-step">
+      <div class="step-num">01</div>
+      <div class="step-text">
+        <strong>Buy something you love</strong>
+        <span>Real brands, real prices. No markup tricks.</span>
+      </div>
+      <div class="how-arrow">→</div>
+    </div>
+    <div class="how-step">
+      <div class="step-num">02</div>
+      <div class="step-text">
+        <strong>Share with a friend</strong>
+        <span>One link. Sent however you want.</span>
+      </div>
+      <div class="how-arrow">→</div>
+    </div>
+    <div class="how-step">
+      <div class="step-num">03</div>
+      <div class="step-text">
+        <strong>Earn cash back</strong>
+        <span>Up to 20% when they buy. Paid to you.</span>
+      </div>
+      <div class="how-arrow">→</div>
+    </div>
+  </div>
+</div>
+
+<!-- Product section -->
+<div class="section-head">
+  <h2>Trending now</h2>
+  <div class="meta">04 / 240 products · Updated today</div>
+</div>
+
+<section class="grid">
+
+  <div class="product">
+    <div class="product-img">
+      <div class="reward-badge">Earn 12% back</div>
+      <img src="https://images.unsplash.com/photo-1612538498488-22d9f24b9476?w=600&q=80" alt="Whitening Toothpaste" />
+    </div>
+    <div class="product-body">
+      <div class="product-cat">Personal Care</div>
+      <h4>Whitening Toothpaste — Mint Charcoal</h4>
+      <div class="price-row">
+        <span class="price">$9.99</span>
+        <span class="price-was">$14.99</span>
+      </div>
+      <div class="share-hint">Share & earn <b>$1.20</b> when a friend buys</div>
+      <div class="actions">
+        <button class="cart">Add to Cart</button>
+        <button class="share" onclick="openShare('Whitening Toothpaste','12')" aria-label="Share to earn">
+          <span class="share-icon">↗</span>
+          <span class="share-pct">+12%</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="product">
+    <div class="product-img">
+      <div class="reward-badge">Earn 18% back</div>
+      <img src="https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=600&q=80" alt="Skin Glow Serum" />
+    </div>
+    <div class="product-body">
+      <div class="product-cat">Skincare</div>
+      <h4>Skin Glow Serum — Vitamin C + Niacinamide</h4>
+      <div class="price-row">
+        <span class="price">$24.99</span>
+        <span class="price-was">$34.00</span>
+      </div>
+      <div class="share-hint">Share & earn <b>$4.50</b> when a friend buys</div>
+      <div class="actions">
+        <button class="cart">Add to Cart</button>
+        <button class="share" onclick="openShare('Skin Glow Serum','18')" aria-label="Share to earn">
+          <span class="share-icon">↗</span>
+          <span class="share-pct">+18%</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="product">
+    <div class="product-img">
+      <div class="reward-badge">Earn 8% back</div>
+      <img src="https://images.unsplash.com/photo-1565538810643-b5bdb714032a?w=600&q=80" alt="LED Light Strip" />
+    </div>
+    <div class="product-body">
+      <div class="product-cat">Home</div>
+      <h4>LED Light Strip — 16ft RGB Smart Kit</h4>
+      <div class="price-row">
+        <span class="price">$14.99</span>
+        <span class="price-was">$22.99</span>
+      </div>
+      <div class="share-hint">Share & earn <b>$1.20</b> when a friend buys</div>
+      <div class="actions">
+        <button class="cart">Add to Cart</button>
+        <button class="share" onclick="openShare('LED Light Strip','8')" aria-label="Share to earn">
+          <span class="share-icon">↗</span>
+          <span class="share-pct">+8%</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="product">
+    <div class="product-img">
+      <div class="reward-badge">Earn 15% back</div>
+      <img src="https://images.unsplash.com/photo-1517344884509-a0c97ec11bcc?w=600&q=80" alt="Fitness Resistance Bands" />
+    </div>
+    <div class="product-body">
+      <div class="product-cat">Fitness</div>
+      <h4>Resistance Bands — 5 Levels Set</h4>
+      <div class="price-row">
+        <span class="price">$19.99</span>
+        <span class="price-was">$29.99</span>
+      </div>
+      <div class="share-hint">Share & earn <b>$3.00</b> when a friend buys</div>
+      <div class="actions">
+        <button class="cart">Add to Cart</button>
+        <button class="share" onclick="openShare('Resistance Bands','15')" aria-label="Share to earn">
+          <span class="share-icon">↗</span>
+          <span class="share-pct">+15%</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- Brand banner -->
+<div class="brand-banner">
+  <div class="brand-banner-inner">
+    <div>
+      <div class="tag">For brands</div>
+      <h2>Stop paying for ads.<br /><span class="grad">Pay your customers.</span></h2>
+      <p>Every dollar you would have spent on platform fees, ad spend, and influencer agencies — give it back to the customers who actually drive sales.</p>
+      <a href="#" class="brand-cta">List your brand <span class="brand-arrow">→</span></a>
+    </div>
+    <div class="compare">
+      <div class="compare-row old">
+        <div class="icon">✕</div>
+        <div class="label">Marketplace fees</div>
+        <div class="pct">-15%</div>
+      </div>
+      <div class="compare-row old">
+        <div class="icon">✕</div>
+        <div class="label">Paid acquisition</div>
+        <div class="pct">-22%</div>
+      </div>
+      <div class="compare-row old">
+        <div class="icon">✕</div>
+        <div class="label">Influencer fees</div>
+        <div class="pct">-8%</div>
+      </div>
+      <div class="compare-row new">
+        <div class="icon">◆</div>
+        <div class="label">Customer rewards</div>
+        <div class="pct">+15%</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="foot">
+    <div class="logo" style="flex-direction:column;align-items:flex-start;gap:14px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="logo-mark">D</div>
+        <strong>DEALYDALLY</strong>
+      </div>
+      <span style="font-size:13px;color:var(--muted);max-width:240px">A marketplace where brands reward customers instead of algorithms.</span>
+    </div>
+    <div class="col">
+      <strong>Shop</strong>
+      <a href="#">All categories</a>
+      <a href="#">New arrivals</a>
+      <a href="#">Best rewards</a>
+    </div>
+    <div class="col">
+      <strong>Brands</strong>
+      <a href="#">Sell on DealyDally</a>
+      <a href="#">Brand portal</a>
+      <a href="#">Pricing</a>
+    </div>
+    <div class="col">
+      <strong>Company</strong>
+      <a href="#">About</a>
+      <a href="#">Press</a>
+      <a href="#">Careers</a>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>© 2026 DealyDally. All rights reserved.</span>
+    <span>Made for shoppers, paid by brands.</span>
+  </div>
+</footer>
+
+<!-- Share modal -->
+<div class="share-modal-bg" id="shareModal" onclick="if(event.target===this)closeShare()">
+  <div class="share-modal">
+    <button class="close" onclick="closeShare()" aria-label="Close">×</button>
+    <div class="modal-eyebrow">Share to earn</div>
+    <h3 id="modalTitle">Share <span class="grad">this product</span></h3>
+    <p>Send this link any way you want. When a friend buys through it, you earn cash back — paid out next billing cycle.</p>
+    <div class="share-link-row">
+      <input id="shareLink" readonly value="dealydally.co/r/p/8f2k1q?u=you" />
+      <button onclick="copyLink(this)">Copy link</button>
+    </div>
+    <div class="share-channels">
+      <div class="ch">iMessage</div>
+      <div class="ch">WhatsApp</div>
+      <div class="ch">Instagram</div>
+      <div class="ch">Email</div>
+    </div>
+    <div class="modal-earn">
+      <div class="pct" id="modalPct">+12%</div>
+      <span id="modalDetail">Your reward when a friend buys this product through your link.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openShare(title, pct){
+    document.getElementById('modalTitle').innerHTML =
+      'Share <span class="grad">' + title + '</span>';
+    document.getElementById('modalPct').textContent = '+' + pct + '%';
+    document.getElementById('modalDetail').textContent =
+      'Your reward when a friend buys ' + title + ' through your link.';
+    document.getElementById('shareModal').classList.add('open');
+  }
+  function closeShare(){
+    document.getElementById('shareModal').classList.remove('open');
+  }
+  function copyLink(btn){
+    const i = document.getElementById('shareLink');
+    i.select(); i.setSelectionRange(0,9999);
+    try { document.execCommand('copy'); } catch(e){}
+    const t = btn.textContent;
+    btn.textContent = 'Copied ✓';
+    setTimeout(()=>{ btn.textContent = t; }, 1400);
+  }
+</script>
+
+</body>
+</html>
