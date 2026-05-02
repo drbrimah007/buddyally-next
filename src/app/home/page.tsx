@@ -268,7 +268,7 @@ export default function BuddyallyDesktopLanding() {
             <div className="mt-4 space-y-2 text-[16px] text-[#2E3136]">
               <div><a href="/home">About</a></div>
               <div><a href="/contact">How it works</a></div>
-              <div><a href="/contact">Safety</a></div>
+              <div><a href="/trust-and-safety">Safety</a></div>
             </div>
           </div>
           <div>

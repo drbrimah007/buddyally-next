@@ -20,6 +20,11 @@ export default function robots(): MetadataRoute.Robots {
           '/admin',
           '/admin/',
           '/api/',
+          // Business module — pages opt INTO indexing per business via the
+          // business_is_indexable() RPC; the per-page <meta robots> handles
+          // the actual signal. We disallow the prefix here to protect crawl
+          // budget on the long tail of draft / unverified businesses.
+          '/b/',
         ],
       },
     ],
