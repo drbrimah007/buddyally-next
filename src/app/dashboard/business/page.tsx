@@ -30,6 +30,7 @@ import {
   type BusinessTheme,
   type BusinessTemplate,
   type ColorPreset,
+  type SectionConfig,
 } from '@/lib/business'
 import { searchPlaces as searchPlacesApi, pickPlace, renderPlaceLabel } from '@/lib/geo'
 
@@ -487,8 +488,8 @@ function SectionBuilder({
   sections,
   onChange,
 }: {
-  sections: { id: string; on: boolean; variant?: string }[]
-  onChange: (next: { id: string; on: boolean; variant?: string }[]) => void
+  sections: SectionConfig[]
+  onChange: (next: SectionConfig[]) => void
 }) {
   const [dragIdx, setDragIdx] = useState<number | null>(null)
 
