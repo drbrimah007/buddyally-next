@@ -134,25 +134,62 @@ export default function BusinessRenderer({ data }: { data: LoadedBusiness }) {
             return (
               <section key="wares" style={{ padding: '20px 24px 60px', maxWidth: 980, margin: '0 auto' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
-                  {wares.map((w: any) => (
-                    <article key={w.id} style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 16, overflow: 'hidden' }}>
-                      {w.image_url && <img src={w.image_url} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block' }} />}
-                      <div style={{ padding: 14 }}>
-                        <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>{w.title}</h3>
-                        {w.price_text && <p style={{ fontSize: 14, color: 'var(--ba-bus-primary)', fontWeight: 700, marginTop: 4 }}>{w.price_text}</p>}
-                        {w.description && <p style={{ fontSize: 13, color: 'var(--ba-bus-muted)', marginTop: 8, lineHeight: 1.5 }}>{w.description}</p>}
-                        {(w.payment_link || (Array.isArray(biz.default_payment_links) && biz.default_payment_links.length > 0)) && (
-                          <a
-                            href={w.payment_link || (biz.default_payment_links as any[])[0]?.url}
-                            target="_blank" rel="noopener noreferrer nofollow"
-                            style={{ display: 'inline-block', marginTop: 12, padding: '8px 14px', borderRadius: 10, background: 'var(--ba-bus-primary)', color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
-                          >
-                            Buy / Inquire →
-                          </a>
-                        )}
-                      </div>
-                    </article>
-                  ))}
+                  {wares.map((w: any) => {
+                    // LINK-type ware — whole card is a link, no Buy button.
+                    // Used for "view our menu / book on Calendly / IG bio
+                    // links" style entries.
+                    if (w.kind === 'link') {
+                      const url = w.payment_link
+                      return (
+                        <a
+                          key={w.id}
+                          href={url}
+                          target="_blank" rel="noopener noreferrer nofollow"
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 12,
+                            padding: 14, borderRadius: 16,
+                            background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)',
+                            color: 'inherit', textDecoration: 'none',
+                          }}
+                        >
+                          {w.image_url ? (
+                            <img src={w.image_url} alt="" style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                          ) : (
+                            <div style={{ width: 48, height: 48, borderRadius: 10, background: 'var(--ba-bus-accent)', color: 'var(--ba-bus-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🔗</div>
+                          )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>{w.title}</p>
+                            {url && (
+                              <p style={{ fontSize: 11, color: 'var(--ba-bus-muted)', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {String(url).replace(/^https?:\/\//, '')}
+                              </p>
+                            )}
+                          </div>
+                          <span aria-hidden style={{ color: 'var(--ba-bus-primary)', fontSize: 18, fontWeight: 700, flexShrink: 0 }}>↗</span>
+                        </a>
+                      )
+                    }
+                    // PRODUCT — full card with image, price, description, Buy.
+                    return (
+                      <article key={w.id} style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 16, overflow: 'hidden' }}>
+                        {w.image_url && <img src={w.image_url} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block' }} />}
+                        <div style={{ padding: 14 }}>
+                          <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>{w.title}</h3>
+                          {w.price_text && <p style={{ fontSize: 14, color: 'var(--ba-bus-primary)', fontWeight: 700, marginTop: 4 }}>{w.price_text}</p>}
+                          {w.description && <p style={{ fontSize: 13, color: 'var(--ba-bus-muted)', marginTop: 8, lineHeight: 1.5 }}>{w.description}</p>}
+                          {(w.payment_link || (Array.isArray(biz.default_payment_links) && biz.default_payment_links.length > 0)) && (
+                            <a
+                              href={w.payment_link || (biz.default_payment_links as any[])[0]?.url}
+                              target="_blank" rel="noopener noreferrer nofollow"
+                              style={{ display: 'inline-block', marginTop: 12, padding: '8px 14px', borderRadius: 10, background: 'var(--ba-bus-primary)', color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
+                            >
+                              Buy / Inquire →
+                            </a>
+                          )}
+                        </div>
+                      </article>
+                    )
+                  })}
                 </div>
               </section>
             )

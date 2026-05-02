@@ -18,9 +18,12 @@ import { useToast } from '@/components/ToastProvider'
 import { BUSINESS_FEATURE_ENABLED } from '@/lib/business'
 import ImageUploader from '@/components/business/ImageUploader'
 
+type WareKind = 'product' | 'link'
+
 type Ware = {
   id: string
   business_id: string
+  kind: WareKind
   title: string
   description: string
   image_url: string
@@ -31,6 +34,7 @@ type Ware = {
 }
 
 const EMPTY_DRAFT: Omit<Ware, 'id' | 'business_id' | 'sort_order'> = {
+  kind: 'product',
   title: '',
   description: '',
   image_url: '',
@@ -92,6 +96,7 @@ function WaresPageInner() {
   }
   function startEdit(w: Ware) {
     setDraft({
+      kind: w.kind || 'product',
       title: w.title, description: w.description, image_url: w.image_url,
       price_text: w.price_text, payment_link: w.payment_link, in_stock: w.in_stock,
     })
@@ -104,6 +109,9 @@ function WaresPageInner() {
   async function save() {
     if (!bizId) { toastError('No business found.'); return }
     if (!draft.title.trim()) { toastError('Title is required.'); return }
+    if (draft.kind === 'link' && !draft.payment_link.trim()) {
+      toastError('Link wares need a URL.'); return
+    }
     setSaving(true)
     if (editingId === 'new') {
       const nextOrder = wares.length === 0 ? 0 : (wares[wares.length - 1].sort_order + 1)
@@ -213,17 +221,25 @@ function WaresPageInner() {
                   submitLabel="Save changes"
                 />
               ) : (
-                <article style={{ display: 'flex', gap: 12, padding: 12, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, opacity: w.in_stock ? 1 : 0.55 }}>
+                <article style={{ display: 'flex', gap: 12, padding: 12, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, opacity: (w.kind === 'link' || w.in_stock) ? 1 : 0.55 }}>
                   {/* Thumb */}
                   <div style={{ width: 72, height: 72, flexShrink: 0, borderRadius: 10, overflow: 'hidden', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 11 }}>
-                    {w.image_url ? <img src={w.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : 'No img'}
+                    {w.image_url ? <img src={w.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (w.kind === 'link' ? '🔗' : 'No img')}
                   </div>
                   {/* Body */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>{w.title}</p>
-                    {w.price_text && <p style={{ fontSize: 13, color: '#3293cb', fontWeight: 700, margin: '2px 0' }}>{w.price_text}</p>}
-                    {w.description && <p style={{ fontSize: 12, color: '#6b7280', margin: '4px 0', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>{w.description}</p>}
-                    {!w.in_stock && <span style={{ fontSize: 10, fontWeight: 800, color: '#92400e', background: '#fef3c7', padding: '2px 8px', borderRadius: 6 }}>OUT OF STOCK</span>}
+                    <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>
+                      {w.kind === 'link' && <span style={{ fontSize: 10, fontWeight: 800, color: '#0652b7', background: '#eff6ff', padding: '1px 6px', borderRadius: 4, marginRight: 6 }}>LINK</span>}
+                      {w.title}
+                    </p>
+                    {w.kind === 'link' && w.payment_link && (
+                      <p style={{ fontSize: 11, color: '#6b7280', margin: '2px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {w.payment_link.replace(/^https?:\/\//, '')}
+                      </p>
+                    )}
+                    {w.kind !== 'link' && w.price_text && <p style={{ fontSize: 13, color: '#3293cb', fontWeight: 700, margin: '2px 0' }}>{w.price_text}</p>}
+                    {w.kind !== 'link' && w.description && <p style={{ fontSize: 12, color: '#6b7280', margin: '4px 0', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>{w.description}</p>}
+                    {w.kind !== 'link' && !w.in_stock && <span style={{ fontSize: 10, fontWeight: 800, color: '#92400e', background: '#fef3c7', padding: '2px 8px', borderRadius: 6 }}>OUT OF STOCK</span>}
                   </div>
                   {/* Actions */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
@@ -257,33 +273,82 @@ function DraftCard({
   saving: boolean
   submitLabel: string
 }) {
+  const isLink = draft.kind === 'link'
   return (
     <div style={{ background: '#fff', border: '2px solid #3293cb', borderRadius: 14, padding: 16, marginBottom: 8 }}>
+      {/* Kind toggle — Product or Link. Link mode hides fields that
+          don't apply (price, description, in-stock) so the form
+          collapses to the minimum: title + URL + optional image. */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14, padding: 4, background: '#f3f4f6', borderRadius: 10 }}>
+        {([
+          { id: 'product' as const, label: 'Product / service', emoji: '🛍️', help: 'Image, price, description, Buy button.' },
+          { id: 'link' as const,    label: 'Link',              emoji: '🔗', help: 'Just a title + URL. Card opens the link.' },
+        ]).map((k) => {
+          const active = draft.kind === k.id
+          return (
+            <button
+              key={k.id}
+              type="button"
+              onClick={() => setDraft({ ...draft, kind: k.id })}
+              style={{
+                flex: 1, padding: '8px 10px', borderRadius: 8, border: 'none',
+                background: active ? '#fff' : 'transparent',
+                color: active ? '#111827' : '#6b7280',
+                fontSize: 12, fontWeight: 800, cursor: 'pointer',
+                boxShadow: active ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                textAlign: 'left',
+              }}
+            >
+              <div>{k.emoji} {k.label}</div>
+              <div style={{ fontSize: 10, fontWeight: 600, marginTop: 2, color: active ? '#6b7280' : '#9ca3af' }}>{k.help}</div>
+            </button>
+          )
+        })}
+      </div>
+
       <div style={{ display: 'grid', gap: 12 }}>
+        {/* Image — optional in BOTH modes */}
         <ImageUploader
           value={draft.image_url}
           onChange={(url) => setDraft({ ...draft, image_url: url })}
           purpose="ware"
-          label="Ware image"
+          label={isLink ? 'Image (optional)' : 'Image'}
           aspect="1/1"
           maxHeight={140}
         />
+
+        {/* Title — required in both */}
         <Field label="Title *">
           <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} maxLength={120} style={input} />
         </Field>
-        <Field label="Price (free-form)" hint='e.g. "$20", "₦15,000", "Contact for quote"'>
-          <input value={draft.price_text} onChange={(e) => setDraft({ ...draft, price_text: e.target.value })} maxLength={60} style={input} />
-        </Field>
-        <Field label="Description">
-          <textarea value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} maxLength={600} rows={3} style={{ ...input, resize: 'vertical' }} />
-        </Field>
-        <Field label="Payment / order link" hint="Override the business default for this ware. Leave blank to use the default.">
-          <input value={draft.payment_link} onChange={(e) => setDraft({ ...draft, payment_link: e.target.value })} placeholder="https://..." style={input} />
-        </Field>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#111827', cursor: 'pointer' }}>
-          <input type="checkbox" checked={draft.in_stock} onChange={(e) => setDraft({ ...draft, in_stock: e.target.checked })} />
-          In stock (visible on public page)
-        </label>
+
+        {/* Link mode: URL is the primary field, required */}
+        {isLink ? (
+          <Field label="Link URL *" hint="Where this card sends visitors when tapped.">
+            <input
+              value={draft.payment_link}
+              onChange={(e) => setDraft({ ...draft, payment_link: e.target.value })}
+              placeholder="https://..."
+              style={input}
+            />
+          </Field>
+        ) : (
+          <>
+            <Field label="Price (optional)" hint='e.g. "$20", "₦15,000", "Contact for quote"'>
+              <input value={draft.price_text} onChange={(e) => setDraft({ ...draft, price_text: e.target.value })} maxLength={60} style={input} />
+            </Field>
+            <Field label="Description (optional)">
+              <textarea value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} maxLength={600} rows={3} style={{ ...input, resize: 'vertical' }} />
+            </Field>
+            <Field label="Payment / order link (optional)" hint="Override the business default for this ware. Leave blank to use the default.">
+              <input value={draft.payment_link} onChange={(e) => setDraft({ ...draft, payment_link: e.target.value })} placeholder="https://..." style={input} />
+            </Field>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#111827', cursor: 'pointer' }}>
+              <input type="checkbox" checked={draft.in_stock} onChange={(e) => setDraft({ ...draft, in_stock: e.target.checked })} />
+              In stock (visible on public page)
+            </label>
+          </>
+        )}
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
         <button onClick={onSave} disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>
