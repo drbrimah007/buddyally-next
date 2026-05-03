@@ -43,6 +43,8 @@
     .logo .word{display:flex;flex-direction:column;line-height:1}
     .logo strong{font-family:'Anton',sans-serif;font-weight:400;font-size:24px;letter-spacing:.02em;line-height:1;display:block;text-transform:uppercase}
     .logo-tagline{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--orange-deep);font-weight:600;margin-top:4px}
+    .logo-slogan{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);line-height:1.35;border-left:1px solid var(--line);padding-left:12px;margin-left:4px}
+    .logo-slogan b{color:var(--ink);font-weight:700;font-size:12px}
     footer .mark{height:60px}
     footer .logo strong{font-size:30px}
     footer .logo-tagline{font-size:11px}
@@ -51,8 +53,10 @@
       .mark{height:30px}
       .logo strong{font-size:21px}
       .logo-tagline{font-size:9px}
+      .logo-slogan{display:none}
       footer .mark{height:48px}
       footer .logo strong{font-size:24px}
+      footer .logo-slogan{display:block}
     }
     .links{display:flex;gap:28px;align-items:center}
     .links a{font-weight:700;font-size:14px;position:relative;padding:6px 0}
@@ -213,7 +217,7 @@
 <body>
   <div class="announce"><div class="announce-track"><span>Shop</span><span>Share</span><span>Earn</span><span>Profit together</span><span>Shop</span><span>Share</span><span>Earn</span><span>Profit together</span><span>Shop</span><span>Share</span><span>Earn</span><span>Profit together</span></div></div>
   <nav class="nav">
-    <a href="#" class="logo"><div class="mark"><img src="/D.png" alt="D" /></div><div class="word"><strong>DealyDally</strong><span class="logo-tagline">Profit Together</span></div></a>
+    <a href="#" class="logo"><div class="mark"><img src="/D.png" alt="D" /></div><div class="word"><strong>DealyDally</strong><span class="logo-tagline">Profit Together</span></div><div class="logo-slogan"><b>Shop.</b> Share.<br/>Earn.</div></a>
     <div class="links"><a href="#products">Products</a><a href="#creators">Creators</a><a href="#brands">Brands</a><a href="#how">How it works</a><a href="#" class="nav-cta">Get your code</a></div>
   </nav>
   <section class="hero">
@@ -319,7 +323,7 @@
   </section>
   <section id="brands" class="brand-banner"><div class="brand-banner-inner"><div><div class="tag">For brands · sellers · wholesalers</div><h2>Stop paying for ads.<br><span class="grad">Pay the people who drive sales.</span></h2><p>Turn word-of-mouth into a measurable sales channel. Only pay when a real purchase happens.</p><p style="font-size:14px;color:#bdb6ad;margin:0 0 28px;max-width:520px">Sell physical goods, digital downloads, AI training courses, ebooks, software, services, and virtual products.</p><a href="#" class="brand-cta">List your brand →</a></div><div class="compare"><div class="compare-row old"><span>✕</span><div class="label">Marketplace fees</div><div class="pct">-15%</div></div><div class="compare-row old"><span>✕</span><div class="label">Paid acquisition</div><div class="pct">-22%</div></div><div class="compare-row old"><span>✕</span><div class="label">Influencer fees</div><div class="pct">-8%</div></div><div class="compare-row new"><span>◆</span><div class="label">Customer rewards</div><div class="pct">+15%</div></div></div></div></section>
   <section class="closing"><div class="closing-inner"><h2>Word-of-mouth, <span class="grad">finally paid.</span></h2><p>Brands don’t pay platforms. They reward people.</p><div style="margin-top:24px"><a class="btn-primary" href="#creators">Get your code →</a></div></div></section>
-  <footer><div class="foot"><div class="logo" style="flex-direction:column;align-items:flex-start;gap:14px"><div style="display:flex;gap:12px;align-items:center"><div class="mark"><img src="/D.png" alt="D" /></div><div class="word"><strong>DealyDally</strong><span class="logo-tagline">Profit Together</span></div></div><span style="font-size:13px;color:var(--muted);max-width:240px">A new way to buy and sell. Brands reward customers instead of algorithms.</span></div><div class="col"><strong>Shop</strong><a href="#">All categories</a><a href="#">New arrivals</a><a href="#">Best rewards</a></div><div class="col"><strong>Brands</strong><a href="#">Sell on DealyDally</a><a href="#">Brand portal</a><a href="#">Pricing</a></div><div class="col"><strong>Company</strong><a href="#">About</a><a href="#">Press</a><a href="#">Careers</a></div></div><div class="foot-bottom"><span>© 2026 DealyDally. All rights reserved.</span><span>Made for people. Paid by brands.</span></div></footer>
+  <footer><div class="foot"><div class="logo" style="flex-direction:column;align-items:flex-start;gap:14px"><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><div class="mark"><img src="/D.png" alt="D" /></div><div class="word"><strong>DealyDally</strong><span class="logo-tagline">Profit Together</span></div><div class="logo-slogan"><b>Shop.</b> Share.<br/>Earn.</div></div><span style="font-size:13px;color:var(--muted);max-width:240px">A new way to buy and sell. Brands reward customers instead of algorithms.</span></div><div class="col"><strong>Shop</strong><a href="#">All categories</a><a href="#">New arrivals</a><a href="#">Best rewards</a></div><div class="col"><strong>Brands</strong><a href="#">Sell on DealyDally</a><a href="#">Brand portal</a><a href="#">Pricing</a></div><div class="col"><strong>Company</strong><a href="#">About</a><a href="#">Press</a><a href="#">Careers</a></div></div><div class="foot-bottom"><span>© 2026 DealyDally. All rights reserved.</span><span>Made for people. Paid by brands.</span></div></footer>
   <div class="toast" id="toast">Copied</div>
   <script>
     function showToast(msg){
