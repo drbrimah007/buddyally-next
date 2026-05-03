@@ -36,10 +36,30 @@
     .announce span::before{content:"◆ ";color:var(--orange-1)}
     @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
     .nav{display:flex;justify-content:space-between;align-items:center;padding:18px 6vw;border-bottom:1px solid var(--line);background:rgba(251,250,246,.92);backdrop-filter:blur(14px);position:sticky;top:0;z-index:50}
-    .logo{display:flex;align-items:center;gap:12px}
-    .mark{width:34px;height:34px;border-radius:9px;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Anton',sans-serif;font-size:19px}
-    .logo strong{font-family:'Anton',sans-serif;font-weight:400;font-size:24px;letter-spacing:.02em;line-height:1;display:block}
-    .logo-tagline{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--orange-deep);font-weight:600}
+    .logo{display:flex;align-items:center;gap:16px}
+    /* Real PNG mark — exact v2 treatment. PNG carries the wordmark; we
+       use a typed slogan beside it instead of any inline DEALYDALLY text. */
+    .mark{height:96px;display:flex;align-items:center;flex-shrink:0}
+    .mark img{height:100%;width:auto;display:block;object-fit:contain}
+    .logo-slogan{
+      font-family:'JetBrains Mono',monospace;
+      font-size:12px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      color:var(--muted);
+      line-height:1.4;
+      border-left:1px solid var(--line);
+      padding-left:16px;
+    }
+    .logo-slogan b{color:var(--ink);font-weight:700;font-size:13px}
+    .nav{min-height:120px}
+    footer .mark{height:128px}
+    @media(max-width:640px){
+      .logo-slogan{display:none}
+      .mark{height:64px}
+      .nav{min-height:80px}
+      footer .mark{height:96px}
+    }
     .links{display:flex;gap:28px;align-items:center}
     .links a{font-weight:700;font-size:14px;position:relative;padding:6px 0}
     .links a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:2px;background:var(--grad);transition:width .25s ease}
@@ -196,7 +216,7 @@
 <body>
   <div class="announce"><div class="announce-track"><span>Shop</span><span>Share</span><span>Earn</span><span>Profit together</span><span>Shop</span><span>Share</span><span>Earn</span><span>Profit together</span><span>Shop</span><span>Share</span><span>Earn</span><span>Profit together</span></div></div>
   <nav class="nav">
-    <a href="#" class="logo"><div class="mark">D</div><div><strong>DEALYDALLY</strong><span class="logo-tagline">Profit Together</span></div></a>
+    <a href="#" class="logo"><div class="mark"><img src="/dealy.png" alt="DealyDally" /></div><div class="logo-slogan"><b>Shop.</b> Share.<br/>Earn.</div></a>
     <div class="links"><a href="#products">Products</a><a href="#creators">Creators</a><a href="#brands">Brands</a><a href="#how">How it works</a><a href="#" class="nav-cta">Get your code</a></div>
   </nav>
   <section class="hero">
@@ -273,7 +293,7 @@
   </section>
   <section id="brands" class="brand-banner"><div class="brand-banner-inner"><div><div class="tag">For brands · sellers · wholesalers</div><h2>Stop paying for ads.<br><span class="grad">Pay the people who drive sales.</span></h2><p>Turn word-of-mouth into a measurable sales channel. Only pay when a real purchase happens.</p><p style="font-size:14px;color:#bdb6ad;margin:0 0 28px;max-width:520px">Sell physical goods, digital downloads, AI training courses, ebooks, software, services, and virtual products.</p><a href="#" class="brand-cta">List your brand →</a></div><div class="compare"><div class="compare-row old"><span>✕</span><div class="label">Marketplace fees</div><div class="pct">-15%</div></div><div class="compare-row old"><span>✕</span><div class="label">Paid acquisition</div><div class="pct">-22%</div></div><div class="compare-row old"><span>✕</span><div class="label">Influencer fees</div><div class="pct">-8%</div></div><div class="compare-row new"><span>◆</span><div class="label">Customer rewards</div><div class="pct">+15%</div></div></div></div></section>
   <section class="closing"><div class="closing-inner"><h2>Word-of-mouth, <span class="grad">finally paid.</span></h2><p>Brands don’t pay platforms. They reward people.</p><div style="margin-top:24px"><a class="btn-primary" href="#creators">Get your code →</a></div></div></section>
-  <footer><div class="foot"><div class="logo" style="flex-direction:column;align-items:flex-start;gap:14px"><div style="display:flex;gap:12px;align-items:center"><div class="mark">D</div><div><strong style="font-family:'Anton',sans-serif;font-size:24px">DEALYDALLY</strong><span class="logo-tagline">Profit Together</span></div></div><span style="font-size:13px;color:var(--muted);max-width:240px">A new way to buy and sell. Brands reward customers instead of algorithms.</span></div><div class="col"><strong>Shop</strong><a href="#">All categories</a><a href="#">New arrivals</a><a href="#">Best rewards</a></div><div class="col"><strong>Brands</strong><a href="#">Sell on DealyDally</a><a href="#">Brand portal</a><a href="#">Pricing</a></div><div class="col"><strong>Company</strong><a href="#">About</a><a href="#">Press</a><a href="#">Careers</a></div></div><div class="foot-bottom"><span>© 2026 DealyDally. All rights reserved.</span><span>Made for people. Paid by brands.</span></div></footer>
+  <footer><div class="foot"><div class="logo" style="flex-direction:column;align-items:flex-start;gap:14px"><div style="display:flex;gap:12px;align-items:center"><div class="mark"><img src="/dealy.png" alt="DealyDally" /></div><div class="logo-slogan"><b>Shop.</b> Share.<br/>Earn.</div></div><span style="font-size:13px;color:var(--muted);max-width:240px">A new way to buy and sell. Brands reward customers instead of algorithms.</span></div><div class="col"><strong>Shop</strong><a href="#">All categories</a><a href="#">New arrivals</a><a href="#">Best rewards</a></div><div class="col"><strong>Brands</strong><a href="#">Sell on DealyDally</a><a href="#">Brand portal</a><a href="#">Pricing</a></div><div class="col"><strong>Company</strong><a href="#">About</a><a href="#">Press</a><a href="#">Careers</a></div></div><div class="foot-bottom"><span>© 2026 DealyDally. All rights reserved.</span><span>Made for people. Paid by brands.</span></div></footer>
   <div class="toast" id="toast">Copied</div>
   <script>
     function showToast(msg){
