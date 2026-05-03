@@ -655,6 +655,12 @@
       .grid{grid-template-columns:1fr 1fr;gap:12px}
       .hero-stats{gap:24px}
       .stat .num{font-size:36px}
+      #csProducts{grid-template-columns:1fr !important}
+    }
+    @media(max-width:760px){
+      #csProducts{grid-template-columns:1fr 1fr !important}
+      #codeForm{flex-direction:column}
+      #codeForm input,#codeForm button{width:100%}
     }
 
     /* ───── Share modal (hidden by default) ───── */
@@ -869,6 +875,46 @@
   </div>
 </div>
 
+<!-- Creator Store Preview (dynamic via code) -->
+<section id="creatorStore" style="max-width:1100px;margin:48px auto 60px;padding:0 6vw">
+  <div id="creatorStoreCard" style="background:#fff;border:1px solid var(--line);border-radius:20px;padding:24px;transition:opacity .25s ease, transform .25s ease">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px;flex-wrap:wrap">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">
+          Creator store · <span id="csCode" style="color:var(--orange-deep)">PERRY</span>
+        </div>
+        <h3 id="csName" style="margin:4px 0 0;font-family:'Anton',sans-serif;font-weight:400;font-size:28px;text-transform:uppercase;letter-spacing:-.005em">
+          Perry's Picks
+        </h3>
+        <p id="csTagline" style="margin:6px 0 0;font-size:13.5px;color:var(--muted)">
+          Hand-picked products with the best earn rates
+        </p>
+      </div>
+      <button type="button" id="csView" onclick="viewCreatorStore()"
+        style="background:transparent;color:var(--ink);border:1.5px solid var(--ink);padding:10px 18px;border-radius:999px;font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap;transition:transform .15s ease, background .15s ease, color .15s ease"
+        onmouseover="this.style.background='var(--ink)';this.style.color='#fff';this.style.transform='translateY(-1px)'"
+        onmouseout="this.style.background='transparent';this.style.color='var(--ink)';this.style.transform=''">
+        View full store →
+      </button>
+    </div>
+
+    <form id="codeForm" style="display:flex;gap:8px;margin-bottom:18px;background:var(--paper-2);padding:6px;border-radius:12px;border:1px solid var(--line)">
+      <input id="creatorCode" placeholder="ENTER A CREATOR CODE — try SAGE, MARCO, AYA" maxlength="18" autocomplete="off"
+        style="flex:1;border:none;background:transparent;outline:none;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink)" />
+      <button type="submit"
+        style="background:var(--ink);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-weight:800;font-size:13px;cursor:pointer">
+        Apply
+      </button>
+    </form>
+
+    <div id="csProducts" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
+
+    <p id="csFooter" style="margin:14px 0 0;font-size:13px;color:var(--muted)">
+      See more products recommended by <span id="csNameInline">Perry</span>.
+    </p>
+  </div>
+</section>
+
 <!-- Product section -->
 <div class="section-head">
   <h2>Trending now</h2>
@@ -1076,6 +1122,129 @@
     btn.textContent = 'Copied ✓';
     setTimeout(()=>{ btn.textContent = t; }, 1400);
   }
+
+  /* ---------- Creator store (dynamic) ---------- */
+  const CREATORS = {
+    PERRY: {
+      name: "Perry's Picks", first: 'Perry', slug: 'perry',
+      tagline: 'Hand-picked products with the best earn rates',
+      products: [
+        { emoji:'🦷', name:'Whitening Toothpaste', earn:'$2.10' },
+        { emoji:'✨', name:'Skin Glow Serum',      earn:'$5.25' },
+        { emoji:'💪', name:'Resistance Bands',     earn:'$4.20' }
+      ]
+    },
+    SAGE: {
+      name: "Sage's Wellness Edit", first: 'Sage', slug: 'sage',
+      tagline: 'Clean beauty + recovery picks',
+      products: [
+        { emoji:'🧴', name:'Vitamin C Serum',     earn:'$5.25' },
+        { emoji:'🧘', name:'Yoga Mat — Pro 6mm',  earn:'$3.80' },
+        { emoji:'☕', name:'Adaptogen Coffee',    earn:'$2.90' }
+      ]
+    },
+    MARCO: {
+      name: "Marco's Tech Stack", first: 'Marco', slug: 'marco',
+      tagline: 'Gear that actually earns its desk space',
+      products: [
+        { emoji:'💡', name:'LED Light Strip 16ft', earn:'$3.15' },
+        { emoji:'⌨️', name:'Mech Keyboard — TKL',  earn:'$8.40' },
+        { emoji:'🎧', name:'ANC Headphones',       earn:'$6.20' }
+      ]
+    },
+    AYA: {
+      name: "Aya's Home Drops", first: 'Aya', slug: 'aya',
+      tagline: 'Small upgrades, big vibe',
+      products: [
+        { emoji:'🕯️', name:'Soy Candle — Fig',   earn:'$1.80' },
+        { emoji:'🪴', name:'Self-Watering Pot',   earn:'$2.40' },
+        { emoji:'🧺', name:'Linen Throw',         earn:'$3.95' }
+      ]
+    }
+  };
+
+  let currentCode = 'PERRY';
+
+  function csToast(msg){
+    let t = document.getElementById('csToast');
+    if(!t){
+      t = document.createElement('div');
+      t.id = 'csToast';
+      t.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;border-radius:999px;padding:12px 18px;font-size:14px;font-weight:800;opacity:0;pointer-events:none;transition:.2s ease;z-index:99;box-shadow:0 10px 30px rgba(20,20,20,.2)';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    t.style.transform = 'translateX(-50%) translateY(0)';
+    setTimeout(()=>{
+      t.style.opacity='0';
+      t.style.transform='translateX(-50%) translateY(20px)';
+    }, 1800);
+  }
+
+  function renderCreatorStore(code){
+    const c = CREATORS[code];
+    if(!c) return false;
+    currentCode = code;
+    document.getElementById('csCode').textContent = code;
+    document.getElementById('csName').textContent = c.name;
+    document.getElementById('csTagline').textContent = c.tagline;
+    document.getElementById('csNameInline').textContent = c.first;
+    const grid = document.getElementById('csProducts');
+    grid.innerHTML = c.products.map(p => `
+      <button type="button" class="cs-tile" data-name="${p.name.replace(/"/g,'&quot;')}"
+        style="text-align:left;background:var(--paper-2);padding:14px;border-radius:12px;font-size:13.5px;font-weight:700;border:1px solid transparent;cursor:pointer;display:flex;flex-direction:column;gap:8px;transition:transform .15s ease, border-color .15s ease, background .15s ease">
+        <span>${p.emoji} ${p.name}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.08em;color:var(--orange-deep);font-weight:800">EARN ${p.earn}</span>
+      </button>
+    `).join('');
+    const card = document.getElementById('creatorStoreCard');
+    card.style.transform = 'scale(.995)';
+    card.style.opacity = '.6';
+    setTimeout(()=>{ card.style.transform=''; card.style.opacity=''; }, 60);
+    try{
+      const u = new URL(window.location.href);
+      u.searchParams.set('code', code);
+      history.replaceState(null,'',u.toString());
+    }catch(e){}
+    return true;
+  }
+
+  function viewCreatorStore(){
+    csToast('Opening ' + (CREATORS[currentCode]?.first || 'creator') + "'s store");
+  }
+
+  (function(){
+    const form = document.getElementById('codeForm');
+    const input = document.getElementById('creatorCode');
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const raw = input.value.trim().toUpperCase();
+      if(!raw){ csToast('Enter a code first'); return; }
+      const ok = renderCreatorStore(raw);
+      if(ok){
+        csToast('Code applied: ' + raw);
+        document.getElementById('creatorStore').scrollIntoView({behavior:'smooth', block:'start'});
+      }else{
+        csToast("Code not recognized — try PERRY, SAGE, MARCO or AYA");
+      }
+    });
+    document.addEventListener('mouseover', e => {
+      const t = e.target.closest('.cs-tile');
+      if(t){ t.style.transform='translateY(-2px)'; t.style.borderColor='var(--ink)'; t.style.background='#fff'; }
+    });
+    document.addEventListener('mouseout', e => {
+      const t = e.target.closest('.cs-tile');
+      if(t){ t.style.transform=''; t.style.borderColor='transparent'; t.style.background='var(--paper-2)'; }
+    });
+    document.addEventListener('click', e => {
+      const t = e.target.closest('.cs-tile');
+      if(t){ csToast('Opening ' + t.getAttribute('data-name')); }
+    });
+    const params = new URLSearchParams(window.location.search);
+    const initial = (params.get('code') || 'PERRY').toUpperCase();
+    if(!renderCreatorStore(initial)) renderCreatorStore('PERRY');
+  })();
 </script>
 
 </body>
