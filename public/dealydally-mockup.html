@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DealyDally — Word-of-mouth, but paid.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --ink:#141414;
+      --paper:#fbfaf6;
+      --paper-2:#f3f0e7;
+      --muted:#6b6660;
+      --line:#e6e1d4;
+      --orange-1:#f5a623;
+      --orange-2:#ff5e1a;
+      --orange-deep:#e74400;
+      --green:#0a7a3d;
+      --grad:linear-gradient(135deg,#f5a623 0%,#ff5e1a 58%,#e74400 100%);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    html,body{margin:0;padding:0}
+    body{
+      font-family:'Manrope',system-ui,sans-serif;
+      color:var(--ink);
+      background:var(--paper);
+      -webkit-font-smoothing:antialiased;
+    }
+    a{color:inherit;text-decoration:none}
+    button,input{font-family:inherit}
+    .announce{background:var(--ink);color:#fff;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;padding:10px 0;overflow:hidden}
+    .announce-track{display:flex;gap:60px;white-space:nowrap;animation:scroll 32s linear infinite;width:max-content}
+    .announce span::before{content:"◆ ";color:var(--orange-1)}
+    @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+    .nav{display:flex;justify-content:space-between;align-items:center;padding:18px 6vw;border-bottom:1px solid var(--line);background:rgba(251,250,246,.92);backdrop-filter:blur(14px);position:sticky;top:0;z-index:50}
+    .logo{display:flex;align-items:center;gap:12px}
+    .mark{width:34px;height:34px;border-radius:9px;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Anton',sans-serif;font-size:19px}
+    .logo strong{font-family:'Anton',sans-serif;font-weight:400;font-size:24px;letter-spacing:.02em;line-height:1;display:block}
+    .logo-tagline{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--orange-deep);font-weight:600}
+    .links{display:flex;gap:28px;align-items:center}
+    .links a{font-weight:700;font-size:14px;position:relative;padding:6px 0}
+    .links a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:2px;background:var(--grad);transition:width .25s ease}
+    .links a:hover::after{width:100%}
+    .nav-cta{background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-weight:800;font-size:13px;transition:transform .2s ease}
+    .nav-cta:hover{transform:translateY(-1px)}
+    .hero{max-width:1240px;margin:auto;padding:82px 6vw 60px;display:grid;grid-template-columns:1.04fr .96fr;gap:54px;align-items:center}
+    .hero-eyebrow{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--orange-deep);margin-bottom:22px;display:flex;align-items:center;gap:10px}
+    .hero-eyebrow::before{content:"";width:32px;height:2px;background:var(--grad)}
+    .hero h1{font-family:'Anton',sans-serif;font-weight:400;font-size:clamp(54px,8vw,116px);line-height:.92;letter-spacing:-.01em;margin:0 0 24px;text-transform:uppercase}
+    .hero h1 .accent{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;font-style:italic}
+    .hero h1 .strike{position:relative;color:var(--muted);opacity:.55}
+    .hero h1 .strike::after{content:"";position:absolute;left:-2%;right:-2%;top:52%;height:8px;background:var(--grad);transform:rotate(-3deg)}
+    .hero-sub{font-size:20px;color:var(--muted);max-width:650px;line-height:1.52;margin:0 0 28px}
+    .hero-actions{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+    .btn-primary,.btn-ghost,.btn-dark{padding:16px 28px;border-radius:999px;font-weight:800;font-size:15px;border:none;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+    .btn-primary{background:var(--grad);color:#fff;box-shadow:0 9px 26px rgba(231,68,0,.25)}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 13px 34px rgba(231,68,0,.35)}
+    .btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink)}
+    .btn-dark{background:var(--ink);color:#fff}
+    .hero-note{margin:18px 0 0;font-size:14px;color:var(--muted);font-family:'JetBrains Mono',monospace;letter-spacing:.04em;line-height:1.5}
+    .code-card{background:#fff;border:1px solid var(--line);border-radius:26px;padding:26px;box-shadow:0 24px 70px -24px rgba(20,20,20,.22)}
+    .code-top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}
+    .code-top h3{font-family:'Anton',sans-serif;font-weight:400;text-transform:uppercase;font-size:30px;line-height:1;margin:0}
+    .pill{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.12em;background:rgba(245,166,35,.15);color:var(--orange-deep);border-radius:999px;padding:8px 10px;font-weight:700;white-space:nowrap}
+    .code-display{background:var(--ink);color:#fff;border-radius:18px;padding:18px;text-align:center;margin:16px 0}
+    .code-display .label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#a9a095;margin-bottom:4px}
+    .code-display .code{font-family:'Anton',sans-serif;font-size:64px;letter-spacing:.06em;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1}
+    .mini-flow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+    .mini{border:1px solid var(--line);background:var(--paper);border-radius:14px;padding:14px}
+    .mini b{font-size:14px;display:block;margin-bottom:4px}
+    .mini span{font-size:12px;color:var(--muted);line-height:1.3;display:block}
+    .code-entry{background:var(--ink);color:#fff;margin:10px 6vw 80px;border-radius:24px;padding:30px;display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center;max-width:1100px;margin-left:auto;margin-right:auto}
+    .code-entry h2{font-family:'Anton',sans-serif;font-weight:400;font-size:34px;text-transform:uppercase;margin:0 0 6px}
+    .code-entry p{margin:0;color:#cfc7bc;font-size:15px}
+    .code-form{display:flex;gap:8px;min-width:340px}
+    .code-form input{flex:1;border:none;border-radius:999px;padding:14px 18px;font-weight:800;text-transform:uppercase;outline:none}
+    .code-form button{border:none;background:var(--grad);color:#fff;border-radius:999px;padding:14px 20px;font-weight:800;cursor:pointer}
+    .section-head{max-width:1240px;margin:80px auto 28px;padding:0 6vw;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+    .section-head h2{font-family:'Anton',sans-serif;font-weight:400;font-size:clamp(36px,5vw,64px);line-height:1;letter-spacing:-.005em;margin:0;text-transform:uppercase}
+    .section-head .meta{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+    .hiw{max-width:1240px;margin:0 auto 84px;padding:0 6vw}
+    .hiw-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .hiw-step{background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px 26px;transition:transform .2s ease, box-shadow .2s ease}
+    .hiw-step:hover{transform:translateY(-3px);box-shadow:0 16px 34px -18px rgba(20,20,20,.2)}
+    .hiw-step .num{font-family:'Anton',sans-serif;font-size:42px;line-height:1;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:14px}
+    .hiw-step h3{margin:0 0 8px;font-family:'Anton',sans-serif;font-weight:400;font-size:24px;text-transform:uppercase}
+    .hiw-step p{margin:0;font-size:14.5px;color:var(--muted);line-height:1.55}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;max-width:1240px;margin:0 auto 80px;padding:0 6vw}
+    .product{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;transition:transform .25s ease,box-shadow .25s ease;display:flex;flex-direction:column}
+    .product:hover{transform:translateY(-4px);box-shadow:0 18px 40px -12px rgba(20,20,20,.12)}
+    .product-img{position:relative;aspect-ratio:1/1;background:var(--paper-2);overflow:hidden}
+    .product-img img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
+    .product:hover .product-img img{transform:scale(1.05)}
+    .reward-badge{position:absolute;top:12px;left:12px;background:var(--ink);color:#fff;padding:7px 10px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.02em;display:flex;align-items:center;gap:6px}
+    .reward-badge::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--grad)}
+    .product-body{padding:16px;display:flex;flex-direction:column;flex:1}
+    .product-cat{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+    .product h4{margin:0 0 12px;font-size:16px;font-weight:800;line-height:1.25}
+    .price-row{display:flex;align-items:baseline;gap:8px;margin-bottom:14px;margin-top:auto}
+    .price{font-family:'Anton',sans-serif;font-size:28px}
+    .price-was{font-size:13px;color:var(--muted);text-decoration:line-through}
+    .actions{display:flex;gap:8px}
+    .actions button{flex:1;padding:11px;border:none;border-radius:8px;cursor:pointer;font-weight:800;font-size:13px;transition:transform .15s ease}
+    .actions button:hover{transform:translateY(-1px)}
+    .cart{background:var(--ink);color:#fff}
+    .share{background:var(--grad);color:#fff;min-width:108px}
+    /* Featured high-ticket product (full width) */
+    .product--feature{grid-column:1/-1;display:grid;grid-template-columns:1fr 1.2fr;align-items:stretch;border:1px solid var(--ink);box-shadow:0 24px 60px -24px rgba(20,20,20,.18)}
+    .product--feature .product-img{aspect-ratio:auto;height:100%;min-height:280px}
+    .product--feature .product-body{padding:34px 36px;justify-content:center;gap:8px}
+    .product--feature .product-cat{margin-bottom:10px}
+    .product--feature h4{font-family:'Anton',sans-serif;font-weight:400;font-size:32px;line-height:1.05;text-transform:uppercase;letter-spacing:-.005em;margin:0 0 12px}
+    .product--feature .price{font-size:42px}
+    .product--feature .price-was{font-size:15px}
+    .product--feature .feature-line{font-size:14.5px;color:var(--muted);line-height:1.5;margin:0 0 18px;max-width:520px}
+    .product--feature .reward-badge{font-size:12.5px;padding:9px 13px;background:var(--grad)}
+    .product--feature .reward-badge::before{background:#fff}
+    .product--feature .actions button{padding:14px}
+    .featured-tag{position:absolute;top:12px;right:12px;background:#fff;color:var(--ink);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;padding:7px 11px;border-radius:999px}
+    @media(max-width:760px){.product--feature{grid-template-columns:1fr}.product--feature .product-img{min-height:220px}.product--feature h4{font-size:24px}.product--feature .price{font-size:32px}}
+    .tiktok-spot{max-width:1240px;margin:64px auto 100px;padding:0 6vw}
+    .tiktok-inner{background:linear-gradient(135deg,#fff,var(--paper-2));border:1px solid var(--line);border-radius:28px;padding:58px 48px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+    .tiktok-copy .tag,.brand-banner .tag{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--orange-deep);margin-bottom:16px}
+    .tiktok-copy h2,.brand-banner h2,.closing h2{font-family:'Anton',sans-serif;font-weight:400;font-size:clamp(38px,5vw,70px);line-height:.95;letter-spacing:-.005em;margin:0 0 18px;text-transform:uppercase}
+    .grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .tiktok-copy>p{font-size:17px;color:var(--muted);line-height:1.55;margin:0 0 22px;max-width:490px}
+    .feat{list-style:none;padding:0;margin:0 0 26px;display:flex;flex-direction:column;gap:8px}
+    .feat li{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;line-height:1.45}
+    .feat li::before{content:"◆";color:var(--orange-deep);flex-shrink:0}
+    .modal-mock{background:#fff;border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 24px 60px -16px rgba(20,20,20,.16)}
+    .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .modal-title{font-family:'Anton',sans-serif;font-size:19px;text-transform:uppercase}
+    .modal-close{width:26px;height:26px;border-radius:50%;background:var(--paper-2);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+    .product-line{display:flex;gap:12px;align-items:center;padding:11px;border-radius:11px;background:var(--paper-2);margin-bottom:16px}
+    .product-thumb{width:44px;height:44px;border-radius:9px;background:linear-gradient(135deg,#fff,#e9e3d3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+    .pname{font-weight:800;font-size:13px;margin-bottom:2px}
+    .pprice{font-size:11.5px;color:var(--muted)}
+    .modal-tabs{display:flex;gap:4px;background:var(--paper-2);padding:4px;border-radius:10px;margin-bottom:16px}
+    .modal-tab{flex:1;padding:9px;border:none;background:transparent;border-radius:7px;font-weight:800;font-size:12.5px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:6px}
+    .modal-tab.active{background:#fff;color:var(--ink);box-shadow:0 2px 6px rgba(20,20,20,.08)}
+    .tdot{width:6px;height:6px;border-radius:50%;background:var(--grad);opacity:0}
+    .modal-tab.active .tdot{opacity:1}
+    .preset-pick{display:flex;flex-direction:column;gap:7px;margin-bottom:16px}
+    .preset-pick .label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+    .preset{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:9px;border:1.5px solid var(--line);background:#fff;cursor:pointer;gap:10px}
+    .preset.active{border-color:var(--orange-deep);background:linear-gradient(135deg,rgba(245,166,35,.08),rgba(231,68,0,.08))}
+    .preset .psub{font-size:11px;color:var(--muted)}
+    .preset .right{font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:700;text-align:right}
+    .preset.active .right{color:var(--orange-deep)}
+    .code-display.small{border-radius:12px;padding:13px;margin:0 0 12px}
+    .code-display.small .code{font-size:38px}
+    .tab-pane{display:none}
+    .tab-pane.active{display:block}
+    .caption-preview{background:var(--paper-2);border-radius:10px;padding:11px 13px;font-size:12.5px;line-height:1.5;color:var(--ink);margin-bottom:10px;font-family:'JetBrains Mono',monospace}
+    .caption-preview .clabel{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px;display:block}
+    .modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+    .act{padding:10px;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;border:none}
+    .act.primary{background:var(--ink);color:#fff}
+    .act.ghost{background:#fff;border:1.5px solid var(--ink);color:var(--ink)}
+    .act.full{grid-column:1/-1}
+    .reminder{margin-top:11px;padding:9px 11px;border-radius:8px;background:rgba(245,166,35,.12);font-size:11px;color:var(--orange-deep);font-weight:800;display:flex;gap:8px;align-items:flex-start;line-height:1.35}
+    .payout-note{margin-top:10px;font-size:11px;color:var(--muted);text-align:center;font-family:'JetBrains Mono',monospace;letter-spacing:.06em}
+    .brand-banner{max-width:1240px;margin:60px auto 100px;padding:0 6vw}
+    .brand-banner-inner{background:var(--ink);color:#fff;border-radius:28px;padding:64px 56px;position:relative;overflow:hidden;display:grid;grid-template-columns:1.4fr 1fr;gap:48px;align-items:center}
+    .brand-banner-inner::before{content:"";position:absolute;right:-120px;top:-120px;width:480px;height:480px;background:var(--grad);filter:blur(80px);opacity:.35;border-radius:50%}
+    .brand-banner-inner>*{position:relative;z-index:1}
+    .brand-banner .tag{color:var(--orange-1)}
+    .brand-banner p{font-size:17px;line-height:1.55;color:#bdb6ad;max-width:520px;margin:0 0 24px}
+    .brand-cta{background:#fff;color:var(--ink);padding:14px 26px;border-radius:999px;font-weight:800;font-size:14px;display:inline-flex;align-items:center;gap:8px;transition:transform .2s ease}
+    .brand-cta:hover{transform:translateY(-2px)}
+    .compare{display:flex;flex-direction:column;gap:14px}
+    .compare-row{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:12px;font-size:14px}
+    .compare-row.old{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#8a857d}
+    .compare-row.old .label{text-decoration:line-through}
+    .compare-row.new{background:var(--grad);color:#fff;font-weight:800}
+    .compare-row .label{flex:1}
+    .compare-row .pct{font-family:'JetBrains Mono',monospace;font-weight:800}
+    .closing{max-width:1240px;margin:80px auto 80px;padding:0 6vw}
+    .closing-inner{background:linear-gradient(135deg,var(--paper-2),#fff);border:1px solid var(--line);border-radius:28px;padding:60px 48px;text-align:center}
+    .closing p{margin:0;font-size:18px;color:var(--muted);line-height:1.5}
+    footer{border-top:1px solid var(--line);padding:48px 6vw 36px}
+    .foot{max-width:1240px;margin:auto;display:flex;justify-content:space-between;align-items:flex-start;gap:32px;flex-wrap:wrap}
+    .foot .col{display:flex;flex-direction:column;gap:8px}
+    .foot .col strong{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-weight:700}
+    .foot .col a{font-size:14px;font-weight:700}
+    .foot-bottom{max-width:1240px;margin:36px auto 0;padding-top:24px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:12px;color:var(--muted);flex-wrap:wrap;gap:12px}
+    .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;border-radius:999px;padding:12px 18px;font-size:14px;font-weight:800;opacity:0;pointer-events:none;transition:.2s ease;z-index:99;box-shadow:0 10px 30px rgba(20,20,20,.2)}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    @media(max-width:980px){.hero,.tiktok-inner,.brand-banner-inner{grid-template-columns:1fr}.links{display:none}.code-entry{grid-template-columns:1fr}.code-form{min-width:0}.grid{grid-template-columns:repeat(2,1fr)}.hiw-steps{grid-template-columns:1fr}}
+    @media(max-width:540px){.hero{padding-top:54px}.grid{grid-template-columns:1fr}.mini-flow{grid-template-columns:1fr}.hero h1{font-size:58px}.code-entry{border-radius:0;margin-left:0;margin-right:0}.code-form{flex-direction:column}.modal-actions{grid-template-columns:1fr}.tiktok-inner,.brand-banner-inner,.closing-inner{padding:36px 24px}}
+  </style>
+</head>
+<body>
+  <div class="announce"><div class="announce-track"><span>Shop</span><span>Share</span><span>Earn</span><span>Profit together</span><span>Shop</span><span>Share</span><span>Earn</span><span>Profit together</span><span>Shop</span><span>Share</span><span>Earn</span><span>Profit together</span></div></div>
+  <nav class="nav">
+    <a href="#" class="logo"><div class="mark">D</div><div><strong>DEALYDALLY</strong><span class="logo-tagline">Profit Together</span></div></a>
+    <div class="links"><a href="#products">Products</a><a href="#creators">Creators</a><a href="#brands">Brands</a><a href="#how">How it works</a><a href="#" class="nav-cta">Get your code</a></div>
+  </nav>
+  <section class="hero">
+    <div>
+      <div class="hero-eyebrow">Word-of-mouth, but paid</div>
+      <h1>Get paid when<br><span class="accent">people you know</span> shop.</h1>
+      <p class="hero-sub">Friends. Family. Followers. If someone uses your code — you earn.<br><strong>Works for your group chat — or your audience.</strong></p>
+
+
+      <div class="hero-actions">
+        <a class="btn-primary" href="#creators">Get your code (early access) →</a>
+      </div>
+      <p class="hero-note">Just say a code.<br><strong>People already recommend products every day.</strong></p>
+    </div>
+    <div class="code-card">
+      <div class="code-top"><h3>Your code turns trust into earnings.</h3><span class="pill">Example</span></div>
+      <p style="color:var(--muted);line-height:1.55;margin:0">Say it. Text it. Post it. When people use it, they save — and you earn.</p>
+      <div class="code-display"><div class="label">Creator code</div><div class="code">PERRY</div></div>
+      <div class="mini-flow"><div class="mini"><b>Buyer saves</b><span>Discount applies at checkout</span></div><div class="mini"><b>Creator earns</b><span>Cash from eligible sales</span></div><div class="mini"><b>Brand pays</b><span>Only when a sale happens</span></div></div>
+    </div>
+  </section>
+
+
+  <section class="code-entry">
+    <div>
+      <h2>Use a code. Save instantly.</h2>
+      <p>Got a code from someone? Enter it here — discount applies now.</p>
+    </div>
+    <form class="code-form" onsubmit="event.preventDefault();showToast('Code applied: ' + document.getElementById('creatorCode').value.toUpperCase())">
+      <input id="creatorCode" placeholder="ENTER CODE" maxlength="18">
+      <button>Apply</button>
+    </form>
+  </section>
+  <div id="how" class="section-head"><h2>How it works</h2><div class="meta">One code · Any network</div></div>
+  <section class="hiw"><div class="hiw-steps"><div class="hiw-step"><div class="num">01</div><h3>Get your code</h3><p>One code works across eligible products. No setup. Works with codes and links.</p></div><div class="hiw-step"><div class="num">02</div><h3>Share it</h3><p>Say it. Text it. Post it. Send it to people who trust you.</p></div><div class="hiw-step"><div class="num">03</div><h3>Earn</h3><p>When they use your code at checkout, they save and you get paid.</p></div></div></section>
+  <div id="products" class="section-head"><h2>Recommend products. Earn on sales.</h2><div class="meta">Not cashback. Real earnings per purchase.</div></div>
+  <section class="grid">
+    <article class="product"><div class="product-img"><div class="reward-badge">Earn $2.10</div><img src="https://images.unsplash.com/photo-1612538498488-22d9f24b9476?w=600&q=80" alt="Whitening Toothpaste"></div><div class="product-body"><div class="product-cat">Personal Care</div><h4>Whitening Toothpaste — Mint Charcoal</h4><div class="price-row"><span class="price">$9.99</span><span class="price-was">$14.99</span></div><div class="actions"><button class="cart">Add to Cart</button><button class="share" onclick="scrollToCreators()">Share &amp; Earn</button></div></div></article>
+    <article class="product"><div class="product-img"><div class="reward-badge">Earn $5.25</div><img src="https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=600&q=80" alt="Skin Serum"></div><div class="product-body"><div class="product-cat">Skincare</div><h4>Skin Glow Serum — Vitamin C + Niacinamide</h4><div class="price-row"><span class="price">$24.99</span><span class="price-was">$34.00</span></div><div class="actions"><button class="cart">Add to Cart</button><button class="share" onclick="scrollToCreators()">Share &amp; Earn</button></div></div></article>
+    <article class="product"><div class="product-img"><div class="reward-badge">Earn $3.15</div><img src="https://images.unsplash.com/photo-1565538810643-b5bdb714032a?w=600&q=80" alt="LED Light Strip"></div><div class="product-body"><div class="product-cat">Home</div><h4>LED Light Strip — 16ft RGB Smart Kit</h4><div class="price-row"><span class="price">$14.99</span><span class="price-was">$22.99</span></div><div class="actions"><button class="cart">Add to Cart</button><button class="share" onclick="scrollToCreators()">Share &amp; Earn</button></div></div></article>
+    <article class="product"><div class="product-img"><div class="reward-badge">Earn $4.20</div><img src="https://images.unsplash.com/photo-1517344884509-a0c97ec11bcc?w=600&q=80" alt="Fitness Bands"></div><div class="product-body"><div class="product-cat">Fitness</div><h4>Resistance Bands — 5 Levels Set</h4><div class="price-row"><span class="price">$19.99</span><span class="price-was">$29.99</span></div><div class="actions"><button class="cart">Add to Cart</button><button class="share" onclick="scrollToCreators()">Share &amp; Earn</button></div></div></article>
+    <article class="product product--feature">
+      <div class="product-img">
+        <div class="reward-badge">Earn up to $525 per sale</div>
+        <span class="featured-tag">Featured · Premium</span>
+        <img src="https://images.unsplash.com/photo-1677442136019-21780ecad995?w=900&q=80" alt="AI Mastery Bootcamp">
+      </div>
+      <div class="product-body">
+        <div class="product-cat">Digital · AI Training</div>
+        <h4>AI Mastery Bootcamp — 12-Week Live Cohort</h4>
+        <p class="feature-line">Live cohort, weekly projects, lifetime access, certificate of completion. Built for working professionals shipping AI products in their day jobs.</p>
+        <div class="price-row"><span class="price">$2,500</span><span class="price-was">$3,200</span></div>
+        <div class="actions">
+          <button class="cart">Enroll now</button>
+          <button class="share" onclick="scrollToCreators()">Share &amp; Earn $525</button>
+        </div>
+      </div>
+    </article>
+  </section>
+  <section id="creators" class="tiktok-spot">
+    <div class="tiktok-inner">
+      <div class="tiktok-copy"><div class="tag">For everyone · creators included</div><h2>Say a code. <span class="grad">Get paid.</span></h2><p>Your code works anywhere — videos, messages, group chats, real life. When someone uses it, you earn.</p><ul class="feat"><li>You already recommend products — now it pays</li><li>Works for friends, family, or an audience</li><li>Cash payouts 30 days after each sale</li></ul><a href="#" class="btn-dark" onclick="showToast('Creator signup opening soon')">Get my code →</a></div>
+      <div class="modal-mock">
+        <div class="modal-head"><div class="modal-title">Share product</div><div class="modal-close">×</div></div>
+        <div class="product-line"><div class="product-thumb">🦷</div><div><div class="pname">Whitening Toothpaste — Mint Charcoal</div><div class="pprice">$9.99 · Reward pool 30%</div></div></div>
+        <div class="modal-tabs" role="tablist"><button class="modal-tab active" data-tab="anywhere" type="button"><span class="tdot"></span>Anywhere</button><button class="modal-tab" data-tab="tiktok" type="button"><span class="tdot"></span>TikTok</button></div>
+        <div class="preset-pick"><div class="label">Choose how you earn</div><div class="preset"><div><div class="pname">Max reach</div><div class="psub">Bigger discount, lower earn</div></div><div class="right">10% off<br>earn $0.60</div></div><div class="preset active"><div><div class="pname">Balanced</div><div class="psub">Best for most posts</div></div><div class="right">5% off<br>earn $1.50</div></div><div class="preset"><div><div class="pname">Max earnings</div><div class="psub">Smallest discount, highest earn</div></div><div class="right">3% off<br>earn $2.10</div></div></div>
+        <div class="code-display small"><div class="label">Your code — use this everywhere</div><div class="code">PERRY</div></div>
+        <div class="tab-pane active" data-pane="anywhere"><div class="caption-preview"><span class="clabel">Message preview</span>Use code <strong>PERRY</strong> for 5% off at dealydally.com</div><div class="modal-actions"><button class="act primary" onclick="showToast('Share link copied')">Copy share link</button><button class="act ghost" onclick="showToast('Caption copied')">Copy caption</button><button class="act ghost full" onclick="showToast('QR downloaded')">Download QR</button></div><div class="reminder"><span>◆</span><span>Link, caption, and QR ready. Paste anywhere — IG, WhatsApp, DMs, in person.</span></div></div>
+        <div class="tab-pane" data-pane="tiktok"><div class="caption-preview"><span class="clabel">TikTok caption</span>this actually works 👀 use code <strong>PERRY</strong> for a discount → dealydally.com</div><div class="modal-actions"><button class="act primary full" onclick="showToast('Opening TikTok…')">Open TikTok</button><button class="act ghost" onclick="showToast('QR downloaded')">Download QR</button><button class="act ghost" onclick="showToast('Caption copied')">Copy caption</button></div><div class="reminder"><span>◆</span><span>Caption copied. Paste it into your TikTok caption after recording.</span></div></div>
+        <div class="payout-note">Cash payout 30 days after sale</div>
+      </div>
+    </div>
+  </section>
+  <section id="brands" class="brand-banner"><div class="brand-banner-inner"><div><div class="tag">For brands · sellers · wholesalers</div><h2>Stop paying for ads.<br><span class="grad">Pay the people who drive sales.</span></h2><p>Turn word-of-mouth into a measurable sales channel. Only pay when a real purchase happens.</p><p style="font-size:14px;color:#bdb6ad;margin:0 0 28px;max-width:520px">Sell physical goods, digital downloads, AI training courses, ebooks, software, services, and virtual products.</p><a href="#" class="brand-cta">List your brand →</a></div><div class="compare"><div class="compare-row old"><span>✕</span><div class="label">Marketplace fees</div><div class="pct">-15%</div></div><div class="compare-row old"><span>✕</span><div class="label">Paid acquisition</div><div class="pct">-22%</div></div><div class="compare-row old"><span>✕</span><div class="label">Influencer fees</div><div class="pct">-8%</div></div><div class="compare-row new"><span>◆</span><div class="label">Customer rewards</div><div class="pct">+15%</div></div></div></div></section>
+  <section class="closing"><div class="closing-inner"><h2>Word-of-mouth, <span class="grad">finally paid.</span></h2><p>Brands don’t pay platforms. They reward people.</p><div style="margin-top:24px"><a class="btn-primary" href="#creators">Get your code →</a></div></div></section>
+  <footer><div class="foot"><div class="logo" style="flex-direction:column;align-items:flex-start;gap:14px"><div style="display:flex;gap:12px;align-items:center"><div class="mark">D</div><div><strong style="font-family:'Anton',sans-serif;font-size:24px">DEALYDALLY</strong><span class="logo-tagline">Profit Together</span></div></div><span style="font-size:13px;color:var(--muted);max-width:240px">A new way to buy and sell. Brands reward customers instead of algorithms.</span></div><div class="col"><strong>Shop</strong><a href="#">All categories</a><a href="#">New arrivals</a><a href="#">Best rewards</a></div><div class="col"><strong>Brands</strong><a href="#">Sell on DealyDally</a><a href="#">Brand portal</a><a href="#">Pricing</a></div><div class="col"><strong>Company</strong><a href="#">About</a><a href="#">Press</a><a href="#">Careers</a></div></div><div class="foot-bottom"><span>© 2026 DealyDally. All rights reserved.</span><span>Made for people. Paid by brands.</span></div></footer>
+  <div class="toast" id="toast">Copied</div>
+  <script>
+    function showToast(msg){
+      const toast=document.getElementById('toast');
+      toast.textContent=msg;
+      toast.classList.add('show');
+      setTimeout(()=>toast.classList.remove('show'),1800);
+    }
+    function scrollToCreators(){document.getElementById('creators').scrollIntoView({behavior:'smooth'});}
+    (function(){
+      const tabs=document.querySelectorAll('.modal-tab');
+      const panes=document.querySelectorAll('.tab-pane');
+      tabs.forEach(tab=>tab.addEventListener('click',()=>{
+        const target=tab.getAttribute('data-tab');
+        tabs.forEach(t=>t.classList.toggle('active',t===tab));
+        panes.forEach(p=>p.classList.toggle('active',p.getAttribute('data-pane')===target));
+      }));
+    })();
+  </script>
+</body>
+</html>
